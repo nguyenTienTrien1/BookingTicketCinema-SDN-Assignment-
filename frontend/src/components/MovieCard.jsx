@@ -17,6 +17,7 @@ import kitchen from '../assets/posters/the_legend_of_kitchen_soldier.jpg';
 import maze from '../assets/posters/the_maze_runner.jpg';
 import venom from '../assets/posters/venom.jpg';
 import wednesday from '../assets/posters/wednesday.jpg';
+import { translateGenre } from '../utils/uiText';
 
 const posters = {
     'if wishes could kill': wishes,
@@ -50,7 +51,7 @@ export default function MovieCard({ movie, onClick, onDetail }) {
                 <b>{movie.title}</b>
 
                 <span>
-                    {movie.genre?.slice(0, 2).join(' · ')} · {movie.duration}m
+                    {movie.genre?.slice(0, 2).map(translateGenre).join(' · ')} · {movie.duration} phút
                 </span>
 
                 <small>★ {movie.rating || '—'}</small>

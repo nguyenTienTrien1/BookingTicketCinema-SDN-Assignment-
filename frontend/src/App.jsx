@@ -122,9 +122,9 @@ function App() {
                     {page}
                     {user?.role === 'admin' && (
                         <div className="adminNav">
-                            <button onClick={() => setTab('create-account')}>Create Account</button>
-                            <button onClick={() => setTab('update-status')}>Account Status</button>
-                            <button onClick={() => setTab('adjust-points')}>Member Points</button>
+                            <button onClick={() => setTab('create-account')}>Tạo tài khoản</button>
+                            <button onClick={() => setTab('update-status')}>Trạng thái tài khoản</button>
+                            <button onClick={() => setTab('adjust-points')}>Điều chỉnh điểm</button>
                         </div>
                     )}
                     {msg && <div className="toast">{msg}</div>}

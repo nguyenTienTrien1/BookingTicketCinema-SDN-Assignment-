@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { createBooking } from '../../services/bookingService';
+import { translateFoodName, translateGenre } from '../../utils/uiText';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
 import usDead from '../../assets/posters/all_of_us_are_dead.jpg';
@@ -106,7 +107,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
         return (
             <section className="page">
                 <h2>Không có quyền đặt vé tại quầy</h2>
-                <p>Chỉ Admin và Staff mới được phép đặt vé trực tiếp tại quầy.</p>
+                <p>Chỉ quản trị viên và nhân viên mới được phép đặt vé trực tiếp tại quầy.</p>
                 <button type="button" className="primary" onClick={() => setTab('booking')}>
                     Về đặt vé trên app
                 </button>
@@ -308,7 +309,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                             <div className="movieScheduleInfo">
                                                 <h4>{movie.title}</h4>
                                                 <p className="movieMeta">
-                                                    {movie.ageLimit || 18}+ • {movie.genre?.join(', ') || 'Phim'} • {movie.duration || 120} phút
+                                                    {movie.ageLimit || 18}+ • {movie.genre?.map(translateGenre).join(', ') || 'Phim'} • {movie.duration || 120} phút
                                                 </p>
                                                 <button
                                                     type="button"
@@ -357,7 +358,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <div><span className="legendSeat vip"></span>Ghế VIP</div>
                             <div><span className="legendSeat chosen"></span>Đang chọn</div>
                         </div>
-                        <div className="screen">SCREEN</div>
+                        <div className="screen">MÀN HÌNH</div>
                         <div className="seats">
                             {currentShowtime.seats?.map((s) => {
                                 let seatClass = 'seat';
@@ -401,7 +402,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <input
                                 value={customerInfo.email}
                                 onChange={(e) => setCustomerInfo((prev) => ({ ...prev, email: e.target.value }))}
-                                placeholder="Email"
+                                placeholder="Địa chỉ email"
                             />
                             <div className="pointBox">
                                 <input
@@ -436,7 +437,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <p><strong>Rạp:</strong> {currentShowtime?.cinema || cinema}</p>
                             <p><strong>Suất chiếu:</strong> {currentShowtime ? new Date(currentShowtime.startTime).toLocaleString('vi-VN') : 'Chưa chọn'}</p>
                             <p><strong>Ghế:</strong> {seat.join(', ') || 'Chưa chọn'}</p>
-                            <p><strong>Bắp nước:</strong> {food.length ? food.map((f) => f.name).join(', ') : 'Không có'}</p>
+                            <p><strong>Bắp nước:</strong> {food.length ? food.map((f) => translateFoodName(f.name)).join(', ') : 'Không gọi thêm'}</p>
                             <p><strong>Điểm thưởng:</strong> {pointsToUse.toLocaleString()} điểm (-{pointsDiscount.toLocaleString()}₫)</p>
                             <p><strong>Tổng tạm tính:</strong> {subtotal.toLocaleString()}₫</p>
                             <p><strong>Giảm giá:</strong> {coupon === 'CINEMA10' ? '50.000₫' : '0₫'}</p>
@@ -459,8 +460,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                             )
                                         }
                                     >
-                                        {foodImages[f.name] && <img src={foodImages[f.name]} alt={f.name} />}
-                                        <span>{f.name}</span>
+                                        {foodImages[f.name] && <img src={foodImages[f.name]} alt={translateFoodName(f.name)} />}
+                                        <span>{translateFoodName(f.name)}</span>
                                         <b>{f.price?.toLocaleString()}₫</b>
                                     </button>
                                 );

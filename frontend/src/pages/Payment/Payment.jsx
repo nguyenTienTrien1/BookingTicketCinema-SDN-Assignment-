@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { applyPoints, payBooking } from '../../services/bookingService';
+import { translateFoodName } from '../../utils/uiText';
 
 const paymentMethods = [
     { id: 'vnpay', name: 'VNPay', description: 'Ví điện tử / ngân hàng' },
@@ -105,7 +106,7 @@ export default function Payment({ user, setUser, pending, onDone, setMsg, setTab
                     <div className="paymentResultIcon">✓</div>
                     <p className="bookingEyebrow">GIAO DỊCH MÔ PHỎNG HOÀN TẤT</p>
                     <h2>Thanh toán thành công</h2>
-                    <p>Đây là giao dịch demo, không có khoản tiền thật nào được thu.</p>
+                    <p>Đây là giao dịch mô phỏng, không có khoản tiền thật nào được thu.</p>
                     <div className="ticketCard">
                         <div className="ticketHeader">
                             <span>VÉ ĐIỆN TỬ</span>
@@ -117,7 +118,7 @@ export default function Payment({ user, setUser, pending, onDone, setMsg, setTab
                         <p><strong>Ngày:</strong> {booking.showtime ? new Date(booking.showtime.startTime).toLocaleString('vi-VN') : '—'}</p>
                         <p><strong>Ghế:</strong> {(booking.seats || []).join(', ')}</p>
                         <p><strong>Phương thức:</strong> {paymentMethods.find((method) => method.id === booking.paymentMethod)?.name || booking.paymentMethod}</p>
-                        <p><strong>Mã giao dịch:</strong> {booking.paymentRef || 'DEMO'}</p>
+                        <p><strong>Mã giao dịch:</strong> {booking.paymentRef || 'Mô phỏng'}</p>
                         <p><strong>Tổng tiền:</strong> {Number(booking.total || 0).toLocaleString()}₫</p>
                     </div>
                     <button type="button" className="primary full" onClick={onDone}>Hoàn tất</button>
@@ -213,7 +214,7 @@ export default function Payment({ user, setUser, pending, onDone, setMsg, setTab
                     <p><span>Suất chiếu</span><strong>{booking.showtime ? new Date(booking.showtime.startTime).toLocaleString('vi-VN') : '—'}</strong></p>
                     <p><span>Ghế</span><strong>{(booking.seats || []).join(', ') || '—'}</strong></p>
                     {booking.foodItems?.length > 0 && (
-                        <p><span>Bắp nước</span><strong>{booking.foodItems.map((item) => item.food?.name || 'Đồ ăn').join(', ')}</strong></p>
+                        <p><span>Bắp nước</span><strong>{booking.foodItems.map((item) => translateFoodName(item.food?.name || 'Đồ ăn')).join(', ')}</strong></p>
                     )}
                     <p><span>Tạm tính</span><strong>{Number(booking.subtotal || booking.total || 0).toLocaleString()}₫</strong></p>
                     {Number(booking.discount) > 0 && <p><span>Giảm từ điểm</span><strong>-{Number(booking.discount).toLocaleString()}₫</strong></p>}
@@ -239,7 +240,7 @@ export default function Payment({ user, setUser, pending, onDone, setMsg, setTab
                         <div className={`paymentModalIcon ${paymentMethod}`}>
                             {paymentMethod === 'credit-card' ? '▰' : paymentMethod === 'momo' ? 'M' : 'V'}
                         </div>
-                        <p className="bookingEyebrow">CỔNG THANH TOÁN DEMO</p>
+                        <p className="bookingEyebrow">CỔNG THANH TOÁN MÔ PHỎNG</p>
                         <h2 id="paymentModalTitle">Xác nhận giao dịch</h2>
                         <p className="paymentModalMethod">{paymentMethods.find((method) => method.id === paymentMethod)?.name}</p>
                         <strong className="paymentModalAmount">{Number(booking.total || 0).toLocaleString()}₫</strong>

@@ -17,6 +17,7 @@ import kitchen from '../../assets/posters/the_legend_of_kitchen_soldier.jpg';
 import maze from '../../assets/posters/the_maze_runner.jpg';
 import venom from '../../assets/posters/venom.jpg';
 import wednesday from '../../assets/posters/wednesday.jpg';
+import { translateGenre } from '../../utils/uiText';
 
 const posterMap = {
   'if wishes could kill': wishes,
@@ -98,7 +99,7 @@ export default function MovieDetail({ selected, movies, showtimes, setSelected, 
 
           <div className="movieMetaRow">
             <span>{movie.ageLimit || 18}+</span>
-            <span>{movie.genre?.join(' | ') || 'Phim'}</span>
+            <span>{movie.genre?.map(translateGenre).join(' | ') || 'Phim'}</span>
             <span>{movie.duration || 120} phút</span>
           </div>
 

@@ -1,2 +1,61 @@
-import {useState} from 'react'; import {createAccount} from '../../services/userService';
-export default function CreateAccount({setMsg}){const [form,setForm]=useState({fullName:'',email:'',phone:'',password:'',role:'Employee'}); async function submit(e){e.preventDefault();try{await createAccount(form);setMsg('Account created successfully');setForm({fullName:'',email:'',phone:'',password:'',role:'Employee'})}catch(e){setMsg(e.message)}} return <section className="page adminPage"><h2>Create Account</h2><form className="adminForm" onSubmit={submit}>{[['fullName','Full name'],['email','Email'],['phone','Phone'],['password','Password']].map(([k,p])=><input key={k} type={k==='password'?'password':'text'} placeholder={p} value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} required/>)}<select value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option>Employee</option><option>Admin</option><option>Member</option></select><button className="primary full">CREATE ACCOUNT</button></form></section>}
+import { useState } from 'react';
+import { createAccount } from '../../services/userService';
+
+const initialForm = { fullName: '', email: '', phone: '', password: '', role: 'employee' };
+
+export default function CreateAccount({ setMsg }) {
+    const [form, setForm] = useState(initialForm);
+
+    async function submit(event) {
+        event.preventDefault();
+        try {
+            await createAccount(form);
+            setMsg('Tạo tài khoản thành công.');
+            setForm(initialForm);
+        } catch (error) {
+            setMsg(error.message);
+        }
+    }
+
+    return (
+        <section className="page adminPage">
+            <h2>Tạo tài khoản</h2>
+            <form className="adminForm" onSubmit={submit}>
+                <input
+                    type="text"
+                    placeholder="Họ và tên"
+                    value={form.fullName}
+                    onChange={(event) => setForm({ ...form, fullName: event.target.value })}
+                    required
+                />
+                <input
+                    type="email"
+                    placeholder="Địa chỉ email"
+                    value={form.email}
+                    onChange={(event) => setForm({ ...form, email: event.target.value })}
+                    required
+                />
+                <input
+                    type="tel"
+                    placeholder="Số điện thoại"
+                    value={form.phone}
+                    onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                    required
+                />
+                <input
+                    type="password"
+                    placeholder="Mật khẩu"
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    required
+                />
+                <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
+                    <option value="employee">Nhân viên</option>
+                    <option value="admin">Quản trị viên</option>
+                    <option value="member">Thành viên</option>
+                </select>
+                <button className="primary full" type="submit">TẠO TÀI KHOẢN</button>
+            </form>
+        </section>
+    );
+}

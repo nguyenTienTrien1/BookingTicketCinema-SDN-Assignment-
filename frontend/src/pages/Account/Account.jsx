@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getBookings } from '../../services/bookingService';
+import { translateAccountStatus, translateFoodName } from '../../utils/uiText';
 
 function formatDate(value) {
     if (!value) return 'Chưa có thông tin';
@@ -93,7 +94,7 @@ export default function Account({ user, setTab, setPending }) {
                         <p>{user.email}</p>
                         <div className="accountProfileStats">
                             <span>Điểm thành viên <strong>{Number(user.memberPoints || 0).toLocaleString()}</strong></span>
-                            <span>Trạng thái <strong>{user.status === 'active' ? 'Đang hoạt động' : user.status}</strong></span>
+                            <span>Trạng thái <strong>{translateAccountStatus(user.status)}</strong></span>
                         </div>
                     </div>
                 </div>
@@ -115,7 +116,7 @@ export default function Account({ user, setTab, setPending }) {
                         const showtime = booking.showtime;
                         const movie = showtime?.movie;
                         const foods = (booking.foodItems || [])
-                            .map((item) => `${item.food?.name || 'Đồ ăn'}${item.quantity > 1 ? ` × ${item.quantity}` : ''}`)
+                            .map((item) => `${translateFoodName(item.food?.name || 'Đồ ăn')}${item.quantity > 1 ? ` × ${item.quantity}` : ''}`)
                             .join(', ');
 
                         return (
@@ -169,7 +170,7 @@ export default function Account({ user, setTab, setPending }) {
                                             <div className="myTicketQrPattern" aria-hidden="true">▦</div>
                                             <div>
                                                 <strong>Vé điện tử</strong>
-                                                <span>Dùng mã vé này để tra cứu và check-in tại rạp.</span>
+                                                <span>Dùng mã vé này để tra cứu và làm thủ tục vào rạp.</span>
                                                 {booking.paymentRef && <small>Mã giao dịch: {booking.paymentRef}</small>}
                                             </div>
                                         </div>

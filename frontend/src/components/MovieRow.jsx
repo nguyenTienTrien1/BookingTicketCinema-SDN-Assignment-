@@ -4,7 +4,7 @@ export default function MovieRow({ title, movies, onMovie, onDetail }) {
         <section className="section">
             <div className="sectionTitle">
                 <h2>{title}</h2>
-                <span>View all →</span>
+                <span>Xem tất cả →</span>
             </div>
             <div className="row">
                 {movies.map((movie) => (

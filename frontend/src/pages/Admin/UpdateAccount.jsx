@@ -1,2 +1,49 @@
-import {useEffect,useState} from 'react'; import {getUsers,updateStatus} from '../../services/userService';
-export default function UpdateAccount({setMsg}){const [users,setUsers]=useState([]); useEffect(()=>{getUsers().then(setUsers).catch(e=>setMsg(e.message))},[]); async function change(u,status){try{const x=await updateStatus(u._id,status);setUsers(v=>v.map(a=>a._id===u._id?x:a));setMsg('Account status updated')}catch(e){setMsg(e.message)}} return <section className="page"><h2>Update Account Status</h2><div className="adminList">{users.map(u=><div className="adminRow" key={u._id}><div><b>{u.fullName}</b><span>{u.email} · {u.role}</span></div><select value={u.status} onChange={e=>change(u,e.target.value)}><option>active</option><option>inactive</option><option>banned</option></select></div>)}</div></section>}
+import { useEffect, useState } from 'react';
+import { getUsers, updateStatus } from '../../services/userService';
+import { translateAccountStatus, translateRole } from '../../utils/uiText';
+
+const statuses = ['active', 'inactive', 'blocked'];
+
+export default function UpdateAccount({ setMsg }) {
+    const [users, setUsers] = useState([]);
+
+    useEffect(() => {
+        getUsers().then(setUsers).catch((error) => setMsg(error.message));
+    }, [setMsg]);
+
+    async function change(user, status) {
+        try {
+            const updated = await updateStatus(user._id, status);
+            setUsers((current) => current.map((item) => item._id === user._id ? updated : item));
+            setMsg('Đã cập nhật trạng thái tài khoản.');
+        } catch (error) {
+            setMsg(error.message);
+        }
+    }
+
+    return (
+        <section className="page">
+            <h2>Cập nhật trạng thái tài khoản</h2>
+            <div className="adminList">
+                {users.map((user) => (
+                    <div className="adminRow" key={user._id}>
+                        <div>
+                            <b>{user.fullName}</b>
+                            <span>{user.email} · {translateRole(user.role)}</span>
+                        </div>
+                        <select
+                            aria-label={`Trạng thái tài khoản ${user.fullName}`}
+                            value={user.status}
+                            onChange={(event) => change(user, event.target.value)}
+                        >
+                            {statuses.map((status) => (
+                                <option value={status} key={status}>{translateAccountStatus(status)}</option>
+                            ))}
+                        </select>
+                    </div>
+                ))}
+                {!users.length && <p>Chưa có tài khoản nào.</p>}
+            </div>
+        </section>
+    );
+}

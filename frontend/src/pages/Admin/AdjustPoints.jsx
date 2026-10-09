@@ -1,2 +1,52 @@
-import {useEffect,useState} from 'react'; import {getUsers,adjustPoints} from '../../services/userService';
-export default function AdjustPoints({setMsg}){const [users,setUsers]=useState([]),[values,setValues]=useState({}); useEffect(()=>{getUsers().then(setUsers).catch(e=>setMsg(e.message))},[]); async function submit(u){try{const x=await adjustPoints(u._id,Number(values[u._id]||0));setUsers(v=>v.map(a=>a._id===u._id?x:a));setMsg('Member points adjusted')}catch(e){setMsg(e.message)}} return <section className="page"><h2>Adjust Member Points</h2><div className="adminList">{users.filter(u=>u.role==='Member'||u.role==='member').map(u=><div className="adminRow" key={u._id}><div><b>{u.fullName}</b><span>Current points: {u.memberPoints||0}</span></div><div className="pointBox"><input type="number" value={values[u._id]||''} onChange={e=>setValues({...values,[u._id]:e.target.value})} placeholder="+ / - points"/><button onClick={()=>submit(u)}>UPDATE</button></div></div>)}</div></section>}
+import { useEffect, useState } from 'react';
+import { adjustPoints, getUsers } from '../../services/userService';
+
+export default function AdjustPoints({ setMsg }) {
+    const [users, setUsers] = useState([]);
+    const [values, setValues] = useState({});
+
+    useEffect(() => {
+        getUsers()
+            .then((result) => setUsers(result))
+            .catch((error) => setMsg(error.message));
+    }, [setMsg]);
+
+    async function submit(user) {
+        try {
+            const updated = await adjustPoints(user._id, Number(values[user._id] || 0));
+            setUsers((current) => current.map((item) => item._id === user._id ? updated : item));
+            setMsg('Đã điều chỉnh điểm thành viên.');
+        } catch (error) {
+            setMsg(error.message);
+        }
+    }
+
+    const members = users.filter((user) => String(user.role).toLowerCase() === 'member');
+
+    return (
+        <section className="page">
+            <h2>Điều chỉnh điểm thành viên</h2>
+            <div className="adminList">
+                {members.map((user) => (
+                    <div className="adminRow" key={user._id}>
+                        <div>
+                            <b>{user.fullName}</b>
+                            <span>Điểm hiện có: {Number(user.memberPoints || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="pointBox">
+                            <input
+                                type="number"
+                                value={values[user._id] || ''}
+                                onChange={(event) => setValues({ ...values, [user._id]: event.target.value })}
+                                placeholder="Số điểm (+/-)"
+                                aria-label={`Số điểm điều chỉnh cho ${user.fullName}`}
+                            />
+                            <button type="button" onClick={() => submit(user)}>CẬP NHẬT</button>
+                        </div>
+                    </div>
+                ))}
+                {!members.length && <p>Chưa có thành viên nào.</p>}
+            </div>
+        </section>
+    );
+}

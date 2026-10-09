@@ -55,16 +55,16 @@ async function releaseBookingSeats(showtimeId, bookingId, seats, status = 'avail
 
 export async function createBooking({ userId, showtimeId, seats, foodItems = [] }) {
   if (!Array.isArray(seats) || seats.length === 0) {
-    throw bookingError('Select at least one seat', 400);
+    throw bookingError('Vui lòng chọn ít nhất một ghế.', 400);
   }
 
   const requestedSeats = seats.map(String);
   if (new Set(requestedSeats).size !== requestedSeats.length) {
-    throw bookingError('The same seat cannot be selected more than once', 400);
+    throw bookingError('Không thể chọn một ghế nhiều lần.', 400);
   }
 
   const showtime = await Showtime.findById(showtimeId);
-  if (!showtime) throw bookingError('Showtime not found', 404);
+  if (!showtime) throw bookingError('Không tìm thấy suất chiếu.', 404);
 
   const now = new Date();
   await releaseExpiredSeats(showtimeId, now);
@@ -73,10 +73,10 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
   let foodTotal = 0;
   const normalizedFoodItems = foodItems.map((item) => {
     const food = foods.find((candidate) => String(candidate._id) === String(item.food));
-    if (!food) throw bookingError('Food item not found', 404);
+    if (!food) throw bookingError('Không tìm thấy món ăn hoặc thức uống.', 404);
     const quantity = Number(item.quantity);
     if (!Number.isInteger(quantity) || quantity < 1) {
-      throw bookingError('Food quantity must be a positive integer', 400);
+      throw bookingError('Số lượng món ăn phải là số nguyên dương.', 400);
     }
     foodTotal += food.price * quantity;
     return { food: food._id, quantity };
@@ -114,7 +114,7 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
   );
 
   if (claimResult.modifiedCount !== 1) {
-    throw bookingError('One or more selected seats are no longer available. Please choose different seats.', 409);
+    throw bookingError('Một hoặc nhiều ghế đã chọn không còn trống. Vui lòng chọn ghế khác.', 409);
   }
 
   try {
@@ -133,25 +133,25 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
 
 export async function applyMemberPoints(bookingId, userId, points) {
   if (!Number.isInteger(points) || points < 0) {
-    throw bookingError('Points must be a non-negative integer', 400);
+    throw bookingError('Điểm sử dụng phải là số nguyên không âm.', 400);
   }
 
   const booking = await Booking.findOne({ _id: bookingId, user: userId });
-  if (!booking) throw bookingError('Booking not found', 404);
-  if (booking.status !== 'pending') throw bookingError('Booking cannot be changed', 400);
+  if (!booking) throw bookingError('Không tìm thấy đơn đặt vé.', 404);
+  if (booking.status !== 'pending') throw bookingError('Không thể thay đổi đơn đặt vé này.', 400);
   if (!booking.expiresAt || booking.expiresAt <= new Date()) {
-    throw bookingError('The seat hold has expired. Please create a new booking.', 410);
+    throw bookingError('Thời gian giữ ghế đã hết. Vui lòng tạo đơn đặt vé mới.', 410);
   }
 
   const user = await User.findById(userId);
-  if (!user) throw bookingError('User not found', 404);
+  if (!user) throw bookingError('Không tìm thấy tài khoản.', 404);
   if (user.memberPoints < points) {
-    throw bookingError(`You only have ${user.memberPoints} member points available`, 400);
+    throw bookingError(`Bạn chỉ còn ${user.memberPoints} điểm thành viên.`, 400);
   }
 
   const maxRedeemablePoints = Math.floor(booking.subtotal / POINT_VALUE);
   if (points > maxRedeemablePoints) {
-    throw bookingError(`You can apply at most ${maxRedeemablePoints} points to this booking`, 400);
+    throw bookingError(`Đơn này chỉ có thể sử dụng tối đa ${maxRedeemablePoints} điểm.`, 400);
   }
 
   const now = new Date();
@@ -167,14 +167,14 @@ export async function applyMemberPoints(bookingId, userId, points) {
     { new: true }
   );
   if (!updatedBooking) {
-    throw bookingError('This booking changed or the seat hold expired. Refresh and try again.', 409);
+    throw bookingError('Đơn đặt vé đã thay đổi hoặc thời gian giữ ghế đã hết. Vui lòng tải lại và thử lại.', 409);
   }
   return updatedBooking;
 }
 
 export async function pay(bookingId, userId, method = 'mock') {
   const booking = await Booking.findOne({ _id: bookingId, user: userId });
-  if (!booking) throw bookingError('Booking not found', 404);
+  if (!booking) throw bookingError('Không tìm thấy đơn đặt vé.', 404);
   if (booking.status === 'paid') {
     return booking.populate([
       { path: 'showtime', populate: { path: 'movie' } },
@@ -182,7 +182,7 @@ export async function pay(bookingId, userId, method = 'mock') {
       { path: 'user', select: 'fullName email role memberPoints status' }
     ]);
   }
-  if (booking.status !== 'pending') throw bookingError('This booking is no longer payable', 400);
+  if (booking.status !== 'pending') throw bookingError('Đơn đặt vé này không còn ở trạng thái có thể thanh toán.', 400);
 
   const now = new Date();
   if (!booking.expiresAt || booking.expiresAt <= now) {
@@ -191,7 +191,7 @@ export async function pay(bookingId, userId, method = 'mock') {
       { _id: booking._id, status: 'pending' },
       { $set: { status: 'cancelled', paymentStatus: 'failed' } }
     );
-    throw bookingError('The 10-minute seat hold has expired. Please select your seats again.', 410);
+    throw bookingError('Thời gian giữ ghế 10 phút đã hết. Vui lòng chọn lại ghế.', 410);
   }
 
   const pointDeduction = booking.pointsUsed || 0;
@@ -201,7 +201,7 @@ export async function pay(bookingId, userId, method = 'mock') {
       { $inc: { memberPoints: -pointDeduction } }
     );
     if (deduction.modifiedCount !== 1) {
-      throw bookingError('Your available points have changed. Update or remove the points applied to this booking, then try again.', 409);
+      throw bookingError('Số điểm hiện có đã thay đổi. Vui lòng cập nhật hoặc bỏ số điểm đã áp dụng rồi thử lại.', 409);
     }
   }
 
@@ -234,7 +234,7 @@ export async function pay(bookingId, userId, method = 'mock') {
     if (pointDeduction > 0) {
       await User.updateOne({ _id: userId }, { $inc: { memberPoints: pointDeduction } });
     }
-    throw bookingError('The seat hold expired or the seats are no longer reserved for this booking. Please book again.', 409);
+    throw bookingError('Thời gian giữ ghế đã hết hoặc ghế không còn được giữ cho đơn này. Vui lòng đặt vé lại.', 409);
   }
 
   const paidBooking = await Booking.findOneAndUpdate(
@@ -255,7 +255,7 @@ export async function pay(bookingId, userId, method = 'mock') {
     if (pointDeduction > 0) {
       await User.updateOne({ _id: userId }, { $inc: { memberPoints: pointDeduction } });
     }
-    throw bookingError('This booking changed while payment was processing. Please refresh and try again.', 409);
+    throw bookingError('Đơn đặt vé đã thay đổi trong lúc xử lý thanh toán. Vui lòng tải lại và thử lại.', 409);
   }
 
   return paidBooking.populate([

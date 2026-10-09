@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { createBooking } from '../../services/bookingService';
+import { translateFoodName, translateGenre } from '../../utils/uiText';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
 import usDead from '../../assets/posters/all_of_us_are_dead.jpg';
@@ -337,7 +338,7 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                             <div className="movieScheduleInfo">
                                                 <h4>{movie.title}</h4>
                                                 <p className="movieMeta">
-                                                    {movie.ageLimit || 18}+ • {movie.genre?.join(', ') || 'Phim'} • {movie.duration || 120} phút
+                                                    {movie.ageLimit || 18}+ • {movie.genre?.map(translateGenre).join(', ') || 'Phim'} • {movie.duration || 120} phút
                                                 </p>
                                                 <button
                                                     type="button"
@@ -396,7 +397,7 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                             <div><span className="legendSeat vip"></span>Ghế VIP</div>
                             <div><span className="legendSeat chosen"></span>Đang chọn</div>
                         </div>
-                        <div className="screen">SCREEN</div>
+                        <div className="screen">MÀN HÌNH</div>
                         <div className="seats">
                             {currentShowtime.seats?.map((s) => {
                                 let seatClass = 'seat';
@@ -454,7 +455,7 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                         aria-pressed={isChosen}
                                     >
                                         {foodImages[f.name] && <img src={foodImages[f.name]} alt="" />}
-                                        <span>{f.name}</span>
+                                        <span>{translateFoodName(f.name)}</span>
                                         <b>{f.price?.toLocaleString()}₫</b>
                                         <small>{isChosen ? 'Đã thêm ✓' : 'Chạm để thêm'}</small>
                                     </button>
@@ -499,7 +500,7 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                 </div>
                                 {food.length ? food.map((item) => (
                                     <div className="summaryPriceRow" key={item._id}>
-                                        <span>{item.name} (×1)</span>
+                                        <span>{translateFoodName(item.name)} (×1)</span>
                                         <strong>{Number(item.price || 0).toLocaleString()}₫</strong>
                                     </div>
                                 )) : (

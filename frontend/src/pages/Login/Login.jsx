@@ -24,7 +24,7 @@ export default function Login({ setUser, setTab, setMsg, onLoginSuccess, onCance
                 <p>Đăng nhập để tiếp tục đặt vé và quản lý vé của bạn.</p>
                 <input
                     type="email"
-                    placeholder="Email"
+                    placeholder="Địa chỉ email"
                     value={form.email}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
                     required
@@ -37,7 +37,7 @@ export default function Login({ setUser, setTab, setMsg, onLoginSuccess, onCance
                     required
                 />
                 <button className="primary full" type="submit">Đăng nhập</button>
-                <p className="loginHint">Demo: member@cinema.com / 123456</p>
+                <p className="loginHint">Tài khoản dùng thử: member@cinema.com / 123456</p>
                 <button
                     className="textButton"
                     type="button"

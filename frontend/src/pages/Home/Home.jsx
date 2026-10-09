@@ -17,16 +17,16 @@ export default function Home({ movies, showtimes, setSelected, setTab }) {
         <>
             <section className="hero" style={{ backgroundImage: `linear-gradient(90deg,#08090c 8%,rgba(8,9,12,.72) 40%,rgba(8,9,12,.15)),url('${hero?.banner || fallback}')` }}>
                 <div className="heroText">
-                    <span className="eyebrow">NOW SHOWING</span>
-                    <h1>{hero?.title || 'Cinema Experience'}</h1>
-                    <p>{hero?.description || 'Discover the latest movies and reserve your seats in seconds.'}</p>
+                    <span className="eyebrow">ĐANG KHỞI CHIẾU</span>
+                    <h1>{hero?.title || 'Trải nghiệm điện ảnh'}</h1>
+                    <p>{hero?.description || 'Khám phá phim mới và đặt chỗ chỉ trong vài giây.'}</p>
                     <div>
-                        <button className="primary" onClick={() => { setSelected(showtimes[0]); setTab('booking'); }}>BOOK NOW</button>
-                        <button className="ghost" onClick={() => setTab('movies')}>EXPLORE MOVIES</button>
+                        <button className="primary" onClick={() => { setSelected(showtimes[0]); setTab('booking'); }}>ĐẶT VÉ NGAY</button>
+                        <button className="ghost" onClick={() => setTab('movies')}>KHÁM PHÁ PHIM</button>
                     </div>
                 </div>
             </section>
-            <MovieRow title="Trends Now" movies={movies} onMovie={choose} onDetail={showDetails} />
+            <MovieRow title="Phim nổi bật" movies={movies} onMovie={choose} onDetail={showDetails} />
             <MovieExplorer movies={movies} setSelected={setSelected} setTab={setTab} compact />
         </>
     );

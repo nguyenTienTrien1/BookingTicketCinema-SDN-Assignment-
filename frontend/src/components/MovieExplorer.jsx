@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MovieCard from './MovieCard';
+import { translateGenre } from '../utils/uiText';
 
 export default function MovieExplorer({ movies, setSelected, setTab, compact = false }) {
     const [search, setSearch] = useState('');
@@ -70,7 +71,7 @@ export default function MovieExplorer({ movies, setSelected, setTab, compact = f
                     <span>Thể loại</span>
                     <select value={genre} onChange={(event) => setGenre(event.target.value)}>
                         <option value="">Tất cả thể loại</option>
-                        {genres.map((item) => <option value={item} key={item}>{item}</option>)}
+                        {genres.map((item) => <option value={item} key={item}>{translateGenre(item)}</option>)}
                     </select>
                 </label>
                 <label>
