@@ -1,0 +1,1 @@
+import {Router} from 'express';import * as c from '../controllers/userController.js';const r=Router();r.get('/',c.list);r.post('/',c.create);r.patch('/:id/status',c.status);r.patch('/:id/points',c.points);export default r;

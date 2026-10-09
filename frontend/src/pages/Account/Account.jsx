@@ -1,0 +1,1 @@
+export default function Account({user,setTab}){return <section className="page"><h2>My Account</h2>{user?<div className="account"><h3>{user.fullName}</h3><p>{user.email}</p><p>Points: <b>{user.memberPoints}</b></p><p>Status: <b>{user.status}</b></p></div>:<button className="primary" onClick={()=>setTab('login')}>LOGIN</button>}</section>}
