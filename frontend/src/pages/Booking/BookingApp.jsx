@@ -55,7 +55,7 @@ const foodImages = {
     'Sprite': sprite
 };
 
-const flowSteps = ['Chọn rạp', 'Chọn suất chiếu', 'Chọn ghế', 'Thông tin', 'Thanh toán'];
+const flowSteps = ['Chọn rạp', 'Phim & suất chiếu', 'Chọn ghế', 'Bắp nước', 'Xác nhận'];
 
 const posterMap = {
     'if wishes could kill': wishes,
@@ -86,20 +86,13 @@ function getPoster(movie) {
     return source || '';
 }
 
-export default function BookingApp({ user, selected, showtimes, foods, movies, setTab, setMsg, setPending }) {
+export default function BookingApp({ user, selected, showtimes, foods, movies, setTab, setMsg, setPending, onRequireBookingLogin }) {
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
-    const [step, setStep] = useState(0);
-    const [cinema, setCinema] = useState('');
+    const [step, setStep] = useState(selected?.startTime ? 2 : 0);
+    const [cinema, setCinema] = useState(selected?.cinema || '');
     const [movieId, setMovieId] = useState(selected?.movie?._id || selected?._id || '');
     const [showtimeId, setShowtimeId] = useState(selected?._id || '');
-    const [coupon, setCoupon] = useState('');
-    const [customerInfo, setCustomerInfo] = useState({
-        fullName: user?.fullName || '',
-        email: user?.email || '',
-        phone: user?.phone || ''
-    });
-
     const cinemaOptions = useMemo(() => [...new Set(showtimes.map((s) => s.cinema).filter(Boolean))], [showtimes]);
 
     const moviesForCinema = useMemo(() => {
@@ -124,9 +117,10 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
         return showtimes.find((s) => s._id === showtimeId) || null;
     }, [showtimeId, showtimes]);
 
-    const subtotal = (currentShowtime?.price || 0) * seat.length + food.reduce((sum, item) => sum + (item.price || 0), 0);
-    const totalAfterCoupon = coupon === 'CINEMA10' ? Math.max(0, subtotal - 50000) : subtotal;
-
+    const ticketPrice = Number(currentShowtime?.price || 0);
+    const ticketSubtotal = ticketPrice * seat.length;
+    const foodSubtotal = food.reduce((sum, item) => sum + Number(item.price || 0), 0);
+    const subtotal = ticketSubtotal + foodSubtotal;
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
         return showtimes.filter((s) => {
@@ -192,11 +186,6 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
             setMsg('Vui lòng chọn ít nhất một ghế.');
             return;
         }
-        if (step === 3 && (!customerInfo.fullName || !customerInfo.phone)) {
-            setMsg('Vui lòng nhập tên và số điện thoại khách hàng.');
-            return;
-        }
-
         setStep((prev) => Math.min(prev + 1, flowSteps.length - 1));
     }
 
@@ -226,26 +215,86 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
         }
     }
 
+    if (!user) {
+        return (
+            <section className="page bookingAuthPage">
+                <div className="bookingAuthCard">
+                    <div className="bookingAuthIcon" aria-hidden="true">+</div>
+                    <p className="bookingEyebrow">CINEMA+ · ĐẶT VÉ TRỰC TUYẾN</p>
+                    <h2>Đăng nhập để bắt đầu đặt vé</h2>
+                    <p>Đăng nhập để chọn suất chiếu, giữ ghế và xem lại vé trong tài khoản của bạn.</p>
+                    <button type="button" className="primary" onClick={onRequireBookingLogin}>
+                        Đăng nhập ngay
+                    </button>
+                    <button type="button" className="textButton" onClick={() => setTab('movies')}>
+                        Khám phá phim trước
+                    </button>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="page">
-            <h2>Đặt vé trên app</h2>
-            <div className="booking">
+            <div className="bookingPageHeading">
+                <p className="bookingEyebrow">CINEMA+ · ĐẶT VÉ TRỰC TUYẾN</p>
+                <h2>Đặt vé trên app</h2>
+                <p>Chọn suất chiếu, ghế ngồi và bắp nước yêu thích của bạn.</p>
+            </div>
+            <div className="booking appBooking">
                 <div className="bookingFlow">
                     {flowSteps.map((label, index) => (
                         <button
                             key={label}
                             type="button"
                             className={step === index ? 'activeStep' : index < step ? 'doneStep' : ''}
-                            onClick={() => setStep(index)}
+                            onClick={() => index <= step && setStep(index)}
+                            disabled={index > step}
+                            aria-current={step === index ? 'step' : undefined}
                         >
-                            {index + 1}. {label}
+                            <span className="stepNumber">{index < step ? '✓' : index + 1}</span>
+                            <span>{label}</span>
                         </button>
                     ))}
                 </div>
 
+                <div className="bookingSelectionBar">
+                    <div className="bookingSelectionMovie">
+                        {currentMovie && <img src={getPoster(currentMovie)} alt="" />}
+                        <div>
+                            <span>ĐANG ĐẶT VÉ</span>
+                            <strong>{currentMovie?.title || 'Chưa chọn phim'}</strong>
+                            <small>{cinema || 'Chưa chọn rạp'}{currentShowtime?.room ? ` · ${currentShowtime.room}` : ''}</small>
+                        </div>
+                    </div>
+                    <div className="bookingSelectionStat">
+                        <span>Suất chiếu</span>
+                        <strong>
+                            {currentShowtime
+                                ? new Date(currentShowtime.startTime).toLocaleString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                : 'Chưa chọn'}
+                        </strong>
+                    </div>
+                    <div className="bookingSelectionStat">
+                        <span>Ghế đã chọn</span>
+                        <strong>{seat.length ? seat.join(', ') : 'Chưa chọn'}</strong>
+                    </div>
+                    <div className="bookingSelectionTotal">
+                        <span>Tạm tính</span>
+                        <strong>{subtotal.toLocaleString()}₫</strong>
+                    </div>
+                </div>
+
                 {step === 0 && (
                     <div className="checkoutSection">
-                        <h3>1. Chọn rạp chiếu</h3>
+                        <div className="checkoutStepHeading">
+                            <div>
+                                <p className="bookingEyebrow">BƯỚC 1 / 5</p>
+                                <h3>Chọn rạp chiếu</h3>
+                                <p className="bookingStepDescription">Chọn địa điểm thuận tiện, sau đó khám phá phim và suất chiếu đang mở bán.</p>
+                            </div>
+                            <span className="optionalBadge">{cinemaOptions.length} rạp</span>
+                        </div>
                         <div className="selectorGrid cinemaGrid">
                             {cinemaOptions.map((option) => (
                                 <button
@@ -263,13 +312,21 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                     {option}
                                 </button>
                             ))}
+                            {!cinemaOptions.length && <p className="bookingEmptyState">Hiện chưa có rạp hoặc suất chiếu nào khả dụng.</p>}
                         </div>
                     </div>
                 )}
 
                 {step === 1 && cinema && (
                     <div className="checkoutSection">
-                        <h3>2. Danh sách phim tại {cinema}</h3>
+                        <div className="checkoutStepHeading">
+                            <div>
+                                <p className="bookingEyebrow">BƯỚC 2 / 5 · {cinema}</p>
+                                <h3>Chọn phim và suất chiếu</h3>
+                                <p className="bookingStepDescription">Chọn khung giờ phù hợp để tiếp tục chọn ghế.</p>
+                            </div>
+                            <button type="button" className="bookingChangeLink" onClick={() => setStep(0)}>Đổi rạp</button>
+                        </div>
                         <div className="cinemaMovieList">
                             {moviesForCinema.map((movie) => {
                                 const movieShowtimes = getMovieShowtimes(movie);
@@ -308,20 +365,30 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                                     }}
                                                 >
                                                     <span>{new Date(showtime.startTime).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    <small>{showtime.room}</small>
+                                                    <small>{new Date(showtime.startTime).toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short' })} · {showtime.room}</small>
+                                                    <small>{Number(showtime.price || 0).toLocaleString()}₫ / vé</small>
                                                 </button>
                                             ))}
+                                            {!movieShowtimes.length && <p className="bookingEmptyState">Phim này chưa có suất chiếu tại rạp đã chọn.</p>}
                                         </div>
                                     </div>
                                 );
                             })}
+                            {!moviesForCinema.length && <p className="bookingEmptyState">Chưa có phim đang chiếu tại rạp này.</p>}
                         </div>
                     </div>
                 )}
 
                 {step === 2 && currentShowtime && (
                     <div className="checkoutSection">
-                        <h3>3. Chọn ghế ngồi</h3>
+                        <div className="checkoutStepHeading">
+                            <div>
+                                <p className="bookingEyebrow">BƯỚC 3 / 5 · {currentShowtime.room}</p>
+                                <h3>Chọn ghế ngồi</h3>
+                                <p className="bookingStepDescription">Chạm vào ghế trống để chọn hoặc bỏ chọn. Giá vé sẽ được cập nhật bên dưới.</p>
+                            </div>
+                            <span className="optionalBadge">{Number(currentShowtime.price || 0).toLocaleString()}₫ / vé</span>
+                        </div>
                         <div className="seatLegend">
                             <div><span className="legendSeat available"></span>Ghế trống</div>
                             <div><span className="legendSeat booked"></span>Ghế đã đặt</div>
@@ -353,50 +420,22 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                 );
                             })}
                         </div>
+                        <p className="seatSelectionHint">
+                            {seat.length ? `${seat.length} ghế đã chọn · ${(currentShowtime.price * seat.length).toLocaleString()}₫` : 'Chọn một hoặc nhiều ghế để tiếp tục.'}
+                        </p>
                     </div>
                 )}
 
                 {step === 3 && (
                     <div className="checkoutSection">
-                        <h3>4. Kiểm tra thông tin khách hàng</h3>
-                        <div className="checkoutForm">
-                            <input
-                                value={customerInfo.fullName}
-                                onChange={(e) => setCustomerInfo((prev) => ({ ...prev, fullName: e.target.value }))}
-                                placeholder="Họ tên khách hàng"
-                            />
-                            <input
-                                value={customerInfo.phone}
-                                onChange={(e) => setCustomerInfo((prev) => ({ ...prev, phone: e.target.value }))}
-                                placeholder="Số điện thoại"
-                            />
-                            <input
-                                value={customerInfo.email}
-                                onChange={(e) => setCustomerInfo((prev) => ({ ...prev, email: e.target.value }))}
-                                placeholder="Email"
-                            />
+                        <div className="checkoutStepHeading">
+                            <div>
+                                <p className="bookingEyebrow">BƯỚC 4 / 5</p>
+                                <h3>Thêm bắp nước cho buổi xem phim</h3>
+                            </div>
+                            <span className="optionalBadge">Không bắt buộc</span>
                         </div>
-                        <div className="couponBox">
-                            <input value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Mã giảm giá (nếu có)" />
-                            <button type="button" onClick={() => setCoupon('CINEMA10')}>Áp dụng</button>
-                        </div>
-                    </div>
-                )}
-
-                {step === 4 && (
-                    <div className="checkoutSection">
-                        <h3>5. Thanh toán</h3>
-                        <div className="summaryCard">
-                            <p><strong>Phim:</strong> {currentMovie?.title || 'Chưa chọn phim'}</p>
-                            <p><strong>Rạp:</strong> {currentShowtime?.cinema || cinema}</p>
-                            <p><strong>Suất chiếu:</strong> {currentShowtime ? new Date(currentShowtime.startTime).toLocaleString('vi-VN') : 'Chưa chọn'}</p>
-                            <p><strong>Ghế:</strong> {seat.join(', ') || 'Chưa chọn'}</p>
-                            <p><strong>Bắp nước:</strong> {food.length ? food.map((f) => f.name).join(', ') : 'Không có'}</p>
-                            <p><strong>Tổng tạm tính:</strong> {subtotal.toLocaleString()}₫</p>
-                            <p><strong>Giảm giá:</strong> {coupon === 'CINEMA10' ? '50.000₫' : '0₫'}</p>
-                            <p><strong>Thành tiền:</strong> {totalAfterCoupon.toLocaleString()}₫</p>
-                        </div>
-
+                        <p className="helperText">Bạn có thể bỏ qua nếu không muốn gọi thêm đồ ăn.</p>
                         <div className="food">
                             {foods.map((f) => {
                                 const isChosen = food.some((x) => x._id === f._id);
@@ -406,33 +445,92 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                         type="button"
                                         className={isChosen ? 'foodItem chosen' : 'foodItem'}
                                         onClick={() =>
-                                            setFood((x) =>
-                                                x.some((a) => a._id === f._id)
-                                                    ? x.filter((a) => a._id !== f._id)
-                                                    : [...x, f]
+                                            setFood((items) =>
+                                                items.some((item) => item._id === f._id)
+                                                    ? items.filter((item) => item._id !== f._id)
+                                                    : [...items, f]
                                             )
                                         }
+                                        aria-pressed={isChosen}
                                     >
-                                        {foodImages[f.name] && <img src={foodImages[f.name]} alt={f.name} />}
+                                        {foodImages[f.name] && <img src={foodImages[f.name]} alt="" />}
                                         <span>{f.name}</span>
                                         <b>{f.price?.toLocaleString()}₫</b>
+                                        <small>{isChosen ? 'Đã thêm ✓' : 'Chạm để thêm'}</small>
                                     </button>
                                 );
                             })}
                         </div>
-
-                        <button type="button" className="primary full" onClick={book}>Thanh toán ngay</button>
+                        <div className="bookingActions">
+                            <button type="button" className="ghost" onClick={goBack}>Quay lại</button>
+                            <button type="button" className="primary" onClick={goNext}>Tiếp tục</button>
+                        </div>
                     </div>
                 )}
 
-                <div className="bookingActions">
+                {step === 4 && (
+                    <div className="checkoutSection">
+                        <div className="checkoutStepHeading">
+                            <div>
+                                <p className="bookingEyebrow">BƯỚC 5 / 5</p>
+                                <h3>Xác nhận thông tin vé</h3>
+                            </div>
+                            <span className="accountBadge">Đặt vé với {user.fullName}</span>
+                        </div>
+                        <div className="summaryCard">
+                            <div className="summaryMovie">
+                                {currentMovie && <img src={getPoster(currentMovie)} alt="" />}
+                                <div>
+                                    <span className="summaryLabel">PHIM</span>
+                                    <strong>{currentMovie?.title || 'Chưa chọn phim'}</strong>
+                                    <span>{currentShowtime?.cinema || cinema}</span>
+                                </div>
+                            </div>
+                            <div className="summaryDetails">
+                                <p><span>Suất chiếu</span><strong>{currentShowtime ? new Date(currentShowtime.startTime).toLocaleString('vi-VN') : 'Chưa chọn'}</strong></p>
+                                <p><span>Phòng</span><strong>{currentShowtime?.room || '—'}</strong></p>
+                                <p><span>Ghế</span><strong>{seat.join(', ') || 'Chưa chọn'}</strong></p>
+                            </div>
+                            <div className="summaryPriceBreakdown">
+                                <h4>Chi tiết giá</h4>
+                                <div className="summaryPriceRow">
+                                    <span>Vé xem phim ({ticketPrice.toLocaleString()}₫ × {seat.length} ghế)</span>
+                                    <strong>{ticketSubtotal.toLocaleString()}₫</strong>
+                                </div>
+                                {food.length ? food.map((item) => (
+                                    <div className="summaryPriceRow" key={item._id}>
+                                        <span>{item.name} (×1)</span>
+                                        <strong>{Number(item.price || 0).toLocaleString()}₫</strong>
+                                    </div>
+                                )) : (
+                                    <div className="summaryPriceRow">
+                                        <span>Bắp nước</span>
+                                        <strong>Không gọi thêm</strong>
+                                    </div>
+                                )}
+                                <div className="summaryPriceRow summaryFoodSubtotal">
+                                    <span>Tổng bắp nước</span>
+                                    <strong>{foodSubtotal.toLocaleString()}₫</strong>
+                                </div>
+                            </div>
+                            <div className="summaryTotal">
+                                <span>Tổng thanh toán</span>
+                                <strong>{subtotal.toLocaleString()}₫</strong>
+                            </div>
+                        </div>
+                        <p className="accountNotice">Thông tin khách hàng sẽ được lấy từ tài khoản của bạn. Không cần nhập lại.</p>
+                        <button type="button" className="primary full" onClick={book}>Tạo đơn và chọn thanh toán</button>
+                    </div>
+                )}
+
+                {step < 3 && <div className="bookingActions">
                     {step > 0 && (
                         <button type="button" className="ghost" onClick={goBack}>Quay lại</button>
                     )}
                     {step < flowSteps.length - 1 && (
                         <button type="button" className="primary" onClick={goNext}>Tiếp tục</button>
                     )}
-                </div>
+                </div>}
             </div>
         </section>
     );

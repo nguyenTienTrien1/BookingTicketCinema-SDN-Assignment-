@@ -1,2 +1,9 @@
-import {useMemo,useState} from 'react'; import MovieCard from '../../components/MovieCard';
-export default function Movies({movies,setSelected,setTab}){const genres=useMemo(()=>[...new Set(movies.flatMap(m=>m.genre||[]))], [movies]); const [filter,setFilter]=useState('All'); const list=filter==='All'?movies:movies.filter(m=>(m.genre||[]).includes(filter)); return <section className="page"><h2>Movies</h2><div className="chips"><button className={filter==='All'?'active':''} onClick={()=>setFilter('All')}>All</button>{genres.map(g=><button className={filter===g?'active':''} onClick={()=>setFilter(g)} key={g}>{g}</button>)}</div><div className="grid">{list.map((m,i)=><MovieCard key={m._id} movie={m} index={i} onClick={()=>{setSelected(m);setTab('booking')}}/>)}</div></section>}
+import MovieExplorer from '../../components/MovieExplorer';
+
+export default function Movies({ movies, setSelected, setTab }) {
+    return (
+        <section className="page">
+            <MovieExplorer movies={movies} setSelected={setSelected} setTab={setTab} />
+        </section>
+    );
+}

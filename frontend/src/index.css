@@ -851,6 +851,1886 @@ button {
     margin-top: 18px;
 }
 
+.appBooking .bookingFlow {
+    position: relative;
+    gap: 10px;
+    padding: 4px 0 22px;
+}
+
+.appBooking .bookingFlow button {
+    min-height: 54px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    color: #aeb1ba;
+    background: #14161c;
+    border: 1px solid #292c35;
+}
+
+.appBooking .bookingFlow button:not(:disabled):hover {
+    border-color: #7b3037;
+    color: #fff;
+}
+
+.appBooking .bookingFlow .activeStep {
+    color: #fff;
+    background: linear-gradient(135deg, #e91e2b, #a80e19);
+    border-color: #ed313b;
+}
+
+.appBooking .bookingFlow .doneStep {
+    color: #ffc9cd;
+    background: #251518;
+    border-color: #61252c;
+}
+
+.appBooking .stepNumber {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    background: rgb(255 255 255 / 12%);
+}
+
+.bookingSelectionBar {
+    display: grid;
+    grid-template-columns: minmax(210px, 1.5fr) minmax(150px, 1fr) minmax(140px, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    margin: 4px 0 26px;
+    padding: 14px 16px;
+    background: linear-gradient(110deg, #1b1d25, #14161c);
+    border: 1px solid #2d303a;
+    border-radius: 13px;
+}
+
+.bookingSelectionMovie {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 12px;
+}
+
+.bookingSelectionMovie img {
+    width: 42px;
+    height: 58px;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border-radius: 7px;
+}
+
+.bookingSelectionMovie div,
+.bookingSelectionStat,
+.bookingSelectionTotal {
+    display: grid;
+    min-width: 0;
+    gap: 5px;
+}
+
+.bookingSelectionMovie div > span,
+.bookingSelectionStat > span,
+.bookingSelectionTotal > span {
+    color: #8f929d;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.bookingSelectionMovie strong,
+.bookingSelectionStat strong {
+    overflow: hidden;
+    color: #f4f4f6;
+    font-size: .88rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bookingSelectionMovie small {
+    overflow: hidden;
+    color: #a4a6b0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bookingSelectionTotal {
+    padding-left: 16px;
+    border-left: 1px solid #343741;
+}
+
+.bookingSelectionTotal strong {
+    color: #ff646d;
+    font-size: 1.15rem;
+    white-space: nowrap;
+}
+
+.bookingStepDescription {
+    margin: 0;
+    color: #a3a5ad;
+    font-size: .9rem;
+    line-height: 1.5;
+}
+
+.bookingChangeLink {
+    padding: 9px 13px;
+    color: #ffd3d6;
+    background: #2a171b;
+    border: 1px solid #51232a;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.bookingChangeLink:hover {
+    background: #3a1b20;
+}
+
+.bookingEmptyState {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 24px;
+    color: #aaadb6;
+    text-align: center;
+    background: #15171d;
+    border: 1px dashed #3a3d47;
+    border-radius: 12px;
+}
+
+.appBooking .cinemaGrid .selector {
+    position: relative;
+    min-height: 100px;
+    align-content: center;
+    padding: 20px 18px 20px 52px;
+    color: #f4f4f6;
+    background: linear-gradient(135deg, #1a1c23, #13151a);
+    border-color: #30333d;
+    border-radius: 13px;
+    font-weight: 700;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.appBooking .cinemaGrid .selector::before {
+    position: absolute;
+    left: 17px;
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    content: "C";
+    color: #ff9ca2;
+    background: #35171c;
+    border-radius: 8px;
+    font-size: .75rem;
+    font-weight: 800;
+}
+
+.appBooking .cinemaGrid .selector:hover {
+    transform: translateY(-2px);
+    border-color: #a43840;
+}
+
+.appBooking .cinemaGrid .selector.selected {
+    background: linear-gradient(135deg, #35171c, #211519);
+    border-color: #ef3944;
+    box-shadow: 0 0 0 1px rgb(229 9 20 / 18%);
+}
+
+.appBooking .movieScheduleCard {
+    padding: 20px;
+    background: linear-gradient(135deg, #171920, #12141a);
+    border-color: #2d3039;
+    box-shadow: 0 12px 30px rgb(0 0 0 / 12%);
+}
+
+.appBooking .moviePoster {
+    width: 112px;
+    height: 158px;
+    box-shadow: 0 9px 24px rgb(0 0 0 / 30%);
+}
+
+.appBooking .movieScheduleInfo {
+    align-content: center;
+}
+
+.appBooking .movieMeta {
+    color: #aeb0b9;
+    line-height: 1.55;
+}
+
+.appBooking .detailBtn {
+    padding: 8px 11px;
+    color: #ffd1d4;
+    background: #2b171b;
+    border: 1px solid #51252b;
+    border-radius: 7px;
+    font-size: .82rem;
+}
+
+.appBooking .detailBtn:hover {
+    background: #3b1b21;
+}
+
+.appBooking .showtimeGrid {
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    padding-top: 15px;
+    border-top: 1px solid #292c35;
+}
+
+.appBooking .showtimeBtn {
+    min-height: 86px;
+    justify-items: center;
+    padding: 12px;
+    color: #e8e9ed;
+    background: #1b1d24;
+    border: 1px solid #343741;
+    border-radius: 11px;
+    text-align: center;
+    transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.appBooking .showtimeBtn:hover {
+    transform: translateY(-2px);
+    border-color: #aa3039;
+}
+
+.appBooking .showtimeBtn.selected {
+    color: #fff;
+    background: #35171c;
+    border-color: #ef3944;
+    box-shadow: 0 0 0 1px rgb(229 9 20 / 16%);
+}
+
+.appBooking .showtimeBtn span {
+    color: #fff;
+    font-size: 1.18rem;
+}
+
+.appBooking .showtimeBtn small {
+    color: #a6a8b1;
+}
+
+.appBooking .seatLegend {
+    gap: 10px;
+    margin: 0;
+}
+
+.appBooking .seatLegend div {
+    padding: 7px 10px;
+    color: #bfc1c9;
+    background: #17191f;
+    border: 1px solid #292c35;
+    border-radius: 999px;
+    font-size: .78rem;
+}
+
+.appBooking .legendSeat {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+}
+
+.appBooking .screen {
+    max-width: 600px;
+    margin: 12px auto 24px;
+    padding: 9px 16px;
+    color: #d4d6dc;
+    background: linear-gradient(90deg, transparent, rgb(239 242 255 / 14%), transparent);
+    border-top: 2px solid #aeb3c2;
+    border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .28em;
+}
+
+.appBooking .seats {
+    max-width: 620px;
+    gap: 10px;
+    padding: 18px;
+    background: radial-gradient(ellipse at top, rgb(255 255 255 / 4%), transparent 68%);
+    border-radius: 18px;
+}
+
+.appBooking .seats .seat {
+    width: 100%;
+    height: 38px;
+    margin: 0;
+    color: #e5e7eb;
+    background: #253345;
+    border: 1px solid #3e5269;
+    border-radius: 8px 8px 5px 5px;
+    font-size: .75rem;
+    transition: transform .14s ease, filter .14s ease, background .14s ease;
+}
+
+.appBooking .seats .seat.available:hover,
+.appBooking .seats .seat.vip:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.2);
+}
+
+.appBooking .seats .seat.booked {
+    color: #e7a1a5;
+    background: #54272c;
+    border-color: #6c343a;
+}
+
+.appBooking .seats .seat.broken {
+    color: #898c94;
+    background: #292b31;
+    border: 1px solid #3a3c43;
+}
+
+.appBooking .seats .seat.vip {
+    color: #ffe5a6;
+    background: #493818;
+    border: 1px solid #80652e;
+}
+
+.appBooking .seats .seat.chosen {
+    color: #fff;
+    background: #16865b;
+    border-color: #39c28d;
+    box-shadow: 0 0 0 2px rgb(57 194 141 / 18%);
+}
+
+.appBooking .seatSelectionHint {
+    width: fit-content;
+    margin: 0 auto;
+    padding: 11px 16px;
+    color: #e8e9ed;
+    background: #1b1d24;
+    border: 1px solid #343741;
+    border-radius: 999px;
+    font-size: .88rem;
+}
+
+.appBooking .foodItem {
+    min-height: 240px;
+    background: linear-gradient(150deg, #1b1d24, #14161b);
+    border-color: #30333c;
+}
+
+.appBooking .foodItem.chosen {
+    background: linear-gradient(150deg, #2b171b, #1b1519);
+    border-color: #ef3944;
+}
+
+.appBooking .summaryCard {
+    border-radius: 16px;
+    box-shadow: 0 16px 38px rgb(0 0 0 / 18%);
+}
+
+.appBooking .summaryMovie {
+    background: linear-gradient(100deg, #1c1e26, #15171d);
+}
+
+.appBooking .summaryTotal {
+    border-top: 1px solid #343741;
+}
+
+.appBooking .bookingActions {
+    padding-top: 4px;
+}
+
+.appBooking .bookingActions .primary,
+.appBooking .bookingActions .ghost {
+    min-width: 140px;
+    min-height: 44px;
+    margin: 0;
+    border-radius: 9px;
+    font-weight: 700;
+}
+
+.appBooking .bookingActions .ghost {
+    border: 1px solid #343741;
+}
+
+.appBooking .bookingActions .ghost:hover {
+    color: #fff;
+    background: #262832;
+}
+
+@media (max-width: 760px) {
+    .bookingSelectionBar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .bookingSelectionMovie {
+        grid-column: 1 / -1;
+    }
+
+    .bookingSelectionTotal {
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .appBooking .bookingFlow button {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 520px) {
+    .bookingSelectionBar {
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .bookingSelectionStat strong {
+        white-space: normal;
+    }
+
+    .appBooking .movieScheduleHeader {
+        align-items: flex-start;
+        gap: 13px;
+    }
+
+    .appBooking .moviePoster {
+        width: 82px;
+        height: 122px;
+    }
+
+    .appBooking .movieScheduleCard {
+        padding: 13px;
+    }
+
+    .appBooking .showtimeGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .appBooking .seatLegend {
+        gap: 7px;
+    }
+
+    .appBooking .seatLegend div {
+        padding: 6px 8px;
+        font-size: .7rem;
+    }
+
+    .appBooking .seats {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+        padding: 8px 0;
+    }
+
+    .appBooking .seats .seat {
+        height: 34px;
+        font-size: .66rem;
+    }
+
+    .appBooking .bookingActions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .appBooking .bookingActions .primary,
+    .appBooking .bookingActions .ghost {
+        width: 100%;
+        min-width: 0;
+        padding: 12px;
+    }
+}
+
+.movieCardActions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.movieCardActions button {
+    min-height: 36px;
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.movieCardDetail {
+    color: #dedfe4;
+    background: #22242b;
+    border: 1px solid #343740;
+}
+
+.movieCardDetail:hover {
+    color: #fff;
+    border-color: #e50914;
+}
+
+.movieCardBook {
+    color: #fff;
+    background: #e50914;
+}
+
+.movieListingHeading {
+    margin-bottom: 22px;
+}
+
+.movieListingHeading h2 {
+    margin: 7px 0;
+}
+
+.movieListingHeading > p:last-child {
+    color: #a3a5ad;
+}
+
+.movieExplorer {
+    padding: 30px 6%;
+}
+
+.movieExplorer.compact {
+    padding-top: 20px;
+}
+
+.movieExplorerHeading {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.movieExplorerHeading h2 {
+    margin: 7px 0;
+}
+
+.movieExplorerHeading p:last-child {
+    margin-bottom: 0;
+    color: #a3a5ad;
+}
+
+.movieResultCount {
+    flex: 0 0 auto;
+    color: #c4c6ce;
+    font-size: 14px;
+}
+
+.movieFilters {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(145px, 1fr)) auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #101116;
+    border: 1px solid #252831;
+    border-radius: 12px;
+}
+
+.movieFilters label {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    color: #c4c6ce;
+    font-size: 13px;
+}
+
+.movieFilters input,
+.movieFilters select {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    color: #f5f5f5;
+    background: #191b22;
+    border: 1px solid #333640;
+    border-radius: 7px;
+}
+
+.movieFilters input:focus,
+.movieFilters select:focus {
+    border-color: #e50914;
+    outline: 2px solid rgb(229 9 20 / 18%);
+}
+
+.movieFilterReset {
+    height: 42px;
+    padding: 0 15px;
+    color: #dedfe4;
+    background: #252831;
+    border-radius: 7px;
+    white-space: nowrap;
+}
+
+.movieFilterReset:hover {
+    background: #343742;
+}
+
+.movieExplorerGrid {
+    row-gap: 28px;
+}
+
+.movieExplorerEmpty {
+    padding: 38px 20px;
+    text-align: center;
+    background: #101116;
+    border: 1px solid #252831;
+    border-radius: 12px;
+}
+
+.movieExplorerEmpty p {
+    color: #a3a5ad;
+}
+
+@media (max-width: 900px) {
+    .movieFilters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .movieExplorer {
+        padding: 26px 5%;
+    }
+
+    .movieExplorerHeading {
+        align-items: start;
+    }
+
+    .movieFilters {
+        grid-template-columns: 1fr;
+    }
+}
+
+.movieDetailBack {
+    margin-bottom: 22px;
+    padding: 9px 0;
+    color: #bfc1c8;
+    background: transparent;
+    font-weight: 600;
+}
+
+.movieDetailBack:hover {
+    color: #fff;
+}
+
+.movieDetailWrap {
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) 1fr;
+    gap: clamp(24px, 5vw, 56px);
+    align-items: center;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: clamp(22px, 4vw, 42px);
+    border: 1px solid #292c35;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #17191f, #101116);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, .22);
+}
+
+.movieDetailPoster {
+    width: 100%;
+    max-height: 460px;
+    object-fit: cover;
+    border-radius: 15px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
+}
+
+.movieDetailInfo {
+    display: grid;
+    gap: 18px;
+}
+
+.movieDetailHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.movieDetailHeader h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.movieMetaRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.movieMetaRow span {
+    padding: 7px 11px;
+    color: #dedfe4;
+    background: #22242b;
+    border: 1px solid #343740;
+    border-radius: 999px;
+    font-size: .82rem;
+}
+
+.movieDescription {
+    margin: 0;
+    color: #c2c4cb;
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+.movieFacts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.movieFacts > div {
+    padding: 13px;
+    border-radius: 10px;
+    background: #1b1d24;
+    color: #d4d5da;
+}
+
+.movieFacts strong {
+    color: #91949f;
+    font-weight: 500;
+}
+
+.movieScheduleSection {
+    max-width: 1100px;
+    margin: 32px auto 0;
+}
+
+.movieScheduleSection > h3 {
+    margin-bottom: 18px;
+    font-size: 1.35rem;
+}
+
+.cinemaScheduleList {
+    display: grid;
+    gap: 14px;
+}
+
+.cinemaScheduleCard {
+    padding: 18px;
+    border: 1px solid #292c35;
+    border-radius: 14px;
+    background: #12141a;
+}
+
+.cinemaScheduleCard h4 {
+    margin: 0 0 14px;
+    font-size: 1rem;
+}
+
+.movieDetailPage .showtimeBtn {
+    color: #eee;
+    border-color: #343740;
+    background: #1c1e25;
+}
+
+.movieDetailPage .showtimeBtn:hover {
+    border-color: #e50914;
+    background: #281518;
+}
+
+.paymentPage {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.paymentHeading {
+    margin-bottom: 22px;
+}
+
+.paymentHeading h2 {
+    margin: 7px 0;
+    font-size: clamp(1.7rem, 3vw, 2.2rem);
+}
+
+.paymentHeading > p:last-child {
+    margin: 0;
+    color: #a3a5ad;
+}
+
+.paymentLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
+    align-items: start;
+    gap: 18px;
+}
+
+.paymentCheckout,
+.paymentSummary,
+.paymentResult,
+.emptyPayment {
+    max-width: none;
+    background: linear-gradient(145deg, #17191f, #101116);
+    border: 1px solid #292c35;
+    border-radius: 16px;
+    padding: clamp(20px, 3vw, 30px);
+}
+
+.paymentCheckout h3,
+.paymentSummary h3 {
+    margin: 22px 0 14px;
+}
+
+.demoNotice {
+    display: grid;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid #57451c;
+    border-radius: 10px;
+    color: #f0dfb2;
+    background: #282316;
+}
+
+.demoNotice span {
+    color: #c7ba98;
+    font-size: .82rem;
+    line-height: 1.5;
+}
+
+.demoPaymentOptions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+
+.demoPaymentOptions .paymentOption {
+    display: grid;
+    justify-items: start;
+    gap: 7px;
+    min-height: 130px;
+    padding: 14px;
+    text-align: left;
+    border-radius: 12px;
+}
+
+.demoPaymentOptions .paymentOption.selected {
+    background: #281519;
+    border-color: #e50914;
+}
+
+.demoPaymentOptions .paymentOption small {
+    color: #a4a6af;
+    font-weight: 400;
+}
+
+.paymentMethodIcon,
+.paymentModalIcon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border-radius: 10px;
+    color: #fff;
+    background: #343741;
+    font-weight: 900;
+}
+
+.paymentMethodIcon.vnpay,
+.paymentModalIcon.vnpay {
+    background: #1459aa;
+}
+
+.paymentMethodIcon.momo,
+.paymentModalIcon.momo {
+    background: #a83385;
+}
+
+.paymentMethodIcon.credit-card,
+.paymentModalIcon.credit-card {
+    background: #42604f;
+}
+
+.pointsPayment {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #2a2c34;
+}
+
+.pointsPayment > div:first-child {
+    display: grid;
+    gap: 5px;
+}
+
+.pointsPayment small {
+    color: #9da0a9;
+    font-size: .82rem;
+}
+
+.pointsPayment .pointBox {
+    margin: 12px 0 0;
+}
+
+.paymentError {
+    margin: 16px 0 0;
+    padding: 11px 13px;
+    color: #ffb8bd;
+    border: 1px solid #673139;
+    border-radius: 8px;
+    background: #2b171a;
+    font-size: .86rem;
+}
+
+.startSimulation {
+    margin-top: 20px;
+    border-radius: 10px;
+}
+
+.paymentSummary {
+    display: grid;
+    gap: 0;
+}
+
+.paymentSummary h3 {
+    margin: 0 0 18px;
+}
+
+.paymentSummary > p {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 12px 0;
+    margin: 0;
+    border-bottom: 1px solid #292c35;
+    font-size: .87rem;
+}
+
+.paymentSummary > p span {
+    flex: 0 0 auto;
+    color: #a3a5ad;
+}
+
+.paymentSummary > p strong {
+    text-align: right;
+}
+
+.paymentGrandTotal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.paymentGrandTotal strong {
+    color: #ff5963;
+    font-size: 1.35rem;
+}
+
+.paymentSummary > small {
+    margin-top: 15px;
+    color: #92959e;
+    line-height: 1.5;
+}
+
+.paymentModalBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, .76);
+    backdrop-filter: blur(8px);
+}
+
+.paymentModal {
+    position: relative;
+    width: min(100%, 480px);
+    padding: 30px;
+    text-align: center;
+    border: 1px solid #363943;
+    border-radius: 18px;
+    background: #15171d;
+    box-shadow: 0 25px 100px rgba(0, 0, 0, .55);
+}
+
+.paymentModalClose {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: #c4c6cc;
+    background: #252730;
+    font-size: 1.4rem;
+}
+
+.paymentModalIcon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 16px;
+    border-radius: 15px;
+    font-size: 1.2rem;
+}
+
+.paymentModal h2 {
+    margin: 8px 0;
+}
+
+.paymentModalMethod,
+.paymentModalHelp {
+    color: #a7a9b1;
+}
+
+.paymentModalAmount {
+    display: block;
+    margin: 18px 0;
+    color: #fff;
+    font-size: 2rem;
+}
+
+.paymentModalHelp {
+    font-size: .86rem;
+    line-height: 1.6;
+}
+
+.paymentModalActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.paymentModalActions .primary,
+.paymentModalActions .ghost {
+    margin: 0;
+    padding: 12px;
+}
+
+.paymentResult {
+    max-width: 650px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.paymentResultIcon {
+    display: grid;
+    width: 56px;
+    height: 56px;
+    place-items: center;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    color: #fff;
+    background: #20834d;
+    font-size: 1.7rem;
+    font-weight: 800;
+}
+
+.paymentResult > p:not(.bookingEyebrow) {
+    color: #a3a5ad;
+}
+
+.paymentResult .ticketCard {
+    margin: 22px 0;
+    text-align: left;
+}
+
+.paymentResult .qrBox {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.emptyPayment p {
+    color: #a3a5ad;
+}
+
+@media (max-width: 850px) {
+    .paymentLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .paymentSummary {
+        order: -1;
+    }
+}
+
+@media (max-width: 650px) {
+    .movieDetailWrap {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .movieDetailPoster {
+        max-width: 250px;
+        max-height: 360px;
+        margin: 0 auto;
+    }
+
+    .movieDetailHeader {
+        flex-direction: column;
+    }
+
+    .demoPaymentOptions {
+        grid-template-columns: 1fr;
+    }
+
+    .demoPaymentOptions .paymentOption {
+        min-height: 0;
+        grid-template-columns: 36px 1fr;
+        align-items: center;
+    }
+
+    .demoPaymentOptions .paymentOption small {
+        grid-column: 2;
+    }
+
+    .paymentModalActions {
+        grid-template-columns: 1fr;
+    }
+}
+
+.accountPage {
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.accountPageHeading {
+    margin-bottom: 24px;
+}
+
+.accountPageHeading h2 {
+    margin: 7px 0;
+    font-size: clamp(1.7rem, 3vw, 2.2rem);
+}
+
+.accountPageHeading > p:last-child {
+    margin: 0;
+    color: #a3a5ad;
+}
+
+.accountTabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #292c35;
+}
+
+.accountTabs button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: -1px;
+    padding: 12px 16px;
+    color: #a8aab2;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+}
+
+.accountTabs button.active {
+    color: #fff;
+    border-bottom-color: #e50914;
+}
+
+.accountTabs button span {
+    display: inline-grid;
+    min-width: 22px;
+    height: 22px;
+    place-items: center;
+    border-radius: 999px;
+    color: #ddd;
+    background: #292c35;
+    font-size: .74rem;
+}
+
+.myTicketsSection {
+    display: grid;
+    gap: 16px;
+}
+
+.accountEmpty,
+.accountProfileCard,
+.ticketNotice {
+    padding: clamp(22px, 4vw, 34px);
+    border: 1px solid #292c35;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #17191f, #101116);
+}
+
+.accountEmpty {
+    text-align: center;
+}
+
+.accountEmpty h2,
+.accountEmpty h3 {
+    margin: 8px 0;
+}
+
+.accountEmpty p {
+    color: #a3a5ad;
+    line-height: 1.6;
+}
+
+.emptyTicketIcon {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    margin: 0 auto 12px;
+    border-radius: 16px;
+    color: #ff6871;
+    background: #30171b;
+    font-size: 1.8rem;
+}
+
+.accountProfileCard {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.accountAvatar {
+    display: grid;
+    width: 70px;
+    height: 70px;
+    flex: 0 0 70px;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg, #f12a36, #a80e18);
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.accountProfileDetails h3 {
+    margin: 0 0 5px;
+}
+
+.accountProfileDetails > p {
+    margin: 0;
+    color: #a3a5ad;
+}
+
+.accountProfileStats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.accountProfileStats span {
+    display: grid;
+    gap: 5px;
+    min-width: 150px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    color: #a3a5ad;
+    background: #202229;
+    font-size: .8rem;
+}
+
+.accountProfileStats strong {
+    color: #fff;
+    font-size: .95rem;
+}
+
+.ticketNotice {
+    color: #d5d6dc;
+}
+
+.ticketNoticeError {
+    color: #ffb8bd;
+    border-color: #673139;
+    background: #2b171a;
+}
+
+.myTicketCard {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid #2c2f38;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #17191f, #101116);
+}
+
+.myTicketPoster {
+    display: grid;
+    min-height: 100%;
+    place-items: center;
+    padding: 18px;
+    color: #fff;
+    text-align: center;
+    background:
+        radial-gradient(circle at 75% 18%, rgba(229, 9, 20, .42), transparent 34%),
+        linear-gradient(145deg, #29202a, #101116 72%);
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.myTicketContent {
+    min-width: 0;
+    padding: 20px;
+}
+
+.myTicketHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #292c35;
+}
+
+.ticketReference {
+    color: #f04450;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.myTicketHeader h3 {
+    margin: 5px 0 0;
+    font-size: 1.2rem;
+}
+
+.ticketStatus {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.ticketStatus.paid {
+    color: #9ae5b7;
+    border: 1px solid #276140;
+    background: #173522;
+}
+
+.ticketStatus.pending {
+    color: #f5d589;
+    border: 1px solid #69531e;
+    background: #302817;
+}
+
+.ticketStatus.cancelled {
+    color: #ffadb3;
+    border: 1px solid #673139;
+    background: #2b171a;
+}
+
+.ticketStatus.expired {
+    color: #c2c4cc;
+    border: 1px solid #444751;
+    background: #292b32;
+}
+
+.seatHoldNotice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 18px;
+    padding: 12px 14px;
+    border: 1px solid #69531e;
+    border-radius: 10px;
+    color: #f4d88e;
+    background: #302817;
+}
+
+.seatHoldNotice > span {
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.seatHoldNotice.expired {
+    color: #ffb8bd;
+    border-color: #673139;
+    background: #2b171a;
+}
+
+.myTicketDetails {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 22px;
+    padding: 14px 0;
+}
+
+.myTicketDetails p {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+}
+
+.myTicketDetails p span,
+.myTicketFooter > div span {
+    color: #9699a3;
+    font-size: .78rem;
+}
+
+.myTicketDetails p strong {
+    color: #e5e6eb;
+    font-size: .88rem;
+    overflow-wrap: anywhere;
+}
+
+.myTicketFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #292c35;
+}
+
+.myTicketFooter > div {
+    display: grid;
+    gap: 4px;
+}
+
+.myTicketFooter > div strong {
+    color: #ff5963;
+    font-size: 1.1rem;
+}
+
+.myTicketFooter .primary {
+    margin: 0;
+    padding: 10px 14px;
+}
+
+.myTicketQr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px dashed #3b3e48;
+    border-radius: 10px;
+    background: #14161b;
+}
+
+.myTicketQrPattern {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border-radius: 6px;
+    color: #101116;
+    background: repeating-conic-gradient(#fff 0% 25%, #16171c 0% 50%) 50% / 10px 10px;
+    font-size: 1.5rem;
+    font-weight: 900;
+}
+
+.myTicketQr > div:last-child {
+    display: grid;
+    gap: 3px;
+}
+
+.myTicketQr strong {
+    font-size: .84rem;
+}
+
+.myTicketQr span,
+.myTicketQr small {
+    color: #9da0a9;
+    font-size: .74rem;
+}
+
+@media (max-width: 650px) {
+    .myTicketCard {
+        grid-template-columns: 1fr;
+    }
+
+    .myTicketPoster {
+        min-height: 110px;
+    }
+
+    .myTicketDetails {
+        grid-template-columns: 1fr;
+    }
+
+    .myTicketHeader {
+        flex-direction: column;
+    }
+}
+
+.bookingPageHeading {
+    max-width: 1040px;
+    margin: 0 auto 20px;
+}
+
+.bookingPageHeading h2 {
+    margin: 4px 0 8px;
+    font-size: clamp(1.7rem, 3vw, 2.2rem);
+}
+
+.bookingPageHeading > p:last-child {
+    margin: 0;
+    color: #a3a5ad;
+}
+
+.bookingEyebrow {
+    margin: 0;
+    color: #f04450;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+
+.appBooking {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: clamp(18px, 3vw, 30px);
+    background: linear-gradient(145deg, rgba(20, 22, 29, .98), rgba(13, 14, 19, .98));
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
+}
+
+.appBooking .bookingFlow {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #252832;
+}
+
+.appBooking .bookingFlow button {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: .86rem;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+}
+
+.appBooking .bookingFlow button:disabled {
+    cursor: default;
+    opacity: .62;
+}
+
+.appBooking .bookingFlow .activeStep {
+    background: linear-gradient(135deg, #ef202c, #bd111d);
+    box-shadow: 0 8px 24px rgba(229, 9, 20, .2);
+}
+
+.appBooking .bookingFlow .doneStep {
+    color: #ffd6d8;
+    background: #30171b;
+    border-color: #5a242b;
+}
+
+.stepNumber {
+    display: inline-grid;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.appBooking .checkoutSection > h3,
+.checkoutStepHeading h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.checkoutStepHeading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.checkoutStepHeading > div {
+    display: grid;
+    gap: 6px;
+}
+
+.optionalBadge,
+.accountBadge {
+    padding: 8px 12px;
+    border: 1px solid #343740;
+    border-radius: 999px;
+    color: #c2c4cc;
+    background: #191b22;
+    font-size: .78rem;
+    white-space: nowrap;
+}
+
+.accountBadge {
+    color: #ffd6d8;
+    border-color: #552329;
+    background: #281519;
+}
+
+.appBooking .food {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+}
+
+.appBooking .foodItem {
+    position: relative;
+    min-height: 220px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 118px auto auto auto;
+    justify-items: start;
+    gap: 6px;
+    padding: 12px;
+    text-align: left;
+    background: #17191f;
+    border: 1px solid #292c35;
+    border-radius: 13px;
+    transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.appBooking .foodItem:hover {
+    transform: translateY(-3px);
+    border-color: #9e3038;
+}
+
+.appBooking .foodItem img {
+    width: 100%;
+    height: 118px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.appBooking .foodItem span {
+    font-size: .9rem;
+}
+
+.appBooking .foodItem b {
+    font-size: .92rem;
+}
+
+.appBooking .foodItem small {
+    color: #8f929c;
+    font-size: .72rem;
+}
+
+.appBooking .foodItem.chosen {
+    background: #261519;
+    border: 1px solid #e50914;
+    box-shadow: 0 0 0 1px rgba(229, 9, 20, .16);
+}
+
+.seatSelectionHint {
+    margin: 16px 0 0;
+    color: #c1c3ca;
+    text-align: center;
+}
+
+.appBooking .summaryCard {
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+    border-color: #30333c;
+    background: #15171d;
+}
+
+.summaryMovie {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    border-bottom: 1px solid #2a2c34;
+}
+
+.summaryMovie img {
+    width: 58px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.summaryMovie div {
+    display: grid;
+    gap: 5px;
+}
+
+.summaryMovie strong {
+    font-size: 1.08rem;
+}
+
+.summaryMovie div > span:last-child {
+    color: #a2a4ad;
+    font-size: .88rem;
+}
+
+.summaryLabel {
+    color: #f04450;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.summaryDetails {
+    display: grid;
+    gap: 0;
+    padding: 4px 18px;
+}
+
+.summaryDetails p {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 11px 0;
+    border-bottom: 1px solid #252730;
+}
+
+.summaryDetails p span {
+    color: #a2a4ad;
+}
+
+.summaryDetails p strong {
+    text-align: right;
+}
+
+.summaryPriceBreakdown {
+    display: grid;
+    gap: 0;
+    padding: 14px 18px;
+    border-top: 1px solid #252730;
+}
+
+.summaryPriceBreakdown h4 {
+    margin: 0 0 8px;
+    color: #e5e6eb;
+    font-size: .9rem;
+}
+
+.summaryPriceRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 9px 0;
+    color: #aeb0b8;
+    font-size: .86rem;
+}
+
+.summaryPriceRow strong {
+    flex: 0 0 auto;
+    color: #e5e6eb;
+    text-align: right;
+}
+
+.summaryPriceRow.summaryFoodSubtotal {
+    margin-top: 3px;
+    padding-top: 12px;
+    border-top: 1px dashed #343740;
+    color: #d7d8de;
+    font-weight: 700;
+}
+
+.summaryTotal {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    background: #1c1e25;
+}
+
+.summaryTotal strong {
+    color: #ff5963;
+    font-size: 1.35rem;
+}
+
+.accountNotice {
+    margin: 0;
+    color: #9fa2aa;
+    font-size: .86rem;
+}
+
+.bookingAuthPage {
+    min-height: calc(100vh - 40px);
+    display: grid;
+    place-items: center;
+}
+
+.bookingAuthCard {
+    width: min(100%, 520px);
+    padding: clamp(26px, 5vw, 48px);
+    text-align: center;
+    background: linear-gradient(145deg, #17191f, #101116);
+    border: 1px solid #292c35;
+    border-radius: 20px;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, .32);
+}
+
+.bookingAuthIcon {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    place-items: center;
+    margin: 0 auto 20px;
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #f12a36, #a80e18);
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.bookingAuthCard h2 {
+    margin: 10px 0;
+    font-size: clamp(1.45rem, 4vw, 1.9rem);
+}
+
+.bookingAuthCard > p:not(.bookingEyebrow) {
+    margin: 0 auto 24px;
+    max-width: 390px;
+    color: #a5a7b0;
+    line-height: 1.65;
+}
+
+.bookingAuthCard .primary {
+    margin: 0;
+}
+
+.textButton {
+    display: block;
+    margin: 16px auto 0;
+    padding: 8px;
+    color: #b7b9c1;
+    background: transparent;
+}
+
+.textButton:hover {
+    color: #fff;
+}
+
+.auth form > p {
+    color: #a5a7b0;
+    line-height: 1.5;
+}
+
+.auth .loginHint {
+    margin-bottom: 0;
+    font-size: .8rem;
+}
+
+@media (max-width: 760px) {
+    .appBooking .bookingFlow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .appBooking .bookingFlow button:last-child {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .appBooking .bookingFlow button {
+        justify-content: flex-start;
+        font-size: .78rem;
+    }
+
+    .checkoutStepHeading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .summaryDetails p {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .summaryDetails p strong {
+        text-align: left;
+    }
+
+    .summaryPriceRow {
+        font-size: .8rem;
+    }
+}
+
 .bookingFlow {
     display: flex;
     flex-wrap: wrap;

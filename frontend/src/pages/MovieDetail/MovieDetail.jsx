@@ -81,13 +81,17 @@ export default function MovieDetail({ selected, movies, showtimes, setSelected, 
 
   return (
     <section className="page movieDetailPage">
+      <button className="movieDetailBack" type="button" onClick={() => setTab('movies')}>
+        ← Quay lại danh sách phim
+      </button>
       <div className="movieDetailWrap">
         <img src={getPoster(movie)} alt={movie.title} className="movieDetailPoster" />
 
         <div className="movieDetailInfo">
+          <p className="bookingEyebrow">THÔNG TIN PHIM</p>
           <div className="movieDetailHeader">
             <h2>{movie.title}</h2>
-            <button className="primary" type="button" onClick={() => setTab('booking')}>
+            <button className="primary" type="button" onClick={() => { setSelected(movie); setTab('booking'); }}>
               Đặt vé
             </button>
           </div>
@@ -106,6 +110,12 @@ export default function MovieDetail({ selected, movies, showtimes, setSelected, 
             </div>
             <div>
               <strong>Khởi chiếu:</strong> {movie.releaseDate ? new Date(movie.releaseDate).toLocaleDateString('vi-VN') : '—'}
+            </div>
+            <div>
+              <strong>Thời lượng:</strong> {movie.duration || 120} phút
+            </div>
+            <div>
+              <strong>Phân loại:</strong> {movie.ageLimit || 18}+
             </div>
           </div>
         </div>

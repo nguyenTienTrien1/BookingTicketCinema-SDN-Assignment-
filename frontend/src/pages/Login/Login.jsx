@@ -1,2 +1,51 @@
-import {useState} from 'react'; import {login} from '../../services/authService';
-export default function Login({setUser,setTab,setMsg}){const [form,setForm]=useState({email:'member@cinema.com',password:'123456'}); async function submit(e){e.preventDefault();try{const d=await login(form);setUser(d.user);setMsg('Login successful');setTab('home')}catch(e){setMsg(e.message)}} return <section className="auth page"><form onSubmit={submit}><h2>Welcome Back</h2><input placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/><input type="password" placeholder="Password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/><button className="primary full">LOGIN</button><p>Demo: member@cinema.com / 123456</p></form></section>}
+import { useState } from 'react';
+import { login } from '../../services/authService';
+
+export default function Login({ setUser, setTab, setMsg, onLoginSuccess, onCancelLogin }) {
+    const [form, setForm] = useState({ email: 'member@cinema.com', password: '123456' });
+
+    async function submit(event) {
+        event.preventDefault();
+        try {
+            const result = await login(form);
+            setUser(result.user);
+            setMsg('Đăng nhập thành công.');
+            if (onLoginSuccess) onLoginSuccess();
+            else setTab('home');
+        } catch (error) {
+            setMsg(error.message);
+        }
+    }
+
+    return (
+        <section className="auth page">
+            <form onSubmit={submit}>
+                <h2>Chào mừng trở lại</h2>
+                <p>Đăng nhập để tiếp tục đặt vé và quản lý vé của bạn.</p>
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={form.email}
+                    onChange={(event) => setForm({ ...form, email: event.target.value })}
+                    required
+                />
+                <input
+                    type="password"
+                    placeholder="Mật khẩu"
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    required
+                />
+                <button className="primary full" type="submit">Đăng nhập</button>
+                <p className="loginHint">Demo: member@cinema.com / 123456</p>
+                <button
+                    className="textButton"
+                    type="button"
+                    onClick={onCancelLogin || (() => setTab('home'))}
+                >
+                    Quay lại trang chủ
+                </button>
+            </form>
+        </section>
+    );
+}

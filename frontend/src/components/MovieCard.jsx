@@ -18,31 +18,32 @@ import maze from '../assets/posters/the_maze_runner.jpg';
 import venom from '../assets/posters/venom.jpg';
 import wednesday from '../assets/posters/wednesday.jpg';
 
-const posters = [
-    wishes,
-    fourHands,
-    kitchen,
-    flood,
-    alice,
-    usDead,
-    stranger,
-    wednesday,
-    narnia,
-    maze,
-    venom,
-    dune,
-    joker,
-    batman,
-    attack,
-    harry,
-    avatar
-];
+const posters = {
+    'if wishes could kill': wishes,
+    'four hands': fourHands,
+    'the legend of kitchen soldier': kitchen,
+    'the great flood': flood,
+    'alice in borderland': alice,
+    'all of us are dead': usDead,
+    'stranger things': stranger,
+    'wednesday': wednesday,
+    'the chronicles of narnia': narnia,
+    'the maze runner': maze,
+    'venom': venom,
+    'dune': dune,
+    'joker': joker,
+    'the batman': batman,
+    'attack on titan': attack,
+    'harry potter': harry,
+    'avatar fire and ash': avatar
+};
 
-export default function MovieCard({ movie, index = 0, onClick }) {
-    const poster = posters[index % posters.length];
+export default function MovieCard({ movie, onClick, onDetail }) {
+    const normalizedTitle = String(movie.title || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+    const poster = posters[normalizedTitle] || movie.poster || '';
 
     return (
-        <article className="card" onClick={onClick}>
+        <article className="card">
             <img src={poster} alt={movie.title} />
 
             <div className="cardInfo">
@@ -53,6 +54,14 @@ export default function MovieCard({ movie, index = 0, onClick }) {
                 </span>
 
                 <small>★ {movie.rating || '—'}</small>
+                <div className="movieCardActions">
+                    <button type="button" className="movieCardDetail" onClick={onDetail}>
+                        Chi tiết phim
+                    </button>
+                    <button type="button" className="movieCardBook" onClick={onClick}>
+                        Đặt vé
+                    </button>
+                </div>
             </div>
         </article>
     );
