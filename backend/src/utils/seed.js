@@ -26,6 +26,7 @@ const admin = await User.create({
     email: 'admin@cinema.com',
     password: 'admin123',
     role: 'admin',
+    status: 'Active',
     memberPoints: 50
 });
 
@@ -34,7 +35,35 @@ await User.create({
     email: 'member@cinema.com',
     password: '123456',
     role: 'member',
+    status: 'Active',
     memberPoints: 20
+});
+
+await User.create({
+    fullName: 'Cinema Employee',
+    email: 'employee@cinema.com',
+    password: 'employee123',
+    role: 'employee',
+    status: 'Active',
+    memberPoints: 0
+});
+
+await User.create({
+    fullName: 'Pending Member',
+    email: 'pending@cinema.com',
+    password: '123456',
+    role: 'member',
+    status: 'Pending Verification',
+    memberPoints: 0
+});
+
+await User.create({
+    fullName: 'Banned User',
+    email: 'banned@cinema.com',
+    password: '123456',
+    role: 'member',
+    status: 'Banned',
+    memberPoints: 0
 });
 
 // =========================
