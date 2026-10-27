@@ -201,6 +201,94 @@ async function runComprehensiveTests() {
   const rLogout = await request('/api/auth/logout', { method: 'POST' });
   assert(rLogout.status === 200 && rLogout.setCookie && rLogout.setCookie.includes('token=;'), 'TC-23: Logout successfully clears HttpOnly cookie');
 
+  // =========================================================================
+  // 12. UC-1: REGISTER ACCOUNT & EMAIL VERIFICATION (BR-1, BR-8)
+  // =========================================================================
+  const testRegEmail = 'new_member_test@cinema.com';
+  await User.deleteOne({ email: testRegEmail });
+
+  // TC-24: Register new member successfully with status 'Pending Verification' (BR-8)
+  const rReg = await request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      fullName: 'Trần Văn Mới',
+      email: testRegEmail,
+      phone: '0901234567',
+      password: 'password123'
+    })
+  });
+  assert(
+    rReg.status === 201 &&
+    rReg.data.user.status === 'Pending Verification' &&
+    rReg.data.verificationToken,
+    'TC-24: Register new member creates Pending Verification account (BR-8)'
+  );
+  const vToken = rReg.data.verificationToken;
+
+  // TC-25: Password must be stored as bcrypt hash in DB (BR-1)
+  const createdDbUser = await User.findOne({ email: testRegEmail });
+  assert(
+    createdDbUser &&
+    createdDbUser.password.startsWith('$2') &&
+    createdDbUser.password !== 'password123',
+    'TC-25: Password stored only as salted bcrypt hash (BR-1)'
+  );
+
+  // TC-26: Duplicate registration rejected with 409 (UC-1 Exception E1)
+  // (First test when active)
+  createdDbUser.status = 'Active';
+  await createdDbUser.save();
+  const rDup = await request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
+      fullName: 'Trần Văn Mới',
+      email: testRegEmail,
+      password: 'password123'
+    })
+  });
+  assert(rDup.status === 409, 'TC-26: Duplicate active email rejected with 409 (UC-1 E1)');
+
+  // TC-27: Unverified account cannot log in (BR-8)
+  createdDbUser.status = 'Pending Verification';
+  createdDbUser.verificationToken = vToken;
+  await createdDbUser.save();
+
+  const rUnverifiedLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: testRegEmail, password: 'password123' })
+  });
+  assert(rUnverifiedLogin.status === 401, 'TC-27: Pending Verification account cannot log in (BR-8)');
+
+  // TC-28: Expired verification link (older than 24 hours) rejected (BR-8 Exception E3)
+  createdDbUser.verificationExpires = new Date(Date.now() - 1000); // Expired
+  await createdDbUser.save();
+
+  const rExpiredVerify = await request(`/api/auth/verify-email?token=${vToken}`);
+  assert(rExpiredVerify.status === 400 && rExpiredVerify.data.message.includes('quá 24 giờ'), 'TC-28: Expired verification link (>24h) rejected (BR-8 E3)');
+
+  // TC-29: Resend verification link generates new valid token (BR-8)
+  const rResend = await request('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email: testRegEmail })
+  });
+  assert(rResend.status === 200 && rResend.data.verificationToken, 'TC-29: Resend verification generates new token (BR-8)');
+  const newVToken = rResend.data.verificationToken;
+
+  // TC-30: Verify email activates account once (UC-1 Normal Flow)
+  const rVerify = await request(`/api/auth/verify-email?token=${newVToken}`);
+  assert(rVerify.status === 200 && rVerify.data.user.status === 'Active', 'TC-30: Verification link activates account to Active (BR-8)');
+
+  // TC-31: Single-use verification link cannot be used twice (BR-8)
+  const rReuseVerify = await request(`/api/auth/verify-email?token=${newVToken}`);
+  assert(rReuseVerify.status === 400, 'TC-31: Single-use verification link cannot be reused (BR-8)');
+
+  // TC-32: Activated member can now log in successfully
+  const rActivatedLogin = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: testRegEmail, password: 'password123' })
+  });
+  assert(rActivatedLogin.status === 200 && rActivatedLogin.data.user.role === 'member', 'TC-32: Newly activated member logs in successfully');
+
   console.log('\n====================================================');
   console.log(`FINAL RESULT: ${passed} PASSED, ${failed} FAILED.`);
   console.log('====================================================\n');

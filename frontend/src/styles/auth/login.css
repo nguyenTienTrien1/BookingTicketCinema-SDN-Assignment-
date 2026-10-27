@@ -45,9 +45,7 @@ html, body {
   color-scheme: dark;
 }
 
-/* --------------------------------------------------------------------------
-   LEFT 55%: CINEMATIC MOVIE POSTER MOSAIC (Clean, No Stretched Image, No Scroll)
-   -------------------------------------------------------------------------- */
+
 .cinemaVisualSide {
   flex: 0 0 55%;
   width: 55%;
@@ -295,22 +293,20 @@ html, body {
   color-scheme: dark; /* Báo trình duyệt dùng dark mode cho autofill */
 }
 
-/* Triệt tiêu hoàn toàn mảng nền trắng khi trình duyệt tự động điền (Autofill) */
+/* Triệt tiêu hoàn toàn mảng nền trắng khi trình duyệt tự động điền (Autofill) an toàn, không gây crash GPU */
 .loginInputField:-webkit-autofill,
 .loginInputField:-webkit-autofill:hover,
 .loginInputField:-webkit-autofill:focus,
 .loginInputField:-webkit-autofill:active {
   -webkit-text-fill-color: #ffffff !important;
-  -webkit-box-shadow: 0 0 0 1000px #1a1e27 inset !important;
-  box-shadow: 0 0 0 1000px #1a1e27 inset !important;
-  transition: background-color 5000s ease-in-out 0s;
+  -webkit-box-shadow: 0 0 0 40px #1a1e27 inset !important;
+  box-shadow: 0 0 0 40px #1a1e27 inset !important;
   caret-color: #ffffff !important;
-  border-radius: 4px;
 }
 
 .loginInputWrapper:focus-within .loginInputField:-webkit-autofill {
-  -webkit-box-shadow: 0 0 0 1000px #1e222d inset !important;
-  box-shadow: 0 0 0 1000px #1e222d inset !important;
+  -webkit-box-shadow: 0 0 0 40px #1e222d inset !important;
+  box-shadow: 0 0 0 40px #1e222d inset !important;
 }
 
 .loginInputField::placeholder {
@@ -468,6 +464,68 @@ html, body {
 .footerSignUpLink:hover {
   color: #ff3844;
   text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   REGISTRATION & EMAIL VERIFICATION STYLES (UC-1, BR-8)
+   -------------------------------------------------------------------------- */
+.registerSuccessCard {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.successBadgeIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.successTitle {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 10px 0;
+}
+
+.successDesc {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.successDesc strong {
+  color: #ffffff;
+}
+
+.verifyActionBox {
+  background-color: #1a1e27;
+  border: 1px solid #2d3343;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.verifyNote {
+  font-size: 13px;
+  color: #cbd5e1;
+  margin: 0 0 12px 0;
+}
+
+.verifyNowBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  height: 44px;
 }
 
 /* --------------------------------------------------------------------------

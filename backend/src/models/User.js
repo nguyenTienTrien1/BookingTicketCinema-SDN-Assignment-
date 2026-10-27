@@ -45,6 +45,9 @@ const userSchema = new mongoose.Schema(
     failedLoginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date, default: null },
     lastLogin: { type: Date, default: null },
+    // Verification fields for BR-8 (Single-use token expiring after 24h)
+    verificationToken: { type: String, default: null },
+    verificationExpires: { type: Date, default: null },
   },
   { timestamps: true },
 );

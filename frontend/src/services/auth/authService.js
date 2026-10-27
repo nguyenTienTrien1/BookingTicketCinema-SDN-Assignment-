@@ -11,6 +11,48 @@ const authApi = axios.create({
 });
 
 /**
+ * Member registration (UC-1)
+ * @param {{ fullName: string, email: string, password: string, phone?: string }} data
+ */
+export async function registerUser(data) {
+  try {
+    const res = await authApi.post('/auth/register', data);
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || 'Đăng ký không thành công. Vui lòng thử lại.';
+    throw new Error(message);
+  }
+}
+
+/**
+ * Email verification (UC-1, BR-8)
+ * @param {string} token
+ */
+export async function verifyEmail(token) {
+  try {
+    const res = await authApi.get(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || 'Xác thực email thất bại.';
+    throw new Error(message);
+  }
+}
+
+/**
+ * Resend verification email (BR-8)
+ * @param {string} email
+ */
+export async function resendVerification(email) {
+  try {
+    const res = await authApi.post('/auth/resend-verification', { email });
+    return res.data;
+  } catch (error) {
+    const message = error.response?.data?.message || 'Gửi lại mã xác thực thất bại.';
+    throw new Error(message);
+  }
+}
+
+/**
  * Member and Employee login
  * @param {{ email: string, password: string }} credentials 
  */

@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import UserLogin from '../pages/auth/UserLogin';
 import AdminLogin from '../pages/auth/AdminLogin';
+import Register from '../pages/auth/Register';
+import VerifyEmail from '../pages/auth/VerifyEmail';
 import MemberDashboard from '../pages/auth/MemberDashboard';
 import EmployeeDashboard from '../pages/auth/EmployeeDashboard';
 import AdminDashboard from '../pages/auth/AdminDashboard';
@@ -13,13 +15,19 @@ import CinemaMain from '../pages/CinemaMain';
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* 1. Member & Employee Login (/login) */}
+      {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />
 
-      {/* 2. Admin Login (/admin/login) */}
+      {/* 2. Admin & Employee Login (/admin/login) */}
       <Route path="/admin/login" element={<AdminLogin />} />
 
-      {/* 3. Protected Member Dashboard (/dashboard) */}
+      {/* 3. Member Registration (UC-1) */}
+      <Route path="/register" element={<Register />} />
+
+      {/* 4. Email Verification (UC-1, BR-8) */}
+      <Route path="/verify-email" element={<VerifyEmail />} />
+
+      {/* 5. Protected Member Dashboard (/dashboard) */}
       <Route
         path="/dashboard"
         element={

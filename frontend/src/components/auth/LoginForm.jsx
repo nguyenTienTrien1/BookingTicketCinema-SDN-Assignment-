@@ -73,10 +73,7 @@ export default function LoginForm({ portalType = "user" }) {
 
   function handleSignUp(e) {
     e.preventDefault();
-    setInfoToast(
-      "Tính năng đăng ký tài khoản thành viên mới đang được cập nhật.",
-    );
-    setTimeout(() => setInfoToast(""), 4000);
+    navigate("/register");
   }
 
   return (
@@ -158,7 +155,11 @@ export default function LoginForm({ portalType = "user" }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="cinemaAuthForm">
+          <form
+            onSubmit={handleSubmit}
+            className="cinemaAuthForm"
+            autoComplete="off"
+          >
             {/* Email Address Input */}
             <LoginInput
               id="cinema-email"
@@ -168,7 +169,7 @@ export default function LoginForm({ portalType = "user" }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="off"
               icon={
                 <svg
                   width="18"
