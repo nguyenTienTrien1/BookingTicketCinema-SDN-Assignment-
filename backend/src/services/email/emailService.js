@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
 
 let testAccount = null;
 
@@ -6,28 +6,19 @@ let testAccount = null;
  * Create or reuse nodemailer transport
  */
 async function getTransporter() {
-  const host = (process.env.SMTP_HOST || "").trim();
-  const user = (process.env.GMAIL_USER || process.env.SMTP_USER || "").trim();
-  const rawPass = (
-    process.env.GMAIL_APP_PASS ||
-    process.env.SMTP_PASS ||
-    ""
-  ).trim();
-  const pass = rawPass.replace(/\s+/g, ""); // Tự động loại bỏ khoảng trắng trong mã App Password
+  const host = (process.env.SMTP_HOST || '').trim();
+  const user = (process.env.GMAIL_USER || process.env.SMTP_USER || '').trim();
+  const rawPass = (process.env.GMAIL_APP_PASS || process.env.SMTP_PASS || '').trim();
+  const pass = rawPass.replace(/\s+/g, ''); // Tự động loại bỏ khoảng trắng trong mã App Password
 
   // 1. If Gmail service is detected (Tự động nhận diện Gmail để gửi thư vào hộp thư thật)
-  if (
-    user &&
-    pass &&
-    (user.toLowerCase().includes("@gmail.com") ||
-      host.toLowerCase().includes("gmail"))
-  ) {
+  if (user && pass && (user.toLowerCase().includes('@gmail.com') || host.toLowerCase().includes('gmail'))) {
     return nodemailer.createTransport({
-      service: "gmail",
+      service: 'gmail',
       auth: {
         user,
-        pass,
-      },
+        pass
+      }
     });
   }
 
@@ -36,29 +27,22 @@ async function getTransporter() {
     return nodemailer.createTransport({
       host,
       port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === "true",
-      auth: { user, pass },
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user, pass }
     });
   }
 
   // 3. Otherwise in development fallback to Ethereal Email sandbox
-  console.warn(
-    "[EMAIL SERVICE] CHƯA CẤU HÌNH GMAIL / SMTP THẬT TRONG BACKEND/.ENV! Đang dùng hộp thư ảo Ethereal Sandbox để test nội bộ.",
-  );
+  console.warn('[EMAIL SERVICE] CHƯA CẤU HÌNH GMAIL / SMTP THẬT TRONG BACKEND/.ENV! Đang dùng hộp thư ảo Ethereal Sandbox để test nội bộ.');
 
   if (!testAccount) {
     try {
       testAccount = await nodemailer.createTestAccount();
-      console.log(
-        `[EMAIL SERVICE] Initialized development Ethereal test inbox: ${testAccount.user}`,
-      );
+      console.log(`[EMAIL SERVICE] Initialized development Ethereal test inbox: ${testAccount.user}`);
     } catch (err) {
-      console.warn(
-        "[EMAIL SERVICE] Could not create Ethereal test account, using stream transport fallback:",
-        err.message,
-      );
+      console.warn('[EMAIL SERVICE] Could not create Ethereal test account, using stream transport fallback:', err.message);
       return nodemailer.createTransport({
-        jsonTransport: true,
+        jsonTransport: true
       });
     }
   }
@@ -69,8 +53,8 @@ async function getTransporter() {
     secure: testAccount.smtp.secure,
     auth: {
       user: testAccount.user,
-      pass: testAccount.pass,
-    },
+      pass: testAccount.pass
+    }
   });
 }
 
@@ -79,16 +63,12 @@ async function getTransporter() {
  * @param {{ to: string, fullName: string, token: string }} params
  */
 export async function sendVerificationEmail({ to, fullName, token }) {
-  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const verificationUrl = `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
-  const senderUser = (
-    process.env.GMAIL_USER ||
-    process.env.SMTP_USER ||
-    ""
-  ).trim();
+  const senderUser = (process.env.GMAIL_USER || process.env.SMTP_USER || '').trim();
   const from = senderUser
     ? `"CINEMA+ Rạp Phim" <${senderUser}>`
-    : process.env.EMAIL_FROM || '"CINEMA+ Rạp Phim" <noreply@cinema.com>';
+    : (process.env.EMAIL_FROM || '"CINEMA+ Rạp Phim" <noreply@cinema.com>');
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -145,16 +125,14 @@ ${verificationUrl}
     const info = await transporter.sendMail({
       from,
       to,
-      subject: "[CINEMA+] Xác thực và kích hoạt tài khoản thành viên",
+      subject: '[CINEMA+] Xác thực và kích hoạt tài khoản thành viên',
       text: textContent,
-      html: htmlContent,
+      html: htmlContent
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
 
-    console.log(
-      `[EMAIL SERVICE] Verification email sent to: ${to} (MessageId: ${info.messageId})`,
-    );
+    console.log(`[EMAIL SERVICE] Verification email sent to: ${to} (MessageId: ${info.messageId})`);
     if (previewUrl) {
       console.log(`[EMAIL SERVICE] Ethereal Preview URL: ${previewUrl}`);
     }
@@ -162,13 +140,11 @@ ${verificationUrl}
     return {
       success: true,
       messageId: info.messageId,
-      previewUrl: previewUrl || null,
+      previewUrl: previewUrl || null
     };
   } catch (error) {
-    console.error(
-      `[EMAIL SERVICE] Error sending email to ${to}:`,
-      error.message,
-    );
+    console.error(`[EMAIL SERVICE] Error sending email to ${to}:`, error.message);
     throw error;
   }
 }
+
