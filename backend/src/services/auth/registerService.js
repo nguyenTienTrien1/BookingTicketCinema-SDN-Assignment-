@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import User from '../../models/User.js';
+import { sendVerificationEmail } from '../email/emailService.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,18 +36,32 @@ export async function registerMember(data) {
   const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {
     if (existingUser.status === 'Pending Verification') {
-      // If pending verification, generate a new token and offer activation per BR-8
+      // If pending verification, generate a new token and send verification email (BR-8)
       const token = crypto.randomBytes(32).toString('hex');
       existingUser.verificationToken = token;
       existingUser.verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
       await existingUser.save();
 
       console.log(`[AUTH AUDIT] Re-issued verification token for existing pending account: ${normalizedEmail}`);
+
+      let emailResult = null;
+      try {
+        emailResult = await sendVerificationEmail({
+          to: normalizedEmail,
+          fullName: existingUser.fullName,
+          token
+        });
+      } catch (err) {
+        console.warn(`[AUTH AUDIT] Warning: Email delivery failed for ${normalizedEmail} (Exception E2):`, err.message);
+      }
+
       return {
-        message: 'Tài khoản này đang chờ xác thực email. Liên kết kích hoạt mới đã được tạo.',
+        message: 'Tài khoản này đang chờ kích hoạt. Email xác thực mới đã được gửi.',
         isPending: true,
         verificationToken: token,
-        verificationLink: `/verify-email?token=${token}`
+        verificationLink: `/verify-email?token=${token}`,
+        emailSent: !!emailResult,
+        previewUrl: emailResult?.previewUrl || null
       };
     }
 
@@ -73,10 +88,26 @@ export async function registerMember(data) {
 
   console.log(`[AUTH AUDIT] New member registered: email=${normalizedEmail}, status=Pending Verification`);
 
+  // 5. Send verification email (UC-1 Step 4 & Exception E2)
+  let emailResult = null;
+  let deliveryWarning = null;
+
+  try {
+    emailResult = await sendVerificationEmail({
+      to: normalizedEmail,
+      fullName: newUser.fullName,
+      token: verificationToken
+    });
+  } catch (emailErr) {
+    // UC-1 Exception E2: System keeps the account Pending Verification and reports delivery failure
+    console.error(`[AUTH AUDIT] Verification email delivery failure for ${normalizedEmail}:`, emailErr.message);
+    deliveryWarning = 'Không thể gửi email xác thực. Bạn có thể sử dụng liên kết kích hoạt trực tiếp bên dưới.';
+  }
+
   const verificationLink = `/verify-email?token=${verificationToken}`;
 
   return {
-    message: 'Đăng ký tài khoản thành công! Vui lòng xác thực email để kích hoạt tài khoản.',
+    message: deliveryWarning || 'Đăng ký tài khoản thành công! Vui lòng kiểm tra hộp thư email để kích hoạt tài khoản.',
     user: {
       id: newUser._id,
       fullName: newUser.fullName,
@@ -85,7 +116,9 @@ export async function registerMember(data) {
       status: newUser.status
     },
     verificationToken,
-    verificationLink
+    verificationLink,
+    emailSent: !!emailResult,
+    previewUrl: emailResult?.previewUrl || null
   };
 }
 
@@ -177,11 +210,24 @@ export async function resendVerification(email) {
 
   console.log(`[AUTH AUDIT] Resent verification token for email=${normalizedEmail}`);
 
+  let emailResult = null;
+  try {
+    emailResult = await sendVerificationEmail({
+      to: normalizedEmail,
+      fullName: user.fullName,
+      token: verificationToken
+    });
+  } catch (err) {
+    console.warn(`[AUTH AUDIT] Warning: Resend email delivery failed for ${normalizedEmail}:`, err.message);
+  }
+
   return {
     success: true,
-    message: 'Liên kết xác thực mới đã được tạo thành công.',
+    message: 'Liên kết xác thực mới đã được gửi vào hộp thư email của bạn.',
     verificationToken,
-    verificationLink: `/verify-email?token=${verificationToken}`
+    verificationLink: `/verify-email?token=${verificationToken}`,
+    emailSent: !!emailResult,
+    previewUrl: emailResult?.previewUrl || null
   };
 }
 

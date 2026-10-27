@@ -73,7 +73,7 @@ export default function LoginForm({ portalType = "user" }) {
 
   function handleSignUp(e) {
     e.preventDefault();
-    navigate("/register");
+    navigate('/register');
   }
 
   return (
@@ -155,11 +155,7 @@ export default function LoginForm({ portalType = "user" }) {
             </div>
           )}
 
-          <form
-            onSubmit={handleSubmit}
-            className="cinemaAuthForm"
-            autoComplete="off"
-          >
+          <form onSubmit={handleSubmit} className="cinemaAuthForm" autoComplete="off">
             {/* Email Address Input */}
             <LoginInput
               id="cinema-email"
