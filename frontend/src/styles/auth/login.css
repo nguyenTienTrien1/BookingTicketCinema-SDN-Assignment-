@@ -14,17 +14,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Montserrat:wght@900&display=swap');
 
-/* Prevent any root scrollbar while on the auth portal */
-html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  overflow: hidden !important; /* Cố định 1 chỗ, tuyệt đối không scroll */
-  background-color: #08090c;
-}
-
-/* Master Fixed Viewport: Exactly 100vh, fixed in place */
+/* Master Fixed Viewport for Auth Portal: Exactly 100vh, fixed in place */
 .cinemaSplitPage {
   position: fixed;
   top: 0;

@@ -4,11 +4,14 @@
     box-sizing: border-box
 }
 
-body {
+html, body {
     margin: 0;
+    padding: 0;
     background: #08090c;
     color: #eee;
-    font-family: Inter, Arial, sans-serif
+    font-family: 'Be Vietnam Pro', Inter, Arial, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 button,
@@ -28,7 +31,9 @@ button {
 
 .app-shell {
     display: flex;
-    min-height: 100vh
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
 }
 
 .sidebarHeader {
@@ -101,7 +106,12 @@ button {
 
 .main-content {
     flex: 1;
-    min-width: 0
+    min-width: 0;
+    width: 100%;
+}
+
+.main-content.subpage {
+    padding-top: 74px;
 }
 
 .loginBtn {

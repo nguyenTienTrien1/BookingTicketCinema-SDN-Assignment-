@@ -1,33 +1,136 @@
-import MovieRow from '../../components/MovieRow';
-import MovieExplorer from '../../components/MovieExplorer';
+import { useState } from 'react';
+import HeroBanner from '../../components/home/HeroBanner';
+import TrendingMovies from '../../components/home/TrendingMovies';
+import MovieGrid from '../../components/home/MovieGrid';
+import Footer from '../../components/home/Footer';
+import '../../styles/home/home.css';
 
-export default function Home({ movies, showtimes, setSelected, setTab }) {
-    const hero = movies[0];
-    const fallback = 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1400&q=80';
-    const choose = (movie) => {
-        setSelected(movie);
-        setTab('booking');
-    };
-    const showDetails = (movie) => {
-        setSelected(movie);
-        setTab('movie-detail');
-    };
+// Helper to extract clean YouTube embed URL
+function getEmbedUrl(raw) {
+  if (!raw) return null;
+  let videoId = '';
 
-    return (
-        <>
-            <section className="hero" style={{ backgroundImage: `linear-gradient(90deg,#08090c 8%,rgba(8,9,12,.72) 40%,rgba(8,9,12,.15)),url('${hero?.banner || fallback}')` }}>
-                <div className="heroText">
-                    <span className="eyebrow">ĐANG KHỞI CHIẾU</span>
-                    <h1>{hero?.title || 'Trải nghiệm điện ảnh'}</h1>
-                    <p>{hero?.description || 'Khám phá phim mới và đặt chỗ chỉ trong vài giây.'}</p>
-                    <div>
-                        <button className="primary" onClick={() => { setSelected(showtimes[0]); setTab('booking'); }}>ĐẶT VÉ NGAY</button>
-                        <button className="ghost" onClick={() => setTab('movies')}>KHÁM PHÁ PHIM</button>
-                    </div>
+  if (raw.includes('youtube-nocookie.com/embed/')) {
+    videoId = raw.split('embed/')[1]?.split('?')[0];
+  } else if (raw.includes('youtube.com/watch?v=')) {
+    videoId = raw.split('watch?v=')[1]?.split('&')[0];
+  } else if (raw.includes('youtu.be/')) {
+    videoId = raw.split('youtu.be/')[1]?.split('?')[0];
+  } else if (/^[a-zA-Z0-9_-]{11}$/.test(raw.trim())) {
+    videoId = raw.trim();
+  }
+
+  if (videoId) {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  }
+  return raw;
+}
+
+export default function Home({
+  movies = [],
+  showtimes = [],
+  setSelected,
+  setTab,
+  searchFilter = ''
+}) {
+  const [modalTrailerMovie, setModalTrailerMovie] = useState(null);
+
+  // Handlers for movie card actions
+  const handleBookMovie = (movie) => {
+    // Preselect showtime if available, otherwise pass movie
+    const movieShowtime = showtimes.find((st) => {
+      const stMovieId = st.movie?._id || st.movie;
+      return String(stMovieId) === String(movie._id);
+    });
+
+    setSelected(movieShowtime || movie);
+    setTab('booking');
+  };
+
+  const handleDetailMovie = (movie) => {
+    setSelected(movie);
+    setTab('movie-detail');
+  };
+
+  const handleWatchTrailer = (movie) => {
+    if (movie) {
+      setModalTrailerMovie(movie);
+    }
+  };
+
+  return (
+    <div className="cinemaHomeContainer">
+      {/* 2. Full-width Hero Banner */}
+      <HeroBanner
+        movies={movies}
+        showtimes={showtimes}
+        onBookTicket={handleBookMovie}
+        onWatchTrailer={handleWatchTrailer}
+      />
+
+      {/* 3. Phim Đang Chiếu (Now Showing Carousel) */}
+      <TrendingMovies
+        movies={movies}
+        searchFilter={searchFilter}
+        onBookMovie={handleBookMovie}
+        onDetailMovie={handleDetailMovie}
+      />
+
+      {/* 4. Phim Sắp Chiếu (Coming Soon Grid) */}
+      <MovieGrid
+        movies={movies}
+        searchFilter={searchFilter}
+        onBookMovie={handleBookMovie}
+        onDetailMovie={handleDetailMovie}
+      />
+
+      {/* Footer: Comprehensive Cinema+ Booking & Support Information */}
+      <Footer setTab={setTab} />
+
+      {/* Modal on demand when user clicks "Xem Trailer" */}
+      {modalTrailerMovie && (
+        <div
+          className="trailerModalOverlay"
+          onClick={() => setModalTrailerMovie(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Xem trailer phim"
+        >
+          <div className="trailerModalContent" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="trailerModalCloseBtn"
+              onClick={() => setModalTrailerMovie(null)}
+              aria-label="Đóng trailer"
+            >
+              ✕
+            </button>
+            <div className="trailerModalIframeWrapper">
+              {getEmbedUrl(modalTrailerMovie.trailer) ? (
+                <iframe
+                  src={getEmbedUrl(modalTrailerMovie.trailer)}
+                  title={`Trailer ${modalTrailerMovie.title || ''}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#fff',
+                    fontSize: '16px'
+                  }}
+                >
+                  Trailer đang được cập nhật
                 </div>
-            </section>
-            <MovieRow title="Phim nổi bật" movies={movies} onMovie={choose} onDetail={showDetails} />
-            <MovieExplorer movies={movies} setSelected={setSelected} setTab={setTab} compact />
-        </>
-    );
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
