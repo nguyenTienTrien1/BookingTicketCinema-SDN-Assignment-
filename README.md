@@ -18,6 +18,11 @@
 Member: `member@cinema.com` / `123456`
 Admin: `admin@cinema.com` / `admin123`
 
+## Implemented CE190580 scope (Khai)
+- UC-13.2: View Movies — Admin catalogue with title search, pagination and movie details.
+- Sign in at `/admin/login`, then choose **Quản lý phim** or open `/admin/movies`.
+- API: `GET /api/movies/admin?search=&page=1&limit=10` requires an active Admin session.
+
 ## Implemented CE190006 scope
 - Book Movie Ticket
 - Add Food & Drink

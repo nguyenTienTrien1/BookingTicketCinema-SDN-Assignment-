@@ -69,6 +69,10 @@ export default function AdminDashboard() {
           {data && <p style={{ color: '#fbcfe8' }}><em>{data.message}</em></p>}
         </div>
 
+        <Link to="/admin/movies" style={{ display: 'inline-block', backgroundColor: '#c91836', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, marginRight: '12px', marginBottom: '12px' }}>
+          Quản lý phim
+        </Link>
+
         <Link
           to="/"
           style={{
