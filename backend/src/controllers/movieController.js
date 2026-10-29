@@ -9,3 +9,12 @@ export async function adminMovies(req, res, next) {
     next(error);
   }
 }
+
+export async function addMovie(req, res, next) {
+  try {
+    const movie = await s.createMovie(req.body, req.user._id);
+    res.status(201).json({ message: 'Thêm phim thành công.', movie });
+  } catch (error) {
+    next(error);
+  }
+}

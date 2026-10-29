@@ -9,6 +9,7 @@ import AdminDashboard from '../pages/auth/AdminDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
+import AddMovie from '../pages/Admin/AddMovie';
 
 /**
  * Main application routes integrating React Router DOM
@@ -60,6 +61,9 @@ export default function AppRoutes() {
 
       <Route path="/admin/movies" element={
         <ProtectedRoute allowedRoles={['admin']}><ManageMovies /></ProtectedRoute>
+      } />
+      <Route path="/admin/movies/new" element={
+        <ProtectedRoute allowedRoles={['admin']}><AddMovie /></ProtectedRoute>
       } />
 
       {/* 6. Preserved Cinema Application */}

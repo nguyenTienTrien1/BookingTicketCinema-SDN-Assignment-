@@ -2,6 +2,7 @@ import Booking from '../models/Booking.js';
 import Showtime from '../models/Showtime.js';
 import Food from '../models/Food.js';
 import User from '../models/User.js';
+import Movie from '../models/Movie.js';
 
 const SEAT_HOLD_MINUTES = 10;
 const POINT_VALUE = 1000;
@@ -65,6 +66,11 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
 
   const showtime = await Showtime.findById(showtimeId);
   if (!showtime) throw bookingError('Không tìm thấy suất chiếu.', 404);
+
+  const movie = await Movie.findById(showtime.movie);
+  if (!movie || movie.classification === 'C') {
+    throw bookingError('Phim không được phép bán vé.', 400);
+  }
 
   const now = new Date();
   await releaseExpiredSeats(showtimeId, now);

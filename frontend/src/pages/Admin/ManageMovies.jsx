@@ -43,6 +43,7 @@ export default function ManageMovies() {
         <header className="movieAdminHeading">
           <div><p className="movieEyebrow">CINEMA+ / QUẢN TRỊ</p><h1>Quản lý phim</h1>
             <p>Danh mục phim, thông tin khởi chiếu và phân loại độ tuổi.</p></div>
+          <Link className="moviePrimary" to="/admin/movies/new">+ Thêm phim</Link>
         </header>
 
         {location.state?.message && <p className="movieSuccess" role="status">{location.state.message}</p>}
@@ -60,7 +61,7 @@ export default function ManageMovies() {
             <p className="movieCount" role="status">{result.total} phim{search ? ` phù hợp với “${search}”` : ' trong danh mục'}</p>
             {result.movies.length === 0 ? <div className="movieState">
               <h2>{search ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim nào'}</h2>
-              <p>{search ? 'Thử tìm bằng tên phim khác.' : 'Danh mục hiện chưa có phim.'}</p>
+              <p>{search ? 'Thử tìm bằng tên phim khác.' : 'Chọn “Thêm phim” để tạo phim đầu tiên.'}</p>
             </div> : <div className="movieTableWrap">
               <table className="movieTable">
                 <caption className="movieSrOnly">Danh sách phim trong hệ thống</caption>
