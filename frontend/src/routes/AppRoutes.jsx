@@ -10,6 +10,7 @@ import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import AddMovie from '../pages/Admin/AddMovie';
+import Profile from '../pages/Account/Profile';
 
 /**
  * Main application routes integrating React Router DOM
@@ -17,6 +18,7 @@ import AddMovie from '../pages/Admin/AddMovie';
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />
 

@@ -1,0 +1,22 @@
+.profilePage { max-width: 900px; margin: 0 auto; padding: 32px 20px; }
+.profilePage > a { color: #ff9aa2; }
+.memberProfile { padding: clamp(20px, 4vw, 34px); background: #14161c; border: 1px solid #30343e; border-radius: 16px; }
+.profileHeading { display: flex; align-items: center; gap: 20px; }
+.profileHeading h2 { margin: 0 0 6px; overflow-wrap: anywhere; }
+.profileHeading p { margin: 0; color: #b5b8c3; overflow-wrap: anywhere; }
+.profileHeading > div:last-child { min-width: 0; }
+.profileGrid, .profileFormGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 28px 0; }
+.profileGrid dt, .profileHint { color: #b5b8c3; line-height: 1.6; }
+.profileGrid dd { margin: 6px 0 0; overflow-wrap: anywhere; }
+.profileActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.profileFields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.profileFields label { display: flex; flex-direction: column; gap: 8px; }
+.profileFields input, .profileFields select { width: 100%; min-height: 44px; padding: 12px; border: 1px solid #666b78; border-radius: 8px; background: #0e1015; color: #fff; font: inherit; }
+.memberProfile button { min-height: 44px; }
+.memberProfile :focus-visible { outline: 3px solid #ff9aa2; outline-offset: 3px; }
+.memberProfile :disabled { opacity: .6; cursor: wait; }
+.profilePasswordFields { display: grid; gap: 18px; max-width: 520px; }
+.profileError { padding: 12px; background: #401b23; color: #ffc1c7; border-radius: 8px; }
+.profileSuccess { padding: 12px; background: #133628; color: #a7f3d0; border-radius: 8px; }
+.profileLoginNotice { margin: 0; padding: 16px; text-align: center; background: #133628; color: #a7f3d0; }
+@media (max-width: 560px) { .profileGrid, .profileFormGrid { grid-template-columns: 1fr; gap: 20px; } .profileHeading { align-items: flex-start; gap: 12px; } .profileActions > button { width: 100%; } }

@@ -18,6 +18,11 @@
 Member: `member@cinema.com` / `123456`
 Admin: `admin@cinema.com` / `admin123`
 
+## UC-5: Member profile
+- Sign in as a Member, then open `/profile` or **Tài khoản → Hồ sơ**.
+- UC-5.3: Read the latest profile from the database. Email, membership points, VIP tier and account status are read-only.
+- These fields follow the existing User model; the supplied UC list does not include additional field-level business rules.
+
 ## Implemented CE190580 scope (Khai)
 - UC-13.1: Add Movie — Admin form with server validation and creator tracking.
 - UC-13.2: View Movies — Admin catalogue with title search, pagination and movie details.
