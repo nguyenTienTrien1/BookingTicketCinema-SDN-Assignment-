@@ -8,6 +8,7 @@ const r = Router();
 
 // UC-5: member ID always comes from the authenticated session.
 r.get('/me', verifyToken, requireRole('member'), profile.view);
+r.patch('/me', verifyToken, requireRole('member'), profile.protectProfileWrite, profile.update);
 
 r.get('/', c.list);
 r.post('/', c.create);

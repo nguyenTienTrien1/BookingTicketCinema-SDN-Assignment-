@@ -20,6 +20,7 @@ Admin: `admin@cinema.com` / `admin123`
 
 ## UC-5: Member profile
 - Sign in as a Member, then open `/profile` or **Tài khoản → Hồ sơ**.
+- UC-5.1: Update full name (1–100 characters), optional phone (9–15 digits with optional `+`), optional age (0–120), and gender. Cancel discards unsaved changes.
 - UC-5.3: Read the latest profile from the database. Email, membership points, VIP tier and account status are read-only.
 - These fields follow the existing User model; the supplied UC list does not include additional field-level business rules.
 
