@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getProfile, updateProfile } from '../../services/profileService';
+import { getProfile, updateProfile, changePassword } from '../../services/profileService';
 import { translateAccountStatus } from '../../utils/uiText';
 import './profile.css';
 
@@ -14,8 +14,10 @@ function profileForm(user) {
 
 export function ProfilePanel() {
   const { setUser } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [mode, setMode] = useState('view');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,6 +50,7 @@ export function ProfilePanel() {
     setError('');
     setMessage('');
     setForm(profileForm(profile));
+    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
   }
 
   async function saveProfile(event) {
@@ -68,6 +71,26 @@ export function ProfilePanel() {
       setMessage(result.message);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể lưu hồ sơ. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function savePassword(event) {
+    event.preventDefault();
+    if (saving) return;
+    setError('');
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setError('Xác nhận mật khẩu mới không khớp.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const result = await changePassword(passwords);
+      setUser(null);
+      navigate('/login', { replace: true, state: { message: result.message } });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.');
     } finally {
       setSaving(false);
     }
@@ -96,6 +119,7 @@ export function ProfilePanel() {
         </dl>
         <div className="profileActions">
           <button type="button" className="primary" onClick={() => switchMode('edit')}>Cập nhật hồ sơ</button>
+          <button type="button" className="ghost" onClick={() => switchMode('password')}>Đổi mật khẩu</button>
         </div>
       </>}
 
@@ -113,6 +137,16 @@ export function ProfilePanel() {
         </fieldset>
       </form>}
 
+      {mode === 'password' && <form onSubmit={savePassword}>
+        <h3>Đổi mật khẩu</h3>
+        <p className="profileHint" id="password-help">Mật khẩu mới có ít nhất 6 ký tự, tối đa 72 byte UTF-8 và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p>
+        <fieldset disabled={saving} className="profileFields profilePasswordFields">
+          <label htmlFor="password-current">Mật khẩu hiện tại<input id="password-current" type="password" autoComplete="current-password" required maxLength={72} value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} /></label>
+          <label htmlFor="password-new">Mật khẩu mới<input id="password-new" type="password" autoComplete="new-password" aria-describedby="password-help" required minLength={6} maxLength={72} value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} /></label>
+          <label htmlFor="password-confirm">Xác nhận mật khẩu mới<input id="password-confirm" type="password" autoComplete="new-password" required minLength={6} maxLength={72} value={passwords.confirmPassword} onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })} /></label>
+          <div className="profileActions"><button className="primary" type="submit">{saving ? 'Đang đổi…' : 'Lưu mật khẩu mới'}</button><button className="ghost" type="button" onClick={() => switchMode('view')}>Hủy</button></div>
+        </fieldset>
+      </form>}
     </section>
   );
 }

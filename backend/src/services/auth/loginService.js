@@ -111,7 +111,8 @@ export async function authenticate(email, password, portalType = 'user') {
       id: account._id,
       email: account.email,
       role: account.role,
-      fullName: account.fullName
+      fullName: account.fullName,
+      tokenVersion: account.tokenVersion || 0
     },
     secret,
     { expiresIn }
@@ -147,6 +148,9 @@ export async function verifySessionToken(token) {
     const decoded = jwt.verify(token, secret);
     const account = await User.findById(decoded.id);
     if (!account) return null;
+
+    // Changing a password invalidates every previously issued session.
+    if ((decoded.tokenVersion || 0) !== (account.tokenVersion || 0)) return null;
 
     const isStatusActive = account.status === 'Active' || account.status === 'active';
     if (!isStatusActive) return null;

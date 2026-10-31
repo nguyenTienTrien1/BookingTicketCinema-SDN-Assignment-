@@ -29,3 +29,15 @@ export async function update(req, res, next) {
     next(error);
   }
 }
+
+export async function password(req, res, next) {
+  try {
+    await profileService.changePassword(req.user._id, req.body);
+    res.clearCookie('token', {
+      httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production'
+    });
+    res.json({ message: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.' });
+  } catch (error) {
+    next(error);
+  }
+}

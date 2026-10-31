@@ -21,8 +21,11 @@ Admin: `admin@cinema.com` / `admin123`
 ## UC-5: Member profile
 - Sign in as a Member, then open `/profile` or **Tài khoản → Hồ sơ**.
 - UC-5.1: Update full name (1–100 characters), optional phone (9–15 digits with optional `+`), optional age (0–120), and gender. Cancel discards unsaved changes.
+- UC-5.2: Supply the current password and matching new password confirmation. The new password must differ, contain at least 6 characters and fit within bcrypt's 72-byte UTF-8 limit. Five incorrect current passwords lock password attempts for 15 minutes. Success signs out all existing sessions.
 - UC-5.3: Read the latest profile from the database. Email, membership points, VIP tier and account status are read-only.
 - These fields follow the existing User model; the supplied UC list does not include additional field-level business rules.
+- APIs: `GET /api/users/me`, `PATCH /api/users/me`, `PATCH /api/users/me/password`. All require an active Member session; writes accept JSON from the configured `CORS_ORIGIN`.
+- Test with `npm run test:profile -w backend` while MongoDB is running. Tests use and remove a separate temporary database without changing existing cinema data.
 
 ## Implemented CE190580 scope (Khai)
 - UC-13.1: Add Movie — Admin form with server validation and creator tracking.
