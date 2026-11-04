@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import {api} from '../services/api';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import '../index.css';
 import Header from '../components/Header';
 import Home from './Home/Home';
@@ -14,42 +16,62 @@ import AdjustPoints from './Admin/AdjustPoints';
 import { getMovies, getShowtimes } from '../services/movieService';
 import { getFoods } from '../services/foodService';
 import { useAuth } from '../context/AuthContext';
+import { canOpenTab } from '../utils/permissions';
 
 export default function CinemaMain() {
+    const location = useLocation();
     const { user: authUser, setUser: setAuthUser } = useAuth();
     const [movies, setMovies] = useState([]);
     const [showtimes, setShowtimes] = useState([]);
     const [foods, setFoods] = useState([]);
-    const [user, setUser] = useState(authUser);
+    const [pointsPolicy,setPointsPolicy]=useState({pointRedeemStep:100,pointValue:1000});
+    const [dataLoading, setDataLoading] = useState(true);
+    const [dataError, setDataError] = useState('');
+    const [dataRetry, setDataRetry] = useState(0);
+    const user = authUser;
     const [selected, setSelected] = useState(null);
     const [pending, setPending] = useState(null);
-    const [tab, setTab] = useState('home');
+    const [tab, setTab] = useState(location.pathname === '/account' ? 'account' : 'home');
+    useEffect(() => {
+        if (location.pathname === '/account') setTab('account');
+    }, [location.key, location.pathname]);
     const [loginReturnTab, setLoginReturnTab] = useState('home');
     const [msg, setMsg] = useState('');
 
-    // Keep auth state synced with AuthContext
-    useEffect(() => {
-        setUser(authUser);
-    }, [authUser]);
 
-    const handleSetUser = (newUser) => {
-        setUser(newUser);
+    const handleSetUser = useCallback((newUser) => {
         setAuthUser(newUser);
-    };
+    }, [setAuthUser]);
 
     useEffect(() => {
-        Promise.all([getMovies(), getShowtimes(), getFoods()])
-            .then(([movieList, showtimeList, foodList]) => {
+        if (tab !== 'booking') return;
+        let active = true;
+        const refresh = () => Promise.all([getShowtimes(), getFoods()]).then(([data, foodList]) => { if (active) { setShowtimes(data); setFoods(foodList); } }).catch((error) => { if (active) setMsg(error.message); });
+        refresh();
+        const timer = window.setInterval(refresh, 15000);
+        window.addEventListener('focus', refresh);
+        return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+    }, [tab]);
+
+    useEffect(() => {
+        let active = true;
+        setDataLoading(true);
+        setDataError('');
+        Promise.all([getMovies(), getShowtimes(), getFoods(), api('/config')])
+            .then(([movieList, showtimeList, foodList, policy]) => {
+                if (!active) return;
                 setMovies(movieList);
                 setShowtimes(showtimeList);
                 setFoods(foodList);
+                setPointsPolicy(policy);
             })
-            .catch((error) => setMsg(error.message));
+            .catch((error) => { if (active) setDataError(error.message); })
+            .finally(() => { if (active) setDataLoading(false); });
 
         const handleShowtimeSelection = (event) => setSelected(event.detail);
         window.addEventListener('select-showtime', handleShowtimeSelection);
-        return () => window.removeEventListener('select-showtime', handleShowtimeSelection);
-    }, []);
+        return () => { active = false; window.removeEventListener('select-showtime', handleShowtimeSelection); };
+    }, [dataRetry]);
 
     useEffect(() => {
         if (!msg) return undefined;
@@ -65,8 +87,12 @@ export default function CinemaMain() {
 
     const props = {
         movies,
+        dataLoading,
+        dataError,
+        onRetryData: () => setDataRetry((value) => value + 1),
         showtimes,
         foods,
+        pointsPolicy,
         user,
         setUser: handleSetUser,
         selected,
@@ -111,7 +137,7 @@ export default function CinemaMain() {
             page = <Payment {...props} onDone={() => setTab('home')} />;
             break;
         case 'account':
-            page = <Account {...props} />;
+            page = <Account {...props} initialSection={new URLSearchParams(location.search).get('section')} />;
             break;
         case 'create-account':
             page = <CreateAccount {...props} />;
@@ -124,6 +150,15 @@ export default function CinemaMain() {
             break;
         default:
             page = <Home {...props} />;
+    }
+
+    if (!canOpenTab(user?.role, tab)) {
+        page = (
+            <section className="page" role="alert">
+                <h2>Bạn không có quyền sử dụng chức năng này</h2>
+                <button type="button" className="primary" onClick={() => setTab('home')}>Về trang chủ</button>
+            </section>
+        );
     }
 
     return (

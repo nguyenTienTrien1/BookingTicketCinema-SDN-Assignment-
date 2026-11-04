@@ -93,19 +93,19 @@ async function runComprehensiveTests() {
     method: 'POST',
     body: JSON.stringify({ email: 'member@cinema.com', password: '123456' })
   });
-  assert(rMemberAtAdmin.status === 401 && rMemberAtAdmin.data.message === 'Email hoặc mật khẩu không chính xác.', 'TC-08: Member rejected at admin portal with generic message');
+  assert(rMemberAtAdmin.status === 200 && rMemberAtAdmin.data.user.role === 'member', 'TC-08: Legacy login alias accepts Member with database role');
 
   const rAdminAtUser = await request('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email: 'admin@cinema.com', password: 'admin123' })
   });
-  assert(rAdminAtUser.status === 401 && rAdminAtUser.data.message === 'Email hoặc mật khẩu không chính xác.', 'TC-09: Admin rejected at user portal with generic message');
+  assert(rAdminAtUser.status === 200 && rAdminAtUser.data.user.role === 'admin', 'TC-09: Shared login accepts Admin');
 
   const rEmployeeAtUser = await request('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email: 'employee@cinema.com', password: 'employee123' })
   });
-  assert(rEmployeeAtUser.status === 401 && rEmployeeAtUser.data.message === 'Email hoặc mật khẩu không chính xác.', 'TC-09b: Employee rejected at user portal with generic message');
+  assert(rEmployeeAtUser.status === 200 && rEmployeeAtUser.data.user.role === 'employee', 'TC-09b: Shared login accepts Employee');
 
   // 6. Generic Non-Disclosing Responses for Bad Password or Missing Email
   const rBadPass = await request('/api/auth/login', {

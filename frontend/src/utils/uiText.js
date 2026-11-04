@@ -52,6 +52,7 @@ export function translateAccountStatus(status) {
     const labels = {
         active: 'Đang hoạt động',
         inactive: 'Ngừng hoạt động',
+        deactivated: 'Ngừng hoạt động',
         blocked: 'Đã khóa',
         banned: 'Đã khóa'
     };

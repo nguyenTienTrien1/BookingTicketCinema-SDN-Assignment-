@@ -1,283 +1,135 @@
 import mongoose from 'mongoose';
+import crypto from 'node:crypto';
+import QRCode from 'qrcode';
 import Booking from '../models/Booking.js';
 import Showtime from '../models/Showtime.js';
 import Food from '../models/Food.js';
 import User from '../models/User.js';
+import PaymentAttempt from '../models/PaymentAttempt.js';
+import { transaction, domainError as fail } from './transaction.js';
+export const POINT_VALUE = 1000;
+export function validatePoints(points, subtotal, balance) {
+ const step = Number(process.env.POINT_REDEEM_STEP || 100);
+ if (!Number.isSafeInteger(points) || points < 0 || points % step !== 0 || points > balance || points * POINT_VALUE > subtotal) throw fail('Điểm sử dụng không hợp lệ hoặc vượt số dư/giá trị đơn.');
+}
+const populate = [{ path: 'showtime', populate: { path: 'movie' } }, { path: 'foodItems.food' }, { path: 'user', select: 'fullName email role memberPoints status' }];
+export const loadBooking = (id) => Booking.findById(id).populate(populate);
+export async function releaseSeats(booking, session) {
+ await Showtime.updateOne({ _id: booking.showtime }, { $set: { 'seats.$[s].status': 'available', 'seats.$[s].bookingId': null, 'seats.$[s].holdUntil': null } }, { session, arrayFilters: [{ 's.bookingId': booking._id, 's.status': 'held' }] });
+}
+export async function expireBookings() {
+ const expired = await Booking.find({ status: 'pending', expiresAt: { $lte: new Date() } }).select('_id').limit(100);
+ for (const item of expired) await transaction(async (session) => {
+  const b = await Booking.findOne({ _id: item._id, status: 'pending', expiresAt: { $lte: new Date() } }).session(session);
+  if (!b) return;
+  b.status = 'cancelled'; b.paymentStatus = 'failed'; await b.save({ session }); await releaseSeats(b, session);
+ });
+}
+async function foodSnapshot(items, session) {
+ if (!Array.isArray(items)) throw fail('Danh sách món không hợp lệ.');
+ const seen = new Set(), result = []; let total = 0;
+ for (const item of items) {
+  if (!item || !mongoose.isObjectIdOrHexString(item.food) || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || seen.has(String(item.food))) throw fail('Món hoặc số lượng không hợp lệ/trùng lặp.');
+  seen.add(String(item.food));
+  const f = await Food.findOne({ _id: item.food, available: true, stock: { $gte: item.quantity } }).session(session);
+  if (!f) throw fail('Món đã ngừng bán hoặc không đủ tồn kho.', 409);
+  result.push({ food: f._id, name: f.name, unitPrice: f.price, quantity: item.quantity }); total += f.price * item.quantity;
+ }
+ return { items: result, total };
+}
+async function checkAge(movie, member, actor, guardian) {
+ if (!movie || movie.classification === 'C') throw fail('Phim không được phép bán vé.');
+ const required = { T13: 13, T16: 16, T18: 18 }[movie.classification] || movie.ageLimit || 0;
+ if (actor) {
+  if ((required > 0 || movie.classification === 'K') && guardian !== true) throw fail('Nhân viên cần xác nhận kiểm tra tuổi/điều kiện người giám hộ.');
+ }
+}
+export async function createBooking({ userId, showtimeId, seats, foodItems = [], counterEmployee = null, points = 0, guardianConfirmed = false }) {
+ await expireBookings();
+ if (!mongoose.isObjectIdOrHexString(showtimeId) || (!counterEmployee && !mongoose.isObjectIdOrHexString(userId)) || !Array.isArray(seats) || !seats.length || seats.some(s => typeof s !== 'string' && typeof s !== 'number') || new Set(seats.map(String)).size !== seats.length) throw fail('Dữ liệu đặt vé không hợp lệ.');
+ const id = await transaction(async (session) => {
+  const show = await Showtime.findById(showtimeId).session(session);
+  if (!show || show.startTime <= new Date()) throw fail('Suất chiếu không còn mở bán.', 409);
+  const movie = await Movie.findById(show.movie).session(session);
+  const member = userId ? await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session) : null;
+  if (userId && !member) throw fail('Không tìm thấy Member đang hoạt động.');
+  await checkAge(movie, member, counterEmployee, guardianConfirmed);
+  const food = await foodSnapshot(foodItems, session);
+  const subtotal = show.price * seats.length + food.total;
+  validatePoints(points, subtotal, member?.memberPoints || 0);
+  const b = new Booking({ user: userId || null, counterEmployee, showtime: show._id, seats: seats.map(String), ticketPrice: show.price, foodItems: food.items, subtotal, pointsUsed: points, discount: points * POINT_VALUE, total: subtotal - points * POINT_VALUE, expiresAt: new Date(Date.now() + 600000), ageCheckedBy: counterEmployee, guardianConfirmed });
+  const claim = await Showtime.updateOne({ _id: show._id, $and: b.seats.map(number => ({ seats: { $elemMatch: { number, status: 'available' } } })) }, { $set: { 'seats.$[s].status': 'held', 'seats.$[s].bookingId': b._id, 'seats.$[s].holdUntil': b.expiresAt } }, { session, arrayFilters: [{ 's.number': { $in: b.seats }, 's.status': 'available' }] });
+  if (claim.modifiedCount !== 1) throw fail('Ghế vừa được giữ/bán. Vui lòng chọn lại.', 409);
+  await b.save({ session }); return b._id;
+ }); return loadBooking(id);
+}
 import Movie from '../models/Movie.js';
-
-const SEAT_HOLD_MINUTES = 10;
-const POINT_VALUE = 1000;
-
-function bookingError(message, status) {
-  return Object.assign(new Error(message), { status });
+async function pending(id, userId, session) {
+ const b = await Booking.findOne({ _id: id, user: userId }).session(session);
+ if (!b) throw fail('Không tìm thấy đơn.', 404);
+ if (b.status !== 'pending' || b.expiresAt <= new Date()) throw fail('Đơn không còn được phép chỉnh sửa.', 410);
+ if (b.activePayment || b.paymentProcessing) throw fail('Đơn đang có giao dịch VNPay. Hủy giao dịch trước khi sửa.', 409);
+ return b;
 }
-
-async function releaseExpiredSeats(showtimeId, now = new Date()) {
-  await Showtime.updateOne(
-    { _id: showtimeId },
-    {
-      $set: {
-        'seats.$[seat].status': 'available',
-        'seats.$[seat].holdUntil': null,
-        'seats.$[seat].bookingId': null
-      }
-    },
-    {
-      arrayFilters: [{ 'seat.status': 'held', 'seat.holdUntil': { $lte: now } }]
-    }
-  );
-
-  await Booking.updateMany(
-    { showtime: showtimeId, status: 'pending', expiresAt: { $lte: now } },
-    { $set: { status: 'cancelled', paymentStatus: 'failed' } }
-  );
+export async function applyMemberPoints(id, userId, points) {
+ await transaction(async (session) => {
+  const b = await pending(id, userId, session);
+  const u = userId && await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session);
+  if (!u) throw fail('Khách vãng lai không được dùng điểm.');
+  validatePoints(points, b.subtotal, u.memberPoints); b.pointsUsed = points; b.discount = points * POINT_VALUE; b.total = b.subtotal - b.discount; await b.save({ session });
+ }); return loadBooking(id);
 }
-
-async function releaseBookingSeats(showtimeId, bookingId, seats, status = 'available', holdUntil = null) {
-  await Showtime.updateOne(
-    { _id: showtimeId },
-    {
-      $set: {
-        'seats.$[seat].status': status,
-        'seats.$[seat].holdUntil': holdUntil,
-        'seats.$[seat].bookingId': status === 'available' ? null : bookingId
-      }
-    },
-    {
-      arrayFilters: [
-        {
-          'seat.number': { $in: seats },
-          'seat.bookingId': bookingId,
-          'seat.status': status === 'available' ? 'held' : 'booked'
-        }
-      ]
-    }
-  );
+export async function updateFoods(id, userId, items) {
+ await transaction(async (session) => { const b = await pending(id, userId, session); const f = await foodSnapshot(items, session); if(!Number.isFinite(b.ticketPrice))throw fail('Đơn cũ thiếu snapshot giá vé. Vui lòng hủy và đặt lại.',409); const subtotal = b.ticketPrice * b.seats.length + f.total;
+  const u = b.user && await User.findById(b.user).session(session); validatePoints(b.pointsUsed, subtotal, u?.memberPoints || 0);
+  b.foodItems = f.items; b.subtotal = subtotal; b.total = subtotal - b.discount; await b.save({ session });
+ }); return loadBooking(id);
 }
-
-export async function createBooking({ userId, showtimeId, seats, foodItems = [] }) {
-  if (!mongoose.isObjectIdOrHexString(userId) || !mongoose.isObjectIdOrHexString(showtimeId) || !Array.isArray(foodItems) || foodItems.some((item) => !item || !mongoose.isObjectIdOrHexString(item.food))) {
-    throw bookingError('Invalid booking data.', 400);
-  }
-  if (!Array.isArray(seats) || seats.length === 0) {
-    throw bookingError('Vui lòng chọn ít nhất một ghế.', 400);
-  }
-
-  const requestedSeats = seats.map(String);
-  if (new Set(requestedSeats).size !== requestedSeats.length) {
-    throw bookingError('Không thể chọn một ghế nhiều lần.', 400);
-  }
-
-  const showtime = await Showtime.findById(showtimeId);
-  if (!showtime) throw bookingError('Không tìm thấy suất chiếu.', 404);
-
-  const movie = await Movie.findById(showtime.movie);
-  if (!movie || movie.classification === 'C') {
-    throw bookingError('Phim không được phép bán vé.', 400);
-  }
-
-  const now = new Date();
-  await releaseExpiredSeats(showtimeId, now);
-
-  const foods = await Food.find({ _id: { $in: foodItems.map((item) => item.food) } });
-  let foodTotal = 0;
-  const normalizedFoodItems = foodItems.map((item) => {
-    const food = foods.find((candidate) => String(candidate._id) === String(item.food));
-    if (!food) throw bookingError('Không tìm thấy món ăn hoặc thức uống.', 404);
-    const quantity = Number(item.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      throw bookingError('Số lượng món ăn phải là số nguyên dương.', 400);
-    }
-    foodTotal += food.price * quantity;
-    return { food: food._id, quantity };
-  });
-
-  const expiresAt = new Date(now.getTime() + SEAT_HOLD_MINUTES * 60 * 1000);
-  const subtotal = showtime.price * requestedSeats.length + foodTotal;
-  const booking = new Booking({
-    user: userId,
-    showtime: showtimeId,
-    seats: requestedSeats,
-    foodItems: normalizedFoodItems,
-    subtotal,
-    total: subtotal,
-    expiresAt
-  });
-
-  const availabilityConditions = requestedSeats.map((number) => ({
-    seats: { $elemMatch: { number, status: 'available' } }
-  }));
-  const claimResult = await Showtime.updateOne(
-    { _id: showtimeId, $and: availabilityConditions },
-    {
-      $set: {
-        'seats.$[seat].status': 'held',
-        'seats.$[seat].holdUntil': expiresAt,
-        'seats.$[seat].bookingId': booking._id
-      }
-    },
-    {
-      arrayFilters: [
-        { 'seat.number': { $in: requestedSeats }, 'seat.status': 'available' }
-      ]
-    }
-  );
-
-  if (claimResult.modifiedCount !== 1) {
-    throw bookingError('Một hoặc nhiều ghế đã chọn không còn trống. Vui lòng chọn ghế khác.', 409);
-  }
-
-  try {
-    await booking.save();
-    return await booking.populate([
-      { path: 'showtime', populate: { path: 'movie' } },
-      { path: 'foodItems.food' },
-      { path: 'user', select: 'fullName email role memberPoints status' }
-    ]);
-  } catch (error) {
-    await Booking.deleteOne({ _id: booking._id });
-    await releaseBookingSeats(showtimeId, booking._id, requestedSeats);
-    throw error;
-  }
+export async function cancelBooking(id, userId) {
+ await transaction(async (session) => { const b = await Booking.findOne({ _id: id, user: userId }).session(session); if (!b) throw fail('Không tìm thấy đơn.', 404); if (b.status === 'paid') throw fail('Vé đã thanh toán không thể hủy giữ ghế.'); if (b.status === 'cancelled') return; b.status = 'cancelled'; b.paymentStatus = 'failed'; await b.save({ session }); await releaseSeats(b, session); }); return loadBooking(id);
 }
-
-export async function applyMemberPoints(bookingId, userId, points) {
-  if (!Number.isInteger(points) || points < 0) {
-    throw bookingError('Điểm sử dụng phải là số nguyên không âm.', 400);
+// Trusted server-only finalization. Client routes cannot pass settlement evidence.
+export async function settle(id, evidence) {
+ const result = await transaction(async (session) => {
+  const b = await Booking.findById(id).session(session); if (!b) throw fail('Không tìm thấy đơn.', 404);
+  if (b.status === 'paid') return b._id;
+  if (b.status !== 'pending' || b.expiresAt <= new Date()) throw fail('Đơn đã hủy hoặc hết hạn.', 410);
+  const show = await Showtime.findById(b.showtime).session(session); if (!show || show.startTime <= new Date()) throw fail('Suất đã bắt đầu.', 409);
+  const finalMovie = await Movie.findById(show.movie).session(session);
+  const finalMember = b.user ? await User.findById(b.user).session(session) : null;
+  await checkAge(finalMovie, finalMember, b.counterEmployee, b.guardianConfirmed);
+  let attempt;
+  if (evidence.kind === 'vnpay') {
+   attempt = await PaymentAttempt.findOne({ ref: evidence.ref, booking: b._id, status: 'created', amount: b.total, currency: 'VND' }).session(session);
+   if (!attempt || !evidence.verified || b.activePayment !== attempt.ref) throw fail('Bằng chứng thanh toán không hợp lệ.', 409);
+  } else if (b.activePayment) throw fail('Đơn đang có giao dịch VNPay.', 409);
+  if (evidence.kind === 'points' && b.total !== 0) throw fail('Chỉ xác nhận bằng điểm khi số tiền còn lại bằng 0.');
+  if (evidence.kind === 'cash') {
+   const actor = await User.findOne({ _id: evidence.actor, role: { $in: ['admin','employee'] }, status: { $in: ['Active','active'] } }).session(session);
+   if (!actor || evidence.receivedAmount !== b.total || b.total <= 0) throw fail('Nhân viên cần xác nhận đúng số tiền thực thu.', 403);
+   if (actor.role !== 'admin' && b.counterEmployee && String(b.counterEmployee) !== String(actor._id)) throw fail('Không có quyền xử lý đơn này.', 403);
   }
-
-  const booking = await Booking.findOne({ _id: bookingId, user: userId });
-  if (!booking) throw bookingError('Không tìm thấy đơn đặt vé.', 404);
-  if (booking.status !== 'pending') throw bookingError('Không thể thay đổi đơn đặt vé này.', 400);
-  if (!booking.expiresAt || booking.expiresAt <= new Date()) {
-    throw bookingError('Thời gian giữ ghế đã hết. Vui lòng tạo đơn đặt vé mới.', 410);
-  }
-
-  const user = await User.findById(userId);
-  if (!user) throw bookingError('Không tìm thấy tài khoản.', 404);
-  if (user.memberPoints < points) {
-    throw bookingError(`Bạn chỉ còn ${user.memberPoints} điểm thành viên.`, 400);
-  }
-
-  const maxRedeemablePoints = Math.floor(booking.subtotal / POINT_VALUE);
-  if (points > maxRedeemablePoints) {
-    throw bookingError(`Đơn này chỉ có thể sử dụng tối đa ${maxRedeemablePoints} điểm.`, 400);
-  }
-
-  const now = new Date();
-  const updatedBooking = await Booking.findOneAndUpdate(
-    { _id: bookingId, user: userId, status: 'pending', expiresAt: { $gt: now } },
-    {
-      $set: {
-        pointsUsed: points,
-        discount: points * POINT_VALUE,
-        total: booking.subtotal - points * POINT_VALUE
-      }
-    },
-    { new: true }
-  );
-  if (!updatedBooking) {
-    throw bookingError('Đơn đặt vé đã thay đổi hoặc thời gian giữ ghế đã hết. Vui lòng tải lại và thử lại.', 409);
-  }
-  return updatedBooking;
+  if (evidence.kind === 'demo' && (process.env.NODE_ENV === 'production' || process.env.ENABLE_PAYMENT_SIMULATION !== 'true')) throw fail('Thanh toán giả lập chưa được bật cho môi trường development.',403);
+  if (!['demo','cash','points','vnpay'].includes(evidence.kind)) throw fail('Phương thức không được hỗ trợ.');
+  if (b.user) {
+   const member = await User.findOne({ _id: b.user, role: 'member', status: { $in: ['Active','active'] } }).session(session);
+   if (!member || member.memberPoints < b.pointsUsed) throw fail('Số dư điểm đã thay đổi hoặc tài khoản bị khóa.', 409);
+   if (b.pointsUsed) await User.updateOne({ _id: b.user, memberPoints: { $gte: b.pointsUsed } }, { $inc: { memberPoints: -b.pointsUsed }, $push: { redemptionEntries: { booking: b._id, delta: -b.pointsUsed, at: new Date() } } }, { session });
+  } else if (b.pointsUsed) throw fail('Đơn vãng lai không được dùng điểm.');
+  for (const item of b.foodItems) { const stock = await Food.updateOne({ _id: item.food, available: true, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { session }); if (stock.modifiedCount !== 1) throw fail('Món đã hết hàng, chưa thể hoàn tất thanh toán.', 409); }
+  const sold = await Showtime.updateOne({ _id: b.showtime, $and: b.seats.map(number => ({ seats: { $elemMatch: { number, status: 'held', bookingId: b._id, holdUntil: { $gt: new Date() } } } })) }, { $set: { 'seats.$[s].status': 'booked', 'seats.$[s].holdUntil': null } }, { session, arrayFilters: [{ 's.bookingId': b._id, 's.status': 'held' }] });
+  if (sold.modifiedCount !== 1) throw fail('Giữ ghế không còn hợp lệ.', 409);
+  b.tickets = []; for (const seat of b.seats) { const code = crypto.randomBytes(24).toString('hex'); b.tickets.push({ seat, code, qr: await QRCode.toDataURL(JSON.stringify({ ticket: code, booking: String(b._id), seat }), { width: 220, margin: 1 }), status: 'valid' }); }
+  if (!attempt) { const created = await PaymentAttempt.create([{ ref: crypto.randomUUID(), booking: b._id, amount: b.total, method: evidence.kind, status: 'succeeded', receivedAmount: evidence.receivedAmount, actor: evidence.actor }], { session }); attempt = created[0]; }
+  else { attempt.status = 'succeeded'; attempt.providerRef = evidence.providerRef; await attempt.save({ session }); }
+  b.status = 'paid'; b.paymentStatus = 'paid'; b.paymentMethod = evidence.kind; b.paymentRef = attempt.ref; b.activePayment = null; b.paidAt = new Date(); await b.save({ session }); return b._id;
+ }); return loadBooking(result);
 }
+export async function pay() { throw fail('Không chấp nhận xác nhận thanh toán từ trình duyệt.', 403); }
+export const listBookings = (userId) => Booking.find({ user: userId }).populate(populate).sort({ createdAt: -1 });
 
-export async function pay(bookingId, userId, method = 'mock') {
-  if (!['cash', 'vnpay', 'momo', 'credit-card', 'mock'].includes(method)) {
-    throw bookingError('Invalid payment method.', 400);
-  }
-  const booking = await Booking.findOne({ _id: bookingId, user: userId });
-  if (!booking) throw bookingError('Không tìm thấy đơn đặt vé.', 404);
-  if (booking.status === 'paid') {
-    return booking.populate([
-      { path: 'showtime', populate: { path: 'movie' } },
-      { path: 'foodItems.food' },
-      { path: 'user', select: 'fullName email role memberPoints status' }
-    ]);
-  }
-  if (booking.status !== 'pending') throw bookingError('Đơn đặt vé này không còn ở trạng thái có thể thanh toán.', 400);
-
-  const now = new Date();
-  if (!booking.expiresAt || booking.expiresAt <= now) {
-    await releaseExpiredSeats(booking.showtime, now);
-    await Booking.updateOne(
-      { _id: booking._id, status: 'pending' },
-      { $set: { status: 'cancelled', paymentStatus: 'failed' } }
-    );
-    throw bookingError('Thời gian giữ ghế 10 phút đã hết. Vui lòng chọn lại ghế.', 410);
-  }
-
-  const pointDeduction = booking.pointsUsed || 0;
-  if (pointDeduction > 0) {
-    const deduction = await User.updateOne(
-      { _id: userId, memberPoints: { $gte: pointDeduction } },
-      { $inc: { memberPoints: -pointDeduction } }
-    );
-    if (deduction.modifiedCount !== 1) {
-      throw bookingError('Số điểm hiện có đã thay đổi. Vui lòng cập nhật hoặc bỏ số điểm đã áp dụng rồi thử lại.', 409);
-    }
-  }
-
-  const seatsBooked = await Showtime.updateOne(
-    {
-      _id: booking.showtime,
-      $and: booking.seats.map((number) => ({
-        seats: { $elemMatch: { number, status: 'held', bookingId: booking._id, holdUntil: { $gt: now } } }
-      }))
-    },
-    {
-      $set: {
-        'seats.$[seat].status': 'booked',
-        'seats.$[seat].holdUntil': null
-      }
-    },
-    {
-      arrayFilters: [
-        {
-          'seat.number': { $in: booking.seats },
-          'seat.status': 'held',
-          'seat.bookingId': booking._id,
-          'seat.holdUntil': { $gt: now }
-        }
-      ]
-    }
-  );
-
-  if (seatsBooked.modifiedCount !== 1) {
-    if (pointDeduction > 0) {
-      await User.updateOne({ _id: userId }, { $inc: { memberPoints: pointDeduction } });
-    }
-    throw bookingError('Thời gian giữ ghế đã hết hoặc ghế không còn được giữ cho đơn này. Vui lòng đặt vé lại.', 409);
-  }
-
-  const paidBooking = await Booking.findOneAndUpdate(
-    { _id: booking._id, user: userId, status: 'pending', expiresAt: { $gt: now } },
-    {
-      $set: {
-        status: 'paid',
-        paymentStatus: 'paid',
-        paymentMethod: method,
-        paymentRef: `PAY-${Date.now()}`
-      }
-    },
-    { new: true }
-  );
-
-  if (!paidBooking) {
-    await releaseBookingSeats(booking.showtime, booking._id, booking.seats, 'held', booking.expiresAt);
-    if (pointDeduction > 0) {
-      await User.updateOne({ _id: userId }, { $inc: { memberPoints: pointDeduction } });
-    }
-    throw bookingError('Đơn đặt vé đã thay đổi trong lúc xử lý thanh toán. Vui lòng tải lại và thử lại.', 409);
-  }
-
-  return paidBooking.populate([
-    { path: 'showtime', populate: { path: 'movie' } },
-    { path: 'foodItems.food' },
-    { path: 'user', select: 'fullName email role memberPoints status' }
-  ]);
+export async function simulationFailure(id) {
+ if(process.env.NODE_ENV==='production'||process.env.ENABLE_PAYMENT_SIMULATION!=='true')throw fail('Giả lập chỉ được bật ở development.',403);
+ const b=await Booking.findById(id);if(!b||b.status!=='pending'||b.expiresAt<=new Date())throw fail('Đơn không còn hiệu lực.',410);
+ await PaymentAttempt.create({ref:crypto.randomUUID(),booking:b._id,amount:b.total,method:'demo',status:'failed',message:'User-selected simulated failure'});return loadBooking(id);
 }
-
-export const listBookings = (userId) => Booking.find({ user: userId })
-  .populate([{ path: 'showtime', populate: { path: 'movie' } }, { path: 'foodItems.food' }])
-  .sort({ createdAt: -1 });

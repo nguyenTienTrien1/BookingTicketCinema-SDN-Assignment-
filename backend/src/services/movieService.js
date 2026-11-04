@@ -1,8 +1,9 @@
+import {expireBookings} from './bookingService.js';
 import Movie from '../models/Movie.js';
 import Showtime from '../models/Showtime.js';
 // C-classified movies remain visible to Admin, but are not published for sale.
 export const listMovies=()=>Movie.find({ classification: { $ne: 'C' } }).sort({featured:-1,createdAt:-1});
-export const listShowtimes=(movieId)=>Showtime.find(movieId?{movie:movieId}:{}).populate('movie').sort({startTime:1});
+export const listShowtimes=async(movieId)=>{await expireBookings();return Showtime.find(movieId?{movie:movieId}:{}).populate('movie').sort({startTime:1});};
 export const getMovie=id=>Movie.findById(id);
 
 function movieError(message, status = 400) {

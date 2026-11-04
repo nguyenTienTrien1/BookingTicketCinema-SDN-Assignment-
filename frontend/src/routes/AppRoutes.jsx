@@ -1,16 +1,14 @@
-import { Routes, Route } from 'react-router-dom';
+import CounterTools from '../pages/Admin/CounterTools';
+import ActivateStaff from '../pages/auth/ActivateStaff';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import UserLogin from '../pages/auth/UserLogin';
 import AdminLogin from '../pages/auth/AdminLogin';
 import Register from '../pages/auth/Register';
 import VerifyEmail from '../pages/auth/VerifyEmail';
-import MemberDashboard from '../pages/auth/MemberDashboard';
-import EmployeeDashboard from '../pages/auth/EmployeeDashboard';
-import AdminDashboard from '../pages/auth/AdminDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import AddMovie from '../pages/Admin/AddMovie';
-import Profile from '../pages/Account/Profile';
 
 /**
  * Main application routes integrating React Router DOM
@@ -18,7 +16,9 @@ import Profile from '../pages/Account/Profile';
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
+      <Route path="/staff/tools" element={<ProtectedRoute allowedRoles={['admin','employee']}><CounterTools /></ProtectedRoute>} />
+      <Route path="/activate-staff" element={<ActivateStaff />} />
+      <Route path="/profile" element={<ProtectedRoute allowedRoles={['member', 'employee', 'admin']}><Navigate to="/account?section=profile" replace /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />
 
@@ -36,7 +36,7 @@ export default function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={['member']}>
-            <MemberDashboard />
+            <Navigate to="/account?section=profile" replace />
           </ProtectedRoute>
         }
       />
@@ -46,7 +46,7 @@ export default function AppRoutes() {
         path="/employee/dashboard"
         element={
           <ProtectedRoute allowedRoles={['employee']}>
-            <EmployeeDashboard />
+            <Navigate to="/profile" replace />
           </ProtectedRoute>
         }
       />
@@ -56,7 +56,7 @@ export default function AppRoutes() {
         path="/admin/dashboard"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
+            <Navigate to="/profile" replace />
           </ProtectedRoute>
         }
       />

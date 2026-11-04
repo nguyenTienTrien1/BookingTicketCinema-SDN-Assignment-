@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { getBookings } from '../../services/bookingService';
-import { translateAccountStatus, translateFoodName } from '../../utils/uiText';
+import { translateFoodName } from '../../utils/uiText';
 import { ProfilePanel } from './Profile';
 
 function formatDate(value) {
@@ -18,14 +20,20 @@ function bookingStatus(booking) {
     return { label: 'Chờ thanh toán', className: 'pending' };
 }
 
-export default function Account({ user, setTab, setPending }) {
-    const [activeSection, setActiveSection] = useState('tickets');
+export default function Account({ user, setTab, setPending, initialSection }) {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    const [loggingOut, setLoggingOut] = useState(false);
+    const [activeSection, setActiveSection] = useState(initialSection === 'profile' || user?.role !== 'member' ? 'profile' : 'tickets');
+    useEffect(() => {
+        setActiveSection(initialSection === 'profile' || user?.role !== 'member' ? 'profile' : 'tickets');
+    }, [initialSection, user?.role]);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!user?._id) return;
+        if (!user?._id || user.role !== 'member') return;
 
         let active = true;
         setLoading(true);
@@ -44,7 +52,7 @@ export default function Account({ user, setTab, setPending }) {
         return () => {
             active = false;
         };
-    }, [user?._id]);
+    }, [user?._id, user?.role]);
 
     if (!user) {
         return (
@@ -66,7 +74,16 @@ export default function Account({ user, setTab, setPending }) {
                 <p>Quản lý thông tin cá nhân và vé xem phim đã đặt.</p>
             </div>
 
+            <button type="button" className="ghost" disabled={loggingOut} onClick={async () => {
+                if (loggingOut) return;
+                setLoggingOut(true);
+                try { await logout(); navigate('/login', { replace: true }); }
+                catch (err) { setError(err.message); }
+                finally { setLoggingOut(false); }
+            }}>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+            {error && activeSection === 'profile' && <p role="alert">{error}</p>}
             <div className="accountTabs" role="tablist" aria-label="Mục tài khoản">
+                {user.role === 'member' && (
                 <button
                     type="button"
                     role="tab"
@@ -76,6 +93,7 @@ export default function Account({ user, setTab, setPending }) {
                 >
                     Vé của tôi <span>{bookings.length}</span>
                 </button>
+                )}
                 <button
                     type="button"
                     role="tab"
@@ -88,17 +106,7 @@ export default function Account({ user, setTab, setPending }) {
             </div>
 
             {activeSection === 'profile' ? (
-                user.role === 'member' ? <ProfilePanel /> : <div className="accountProfileCard">
-                    <div className="accountAvatar">{String(user.fullName || 'U').trim().charAt(0).toUpperCase()}</div>
-                    <div className="accountProfileDetails">
-                        <h3>{user.fullName}</h3>
-                        <p>{user.email}</p>
-                        <div className="accountProfileStats">
-                            <span>Điểm thành viên <strong>{Number(user.memberPoints || 0).toLocaleString()}</strong></span>
-                            <span>Trạng thái <strong>{translateAccountStatus(user.status)}</strong></span>
-                        </div>
-                    </div>
-                </div>
+                <ProfilePanel />
             ) : (
                 <div className="myTicketsSection">
                     {loading && <div className="ticketNotice">Đang tải danh sách vé…</div>}
@@ -168,7 +176,7 @@ export default function Account({ user, setTab, setPending }) {
                                     </div>
                                     {booking.status === 'paid' && (
                                         <div className="myTicketQr">
-                                            <div className="myTicketQrPattern" aria-hidden="true">▦</div>
+                                            <div className="ticketGrid">{booking.tickets?.length?booking.tickets.map(ticket=><div key={ticket.code}><img src={ticket.qr} alt={'QR ghế '+ticket.seat} width="150" height="150"/><p>Ghế {ticket.seat}</p><small>{ticket.code}</small></div>):<p>Đơn cũ chưa có QR riêng từng ghế.</p>}</div>
                                             <div>
                                                 <strong>Vé điện tử</strong>
                                                 <span>Dùng mã vé này để tra cứu và làm thủ tục vào rạp.</span>

@@ -1,0 +1,22 @@
+﻿import {translateFoodName} from '../utils/uiText';
+const images = import.meta.glob('../assets/foods/*.png', {eager:true, import:'default'});
+export function foodImage(food) {
+ const file = food?.image?.split('/').pop() || food?.name?.toLowerCase().replaceAll(' ','_')+'.png';
+ return images['../assets/foods/'+file] || images['../assets/foods/popcorn_small.png'];
+}
+export default function FoodPicker({foods,items,onChange,disabled=false}) {
+ if (!foods.length) return <p className="helperText" role="status">Chưa có bắp nước đang bán. Bạn có thể tiếp tục đặt vé mà không chọn món.</p>;
+ return <div className="foodGrid">{foods.map(food=>{
+ const quantity=items.find(item=>item._id===food._id)?.quantity||0;
+ const stock=Number(food.stock||0), unavailable=disabled||!food.available||stock<1;
+ const change=value=>{if(!Number.isSafeInteger(value)||value<0||value>stock)return;onChange([...items.filter(item=>item._id!==food._id),...(value?[{...food,quantity:value}]:[])]);};
+ return <article className={'foodItem'+(quantity?' chosen':'')} key={food._id}>
+  <img src={foodImage(food)} alt={translateFoodName(food.name)} loading="lazy" width="200" height="150" />
+  <strong>{translateFoodName(food.name)}</strong><span className="foodPrice">{Number(food.price).toLocaleString('vi-VN')}đ <small>/ phần</small></span>
+  {food.description&&<p className="foodDescription">{food.description}</p>}
+  <small>{stock>0?'Còn '+stock+' phần':'Tạm hết hàng'}</small>
+  <div className="foodQuantity"><button type="button" aria-label={'Giảm '+translateFoodName(food.name)} disabled={unavailable||quantity===0} onClick={()=>change(quantity-1)}>−</button>
+  <input aria-label={'Số lượng '+translateFoodName(food.name)} type="number" min="0" max={stock} step="1" disabled={unavailable} value={quantity} onChange={event=>change(Number(event.target.value))}/>
+  <button type="button" aria-label={'Thêm '+translateFoodName(food.name)} disabled={unavailable||quantity>=stock} onClick={()=>change(quantity+1)}>+</button></div>
+ </article>;})}</div>;
+}

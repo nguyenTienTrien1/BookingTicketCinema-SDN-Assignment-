@@ -1,3 +1,4 @@
+import paymentRoutes from './routes/paymentRoutes.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -7,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import movieRoutes from './routes/movieRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
+import counterRoutes from './routes/counterRoutes.js';
 
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';
@@ -32,6 +34,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // 4. Authentication routes
+app.get('/api/config',(_req,res)=>res.json({pointValue:1000,pointRedeemStep:Number(process.env.POINT_REDEEM_STEP||100)}));
 app.use('/api/auth', authRoutes);
 
 // 5. Protected Dashboard Endpoints (Section 15 Requirements)
@@ -44,6 +47,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/foods', foodRoutes);
+app.use('/api/payments',paymentRoutes);
+app.use('/api/counter', counterRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {

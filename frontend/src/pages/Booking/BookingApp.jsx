@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import FoodPicker from '../../components/FoodPicker';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createBooking } from '../../services/bookingService';
+import useMemberPoints from '../../hooks/useMemberPoints';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
@@ -87,7 +89,11 @@ function getPoster(movie) {
     return source || '';
 }
 
-export default function BookingApp({ user, selected, showtimes, foods, movies, setTab, setMsg, setPending, onRequireBookingLogin }) {
+export default function BookingApp({ user, setUser, selected, showtimes, foods, movies, setTab, setMsg, setPending, onRequireBookingLogin }) {
+    const memberPoints = useMemberPoints(user, setUser);
+    const [pointsToUse, setPointsToUse] = useState('0');
+    const [bookingBusy, setBookingBusy] = useState(false);
+    const submitting = useRef(false);
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
     const [step, setStep] = useState(selected?.startTime ? 2 : 0);
@@ -120,8 +126,17 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
 
     const ticketPrice = Number(currentShowtime?.price || 0);
     const ticketSubtotal = ticketPrice * seat.length;
-    const foodSubtotal = food.reduce((sum, item) => sum + Number(item.price || 0), 0);
+    const foodSubtotal = food.reduce((sum, item) => sum + Number(item.price || 0) * (item.quantity || 1), 0);
+    useEffect(() => {
+        if (!currentShowtime) return;
+        setSeat(current => current.filter(number => currentShowtime.seats.some(item => item.number === number && item.status === 'available')));
+    }, [currentShowtime]);
+
     const subtotal = ticketSubtotal + foodSubtotal;
+    const maxPoints = Math.floor(Math.min(memberPoints.balance, Math.floor(subtotal / 1000)) / memberPoints.step) * memberPoints.step;
+    const selectedPoints = Number(pointsToUse);
+    const pointsValid = Number.isSafeInteger(selectedPoints) && selectedPoints >= 0 && selectedPoints % memberPoints.step === 0 && selectedPoints <= maxPoints;
+    const discount = pointsValid ? selectedPoints * 1000 : 0;
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
         return showtimes.filter((s) => {
@@ -195,17 +210,24 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
     }
 
     async function book() {
+        if (submitting.current) return;
         if (!user || !currentShowtime || !seat.length) {
             setMsg('Vui lòng đăng nhập, chọn suất chiếu và ít nhất một ghế.');
             return;
         }
 
+        if (!pointsValid || (selectedPoints > 0 && (memberPoints.refreshing || memberPoints.error))) {
+            setMsg('Vui lòng kiểm tra số dư và chọn số điểm nguyên không âm, không vượt mức tối đa.');
+            return;
+        }
+        submitting.current = true;
+        setBookingBusy(true);
         try {
             const booking = await createBooking({
-                userId: user._id,
+                points: selectedPoints,
                 showtimeId: currentShowtime._id,
                 seats: seat,
-                foodItems: food.map((x) => ({ food: x._id, quantity: 1 }))
+                foodItems: food.map((x) => ({ food: x._id, quantity: x.quantity || 1 }))
             });
 
             setPending(booking);
@@ -213,6 +235,10 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
             setTab('payment');
         } catch (error) {
             setMsg(error.message);
+            memberPoints.refresh();
+        } finally {
+            submitting.current = false;
+            setBookingBusy(false);
         }
     }
 
@@ -437,31 +463,7 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                             <span className="optionalBadge">Không bắt buộc</span>
                         </div>
                         <p className="helperText">Bạn có thể bỏ qua nếu không muốn gọi thêm đồ ăn.</p>
-                        <div className="food">
-                            {foods.map((f) => {
-                                const isChosen = food.some((x) => x._id === f._id);
-                                return (
-                                    <button
-                                        key={f._id}
-                                        type="button"
-                                        className={isChosen ? 'foodItem chosen' : 'foodItem'}
-                                        onClick={() =>
-                                            setFood((items) =>
-                                                items.some((item) => item._id === f._id)
-                                                    ? items.filter((item) => item._id !== f._id)
-                                                    : [...items, f]
-                                            )
-                                        }
-                                        aria-pressed={isChosen}
-                                    >
-                                        {foodImages[f.name] && <img src={foodImages[f.name]} alt="" />}
-                                        <span>{translateFoodName(f.name)}</span>
-                                        <b>{f.price?.toLocaleString()}₫</b>
-                                        <small>{isChosen ? 'Đã thêm ✓' : 'Chạm để thêm'}</small>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        <FoodPicker foods={foods} items={food} onChange={setFood} />
                         <div className="bookingActions">
                             <button type="button" className="ghost" onClick={goBack}>Quay lại</button>
                             <button type="button" className="primary" onClick={goNext}>Tiếp tục</button>
@@ -500,8 +502,8 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                                 </div>
                                 {food.length ? food.map((item) => (
                                     <div className="summaryPriceRow" key={item._id}>
-                                        <span>{translateFoodName(item.name)} (×1)</span>
-                                        <strong>{Number(item.price || 0).toLocaleString()}₫</strong>
+                                        <span>{translateFoodName(item.name)} (×{item.quantity || 1})</span>
+                                        <strong>{(Number(item.price || 0) * (item.quantity || 1)).toLocaleString()}₫</strong>
                                     </div>
                                 )) : (
                                     <div className="summaryPriceRow">
@@ -516,11 +518,26 @@ export default function BookingApp({ user, selected, showtimes, foods, movies, s
                             </div>
                             <div className="summaryTotal">
                                 <span>Tổng thanh toán</span>
-                                <strong>{subtotal.toLocaleString()}₫</strong>
+                                <strong>{(subtotal - discount).toLocaleString()}₫</strong>
                             </div>
                         </div>
+                        <div className="pointsPayment">
+                            <label htmlFor="online-member-points">Dùng điểm thành viên giảm tiền</label>
+                            <p aria-live="polite">Hiện có {memberPoints.balance} điểm · 1 điểm = 1.000đ · Đổi theo bội số {memberPoints.step} · Đơn này dùng tối đa {maxPoints} điểm.</p>
+                            <div className="pointBox">
+                                <input id="online-member-points" type="number" min="0" max={maxPoints} step={memberPoints.step}
+                                    value={pointsToUse} onChange={(event) => setPointsToUse(event.target.value)} disabled={bookingBusy || memberPoints.refreshing} />
+                                <button type="button" onClick={() => setPointsToUse(String(maxPoints))} disabled={bookingBusy || memberPoints.refreshing || !!memberPoints.error}>Dùng tối đa</button>
+                                <button type="button" onClick={() => setPointsToUse('0')} disabled={bookingBusy}>Không dùng điểm</button>
+                                <button type="button" onClick={memberPoints.refresh} disabled={bookingBusy || memberPoints.refreshing}>{memberPoints.refreshing ? 'Đang tải…' : 'Làm mới số dư'}</button>
+                            </div>
+                            {memberPoints.error && <p role="alert">{memberPoints.error}</p>}
+                            {!pointsValid && <p role="alert">Số điểm phải là số nguyên từ 0 đến {maxPoints}.</p>}
+                            <p>Giảm {discount.toLocaleString()}đ · Chỉ trừ điểm khi thanh toán thành công.</p>
+                        </div>
                         <p className="accountNotice">Thông tin khách hàng sẽ được lấy từ tài khoản của bạn. Không cần nhập lại.</p>
-                        <button type="button" className="primary full" onClick={book}>Tạo đơn và chọn thanh toán</button>
+                        <p className="helperText">Nh?n vi?n s? ki?m tra ?? tu?i v? ?i?u ki?n ng??i gi?m h? t?i qu?y tr??c khi v?o xem phim.</p>
+                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy || !pointsValid || (selectedPoints > 0 && (memberPoints.refreshing || !!memberPoints.error))}>{bookingBusy ? 'Đang tạo đơn…' : 'Tạo đơn và chọn thanh toán'}</button>
                     </div>
                 )}
 

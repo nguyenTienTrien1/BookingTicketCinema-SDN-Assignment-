@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { loginUser, loginAdmin, logout as apiLogout, getMe } from '../services/auth/authService';
+import { loginUser, logout as apiLogout, getMe } from '../services/auth/authService';
 
 const AuthContext = createContext(null);
 
@@ -32,13 +32,11 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  async function login(email, password, portalType = 'user') {
+  async function login(email, password) {
     const revision = ++sessionRevision.current;
     setError('');
     try {
-      const response = portalType === 'admin'
-        ? await loginAdmin({ email, password })
-        : await loginUser({ email, password });
+      const response = await loginUser({ email, password });
 
       if (!response.user?._id) throw new Error('Phản hồi đăng nhập không hợp lệ.');
       if (revision === sessionRevision.current) {

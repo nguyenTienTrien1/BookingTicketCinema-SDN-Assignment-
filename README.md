@@ -1,12 +1,15 @@
 # BookingTicketCinema-SDN-Assignment
 
 ## Run backend
-1. Install MongoDB and make sure it is running.
+1. Install MongoDB Server and make sure `mongod` is on PATH.
 2. `cd backend`
 3. Copy `.env.example` to `.env`.
 4. `npm install`
-5. `npm run seed`
-6. `npm run dev`
+5. `npm run db:local` (starts the local replica set required for booking transactions).
+6. `npm run seed` (initial demo data only).
+7. `npm run dev`
+
+Payment uses an explicitly labelled simulation; no real money is collected. See [completed use cases and local setup](docs/UC_COMPLETION.md) for test results, points rules, inventory and staff activation.
 
 ## Run frontend
 1. `cd frontend`
