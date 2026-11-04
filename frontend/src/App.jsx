@@ -1,8 +1,14 @@
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import AppRoutes from './routes/AppRoutes';
+import './index.css';
+
 export default function App() {
   return (
-    <main>
-      <h1>Booking Cinema Ticket</h1>
-      <p>React frontend is ready. Add pages and components in the src folder.</p>
-    </main>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

@@ -1,36 +1,49 @@
-# BookingCinemaTicket
+# BookingTicketCinema-SDN-Assignment
 
-Starter project for a cinema ticket booking application using React, Express and MongoDB.
+## Run backend
+1. Install MongoDB and make sure it is running.
+2. `cd backend`
+3. Copy `.env.example` to `.env`.
+4. `npm install`
+5. `npm run seed`
+6. `npm run dev`
 
-## Requirements
+## Run frontend
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
+4. Open the Vite URL.
 
-- Node.js 20.19+ or 22.12+
-- npm
-- A running MongoDB instance (local or hosted)
+## Demo accounts
+Member: `member@cinema.com` / `123456`
+Admin: `admin@cinema.com` / `admin123`
 
-## Setup
+## UC-5: Member profile
+- Sign in as a Member, then open `/profile` or **Tài khoản → Hồ sơ**.
+- UC-5.1: Update full name (1–100 characters), optional phone (9–15 digits with optional `+`), optional age (0–120), and gender. Cancel discards unsaved changes.
+- UC-5.2: Supply the current password and matching new password confirmation. The new password must differ, contain at least 6 characters and fit within bcrypt's 72-byte UTF-8 limit. Five incorrect current passwords lock password attempts for 15 minutes. Success signs out all existing sessions.
+- UC-5.3: Read the latest profile from the database. Email, membership points, VIP tier and account status are read-only.
+- These fields follow the existing User model; the supplied UC list does not include additional field-level business rules.
+- APIs: `GET /api/users/me`, `PATCH /api/users/me`, `PATCH /api/users/me/password`. All require an active Member session; writes accept JSON from the configured `CORS_ORIGIN`.
+- Test with `npm run test:profile -w backend` while MongoDB is running. Tests use and remove a separate temporary database without changing existing cinema data.
 
-1. Run `npm install` from the project root.
-2. Copy `backend/.env.example` to `backend/.env` and set `MONGODB_URI`.
-3. Open two terminals at the project root:
-   - `npm run dev:backend`
-   - `npm run dev:frontend`
-4. Open `http://localhost:5173`.
+## Implemented CE190580 scope (Khai)
+- UC-13.1: Add Movie — Admin form with server validation and creator tracking.
+- UC-13.2: View Movies — Admin catalogue with title search, pagination and movie details.
+- Sign in at `/admin/login`, then choose **Quản lý phim** or open `/admin/movies`.
+- Choose **Thêm phim** to open `/admin/movies/new`; Cancel returns without saving.
+- Movie media uses existing local asset paths or HTTP(S) URLs; file upload is not included.
+- Existing seeded movies keep their `ageLimit`; new movies also store the classification (`P`, `K`, `T13`, `T16`, `T18`, `C`). C movies are excluded from the public catalogue and rejected at booking.
+- API: `GET /api/movies/admin?search=&page=1&limit=10` and `POST /api/movies` require an active Admin session. Public `GET /api/movies` keeps its array response.
+- Run `npm run test:movies -w backend` with MongoDB running. Tests create and remove their own temporary database and do not change `booking_cinema`.
 
-The frontend calls `/api/health` through Vite's proxy. The backend listens on port 5000 by default. The database connection starts when the backend starts.
-
-## Structure
-
-- `frontend/src/components` - reusable UI components
-- `frontend/src/pages` - page components
-- `frontend/src/assets` - images, fonts and icons
-- `frontend/src/services` - API client functions
-- `frontend/src/routes` - frontend routing
-- `frontend/src/hooks`, `contexts`, `layouts`, `utils` - shared frontend code
-- `backend/src/controllers` - HTTP request handlers
-- `backend/src/services` - business logic
-- `backend/src/models` - Mongoose models
-- `backend/src/routes` - API routes
-- `backend/src/middleware`, `validators`, `utils` - shared backend code
-
-Empty folders contain `.gitkeep` so Git can track them until real files are added.
+## Implemented CE190006 scope
+- Book Movie Ticket
+- Add Food & Drink
+- Reserve Seat (10-minute hold)
+- Payment Process
+- Apply Member Point
+- Payment via VNPay (demo flow; real merchant credentials can be plugged in later)
+- Create Account
+- Update Account Status
+- Adjust Member Points

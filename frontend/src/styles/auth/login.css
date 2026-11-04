@@ -1,0 +1,574 @@
+/* ==========================================================================
+   CINEMA AUTHENTICATION UI
+   - Layout: Fixed 55 / 45 Split Viewport (LOCKED TO 100VH, STRICTLY NO SCROLL)
+       * 55% Left: Cinematic Movie Poster Mosaic Wall (Darkened, Atmospheric)
+       * 45% Right: Expanded, Moderately Sized Login Form Card (Netflix Format)
+   - Atmosphere: Netflix Dark Cinematic Aesthetic (Reference Image 4)
+   - Typography Specifications:
+       * Logo: Montserrat 900 (Black)
+       * Tiêu đề Form: Be Vietnam Pro 700 (Bold)
+       * Email, Password (Nhãn & Ô nhập): Be Vietnam Pro 400–500
+       * Nút Đăng nhập: Be Vietnam Pro 700 (Bold)
+       * Các link, thông báo: Be Vietnam Pro 400–500
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Montserrat:wght@900&display=swap');
+
+/* Prevent any root scrollbar while on the auth portal */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important; /* Cố định 1 chỗ, tuyệt đối không scroll */
+  background-color: #08090c;
+}
+
+/* Master Fixed Viewport: Exactly 100vh, fixed in place */
+.cinemaSplitPage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  background-color: #08090c;
+  overflow: hidden !important; /* Tuyệt đối không cho phép scroll */
+  box-sizing: border-box;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  user-select: none;
+  color-scheme: dark;
+}
+
+
+.cinemaVisualSide {
+  flex: 0 0 55%;
+  width: 55%;
+  height: 100%;
+  max-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background-color: #06070a;
+}
+
+/* Brand Logo (Top-Left): Montserrat 900 */
+.cinemaBrandHeader {
+  position: absolute;
+  top: 32px;
+  left: 40px;
+  z-index: 10;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  user-select: none;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.95);
+}
+
+.cinemaBrandHeader span {
+  color: #e50914; /* Signature Cinema Red */
+  margin-left: 2px;
+}
+
+/* Movie Poster Mosaic Grid */
+.cinemaPosterWall {
+  position: absolute;
+  top: -15%;
+  left: -10%;
+  width: 120%;
+  height: 130%;
+  display: flex;
+  gap: 18px;
+  transform: rotate(-3deg);
+  opacity: 0.68;
+  filter: brightness(0.72) contrast(1.15) saturate(0.95);
+  pointer-events: none;
+}
+
+.posterColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.posterColumn.col1 {
+  transform: translateY(-20px);
+}
+
+.posterColumn.col2 {
+  transform: translateY(30px);
+}
+
+.posterColumn.col3 {
+  transform: translateY(-40px);
+}
+
+.posterColumn img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+  background-color: #12141a;
+  display: block;
+}
+
+/* Multi-layer cinematic vignette & gradient overlay */
+.cinemaVisualGradientOverlay {
+  position: absolute;
+  inset: 0;
+  background: 
+    linear-gradient(to right, rgba(8, 9, 12, 0.25) 0%, rgba(8, 9, 12, 0.5) 50%, #08090c 100%),
+    linear-gradient(to top, #08090c 0%, transparent 22%, transparent 78%, #08090c 100%),
+    radial-gradient(circle at center, transparent 35%, rgba(8, 9, 12, 0.8) 100%);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   RIGHT 45%: EXPANDED LOGIN FORM COLUMN (Netflix Format, No Scroll)
+   -------------------------------------------------------------------------- */
+.cinemaFormSide {
+  flex: 0 0 45%;
+  width: 45%;
+  height: 100%;
+  max-height: 100vh;
+  background-color: #08090c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+  overflow: hidden !important; /* Cố định 1 chỗ, không scroll */
+}
+
+/* Expanded, Moderately Sized Login Card (Max width 520px, Netflix styling) */
+.cinemaFormCard {
+  width: 100%;
+  max-width: 520px; /* Bự lên vừa vặn theo yêu cầu */
+  background: #12141c;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px; /* Bo góc mượt mà kiểu Netflix modal */
+  box-shadow: 
+    0 24px 64px rgba(0, 0, 0, 0.85),
+    0 0 40px rgba(229, 9, 20, 0.08);
+  padding: 34px 38px;
+  box-sizing: border-box;
+  animation: cardFadeIn 0.3s ease-out;
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card Header: Logo & Title */
+.cinemaCardHeader {
+  margin-bottom: 20px;
+}
+
+.cinemaCardLogo {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.cinemaCardLogo span {
+  color: #e50914;
+  margin-left: 1px;
+}
+
+/* Tiêu đề: Be Vietnam Pro 700 (Bold) */
+.cinemaCardHeading {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Thông báo / Alert: Be Vietnam Pro 400-500 */
+.cinemaAlert {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 450;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.cinemaAlertError {
+  background-color: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.cinemaAlertInfo {
+  background-color: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+
+/* Form Groups & Inputs */
+.cinemaAuthForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.loginInputGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 13px;
+}
+
+/* Email, Password Nhãn: Be Vietnam Pro 500 */
+.loginInputLabel {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+/* Ô nhập chữ nhật bo góc 8px theo format Netflix */
+.loginInputWrapper {
+  display: flex;
+  align-items: center;
+  background-color: #1a1e27;
+  border: 1px solid #2d3343;
+  border-radius: 8px; /* Bo góc chữ nhật 8px chuẩn format Netflix */
+  height: 48px;
+  padding: 0 14px;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.loginInputWrapper:focus-within {
+  border-color: #e50914;
+  background-color: #1e222d;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.25);
+}
+
+.loginInputIcon {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Email, Password Ô nhập: Be Vietnam Pro 400 */
+.loginInputField {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 14.5px;
+  font-weight: 400;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  width: 100%;
+  height: 100%;
+  color-scheme: dark; /* Báo trình duyệt dùng dark mode cho autofill */
+}
+
+/* Triệt tiêu hoàn toàn mảng nền trắng khi trình duyệt tự động điền (Autofill) an toàn, không gây crash GPU */
+.loginInputField:-webkit-autofill,
+.loginInputField:-webkit-autofill:hover,
+.loginInputField:-webkit-autofill:focus,
+.loginInputField:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0 40px #1a1e27 inset !important;
+  box-shadow: 0 0 0 40px #1a1e27 inset !important;
+  caret-color: #ffffff !important;
+}
+
+.loginInputWrapper:focus-within .loginInputField:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 40px #1e222d inset !important;
+  box-shadow: 0 0 0 40px #1e222d inset !important;
+}
+
+.loginInputField::placeholder {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.loginInputRightElement {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.passwordEyeToggle {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.passwordEyeToggle:hover {
+  color: #cbd5e1;
+}
+
+/* Quên mật khẩu? (Link right-aligned): Be Vietnam Pro 500 */
+.forgotPasswordRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -3px;
+  margin-bottom: 15px;
+}
+
+.forgotPasswordLink {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.forgotPasswordLink:hover {
+  color: #e50914;
+}
+
+/* Nút Đăng nhập: Nút đỏ chữ nhật bo góc 8px (Matte phẳng sang trọng, giảm tối đa độ bóng) */
+.cinemaBtnSubmit {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 15.5px;
+  font-weight: 700;
+  height: 48px;
+  width: 100%;
+  background: #e50914;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px; /* Bo góc 8px format Netflix */
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); /* Độ bóng tối giản, thanh lịch */
+  letter-spacing: 0.01em;
+}
+
+.cinemaBtnSubmit:hover:not(:disabled) {
+  background: #f40612;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); /* Tăng bóng rất nhẹ khi hover */
+  transform: translateY(-1px);
+}
+
+.cinemaBtnSubmit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cinemaBtnSubmit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Divider: ──── hoặc ──── (Be Vietnam Pro 400) */
+.cinemaDivider {
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background-color: #262a36;
+}
+
+.dividerText {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 400;
+  padding: 0 14px;
+  color: #64748b;
+  font-size: 13px;
+  text-transform: lowercase;
+}
+
+/* Nút Google: Bo góc 8px, Be Vietnam Pro 500 */
+.cinemaBtnGoogle {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  height: 48px;
+  width: 100%;
+  background-color: #1a1e27;
+  border: 1px solid #2d3343;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.cinemaBtnGoogle:hover {
+  background-color: #212632;
+  border-color: #3b4356;
+}
+
+.googleSvgIcon {
+  flex-shrink: 0;
+}
+
+/* Card Footer: Be Vietnam Pro 400-600 */
+.cinemaCardFooter {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13.5px;
+}
+
+.footerPromptText {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.footerSignUpLink {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 600;
+  color: #e50914;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerSignUpLink:hover {
+  color: #ff3844;
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   REGISTRATION & EMAIL VERIFICATION STYLES (UC-1, BR-8)
+   -------------------------------------------------------------------------- */
+.registerSuccessCard {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.successBadgeIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.successTitle {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 10px 0;
+}
+
+.successDesc {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.successDesc strong {
+  color: #ffffff;
+}
+
+.verifyActionBox {
+  background-color: #1a1e27;
+  border: 1px solid #2d3343;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.verifyNote {
+  font-size: 13px;
+  color: #cbd5e1;
+  margin: 0 0 12px 0;
+}
+
+.verifyNowBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  height: 44px;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE COMPACT SCALING (CỐ ĐỊNH Ở 1 CHỖ, KHÔNG CUỘN TRÊN MỌI MÀN HÌNH)
+   -------------------------------------------------------------------------- */
+@media (max-height: 720px) {
+  .cinemaFormCard {
+    padding: 24px 28px;
+  }
+  .cinemaCardHeader {
+    margin-bottom: 14px;
+  }
+  .cinemaCardHeading {
+    font-size: 21px;
+  }
+  .loginInputGroup {
+    margin-bottom: 10px;
+  }
+  .loginInputWrapper {
+    height: 42px;
+  }
+  .cinemaBtnSubmit,
+  .cinemaBtnGoogle {
+    height: 42px;
+  }
+  .cinemaDivider {
+    margin: 12px 0;
+  }
+  .forgotPasswordRow {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 860px) {
+  .cinemaVisualSide {
+    display: none; /* Ẩn visual trên màn hình quá hẹp để form login chiếm trọn */
+  }
+  .cinemaFormSide {
+    flex: 0 0 100%;
+    width: 100%;
+    padding: 20px;
+  }
+  .cinemaFormCard {
+    max-width: 480px;
+  }
+}
