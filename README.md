@@ -39,6 +39,36 @@ Admin: `admin@cinema.com` / `admin123`
 - API: `GET /api/movies/admin?search=&page=1&limit=10` and `POST /api/movies` require an active Admin session. Public `GET /api/movies` keeps its array response.
 - Run `npm run test:movies -w backend` with MongoDB running. Tests create and remove their own temporary database and do not change `booking_cinema`.
 
+### UC-11: Standalone food and drink sales
+
+- Sign in as an Employee, then open **Bán đồ ăn & thức uống** at `/employee/food-sales`.
+- Select quantities, request the server-generated quote, confirm the total with the customer, enter the cash received and confirm receipt. The final receipt retains the item names, unit prices, quantities, total, employee, payment time and change.
+- Only cash is implemented. This flow creates no booking, seat hold or movie ticket. VNPay, promotions, membership points and revenue dashboard integration are separate work.
+- The `Food.stock` field is a non-negative integer. Existing products without stock cannot be sold at this counter until inventory is set. Optional local demo: `npm run seed:food-counter -w backend` adds three products with 30 units each **only if their names do not already exist**; it does not clear data or replenish existing items.
+- API base `/api/food-sales`: Employee-only `GET /catalogue`, `POST /` (items and `requestId`), `GET /:id`, `POST /:id/cancel`, `POST /:id/pay`. An Employee can only access their own orders.
+- Creating a quote snapshots server prices without deducting stock. Cancelling is allowed before cash confirmation. Request IDs and paid-order retries prevent duplicate orders or duplicate stock deductions.
+- Finalization runs in a MongoDB transaction, so stock and the Paid receipt commit together. Cash receipt evidence is persisted first. If price/stock changed or finalization fails, the payment stays traceable for staff reconciliation; never collect cash again for that order. Reconciliation/refund resolution requires the cinema's operating procedure; there is no automatic second charge or manual Paid override in this screen.
+- An order ID is retained in the browser session for refresh/recovery. If the response is lost, reopen the order and retry finalization of the existing payment, rather than creating a new payment.
+
+#### MongoDB requirement for counter payment
+
+Transactions need a replica set (a single-node replica set is sufficient locally). The agreed database and application ports remain `booking_cinema`, backend 3000 and frontend 5173. On standalone MongoDB, the UI disables payment and the API returns 503 before recording cash; quoting and cancellation still work.
+
+To enable transactions on the local MongoDB service, add this top-level configuration to its `mongod.cfg`, restart the MongoDB service, then initialize the replica set once from `mongosh`:
+
+```yaml
+replication:
+  replSetName: rs0
+```
+
+```javascript
+rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: '127.0.0.1:27017' }] })
+```
+
+Keep `MONGODB_URI=mongodb://127.0.0.1:27017/booking_cinema`. Do not initialize again if the service already belongs to a replica set. This repository does not change or restart the installed MongoDB service automatically.
+
+Run `npm test -w backend` for regression tests. For the complete transaction/concurrency suite, point `TEST_MONGODB_URI` to a test-capable replica set and run `npm run test:food-sales -w backend`. All tests create their own temporary databases and remove only those databases.
+
 ## Implemented CE190006 scope
 - Book Movie Ticket
 - Add Food & Drink

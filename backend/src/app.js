@@ -7,6 +7,7 @@ import userRoutes from './routes/userRoutes.js';
 import movieRoutes from './routes/movieRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
+import foodSaleRoutes from './routes/foodSaleRoutes.js';
 
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';
@@ -44,6 +45,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/foods', foodRoutes);
+app.use('/api/food-sales', foodSaleRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {
