@@ -145,7 +145,7 @@ test('UC-13.1 Add Movie and UC-13.2 View Movies', async (t) => {
     assert.equal((await request(`/${id}`, admin, { ...body, title: 'Stale edit' }, 'PUT')).status, 409);
     assert.equal((await Movie.findById(id)).title, 'Updated Movie');
   });
-  await t.test('scheduled movies protect material fields and bookings', async () => {
+  await t.test('scheduled movies protect material fields, bookings and deletion', async () => {
     const created = await request('', admin, { ...valid, title: 'Scheduled Movie' });
     const id = created.data.movie._id;
     const showtime = await Showtime.create({ movie: id, cinema: 'Test', room: '2', startTime: new Date('2027-01-01'), price: 100000,
@@ -155,7 +155,27 @@ test('UC-13.1 Add Movie and UC-13.2 View Movies', async (t) => {
     }
     const allowed = await request(`/${id}`, admin, { ...valid, title: 'Scheduled Movie', version: 0, description: 'New description' }, 'PUT');
     assert.equal(allowed.status, 200);
+    assert.equal((await request(`/${id}`, admin, { version: 1 }, 'DELETE')).status, 409);
     assert.equal((await Showtime.findById(showtime._id)).seats[0].status, 'booked');
+    assert.equal((await Movie.findById(id)).deletedAt, null);
+  });
+  await t.test('deletion requires Admin and a current version, and retains an audit record', async () => {
+    const created = await request('', admin, { ...valid, title: 'Removable Movie' });
+    const id = created.data.movie._id;
+    for (const user of [undefined, member, employee]) {
+      assert.equal((await request(`/${id}`, user, { version: 0 }, 'DELETE')).status, user ? 403 : 401);
+    }
+    assert.equal((await request('/bad-id', admin, { version: 0 }, 'DELETE')).status, 400);
+    assert.equal((await request(`/${id}`, admin, {}, 'DELETE')).status, 400);
+    assert.equal((await request(`/${id}`, admin, { version: 99 }, 'DELETE')).status, 409);
+    assert.equal((await request(`/${id}`, admin, { version: 0 }, 'DELETE')).status, 200);
+    const archived = await Movie.findById(id);
+    assert.ok(archived.deletedAt);
+    assert.equal(String(archived.deletedBy), String(admin._id));
+    assert.equal((await request(`/admin/${id}`, admin)).status, 404);
+    assert.equal((await request('/admin?search=Removable', admin)).data.total, 0);
+    assert.ok(!(await request()).data.some((movie) => movie._id === id));
+    assert.equal((await request(`/${id}`, admin, { version: 0 }, 'DELETE')).status, 404);
   });
   await t.test('failed update does not change the persisted movie', async () => {
     const created = await request('', admin, { ...valid, title: 'DB Failure Movie' });

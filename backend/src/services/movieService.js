@@ -2,7 +2,7 @@ import Movie from '../models/Movie.js';
 import Showtime from '../models/Showtime.js';
 import mongoose from 'mongoose';
 // C-classified movies remain visible to Admin, but are not published for sale.
-export const listMovies=()=>Movie.find({ classification: { $ne: 'C' } }).sort({featured:-1,createdAt:-1});
+export const listMovies=()=>Movie.find({ classification: { $ne: 'C' }, deletedAt: null }).sort({featured:-1,createdAt:-1});
 export const listShowtimes=(movieId)=>Showtime.find(movieId?{movie:movieId}:{}).populate('movie').sort({startTime:1});
 export const getMovie=id=>Movie.findById(id);
 
@@ -27,7 +27,7 @@ export async function listAdminMovies(query) {
   if (query.search !== undefined && (typeof query.search !== 'string' || query.search.length > 200)) {
     throw movieError('Từ khóa tìm kiếm không hợp lệ.');
   }
-  const filter = {};
+  const filter = { deletedAt: null };
   if (query.search && query.search.trim()) {
     filter.title = { $regex: escapeSearch(query.search.trim()), $options: 'i' };
   }
@@ -109,7 +109,7 @@ function validateMovie(input) {
 }
 
 async function checkDuplicate(data, excludeId) {
-  const filter = { title: { $regex: `^${escapeSearch(data.title)}$`, $options: 'i' }, releaseDate: data.releaseDate };
+  const filter = { title: { $regex: `^${escapeSearch(data.title)}$`, $options: 'i' }, releaseDate: data.releaseDate, deletedAt: null };
   if (excludeId) filter._id = { $ne: excludeId };
   if (await Movie.exists(filter)) throw movieError('Phim có cùng tên và ngày khởi chiếu đã tồn tại.', 409);
 }
@@ -122,7 +122,7 @@ export async function createMovie(input, adminId) {
 
 export async function getAdminMovie(id) {
   if (!mongoose.isObjectIdOrHexString(id)) throw movieError('Mã phim không hợp lệ.');
-  const movie = await Movie.findOne({ _id: id });
+  const movie = await Movie.findOne({ _id: id, deletedAt: null });
   if (!movie) throw movieError('Không tìm thấy phim.', 404);
   return { movie, hasShowtimes: Boolean(await Showtime.exists({ movie: id })) };
 }
@@ -144,10 +144,23 @@ export async function updateMovie(id, input, adminId) {
   }
   await checkDuplicate(data, id);
   const updated = await Movie.findOneAndUpdate(
-    { _id: id, __v: input.version },
+    { _id: id, deletedAt: null, __v: input.version },
     { $set: { ...data, updatedBy: adminId }, $inc: { __v: 1 } },
     { new: true, runValidators: true }
   );
   if (!updated) throw movieError('Phim đã được thay đổi. Vui lòng tải lại trước khi lưu.', 409);
   return updated;
+}
+
+export async function deleteMovie(id, input, adminId) {
+  checkVersion(input);
+  const { hasShowtimes } = await getAdminMovie(id);
+  if (hasShowtimes) throw movieError('Không thể xóa phim đã có suất chiếu. Lịch chiếu và lịch sử giao dịch được giữ nguyên.', 409);
+  // Soft deletion keeps audit data and protects references created concurrently.
+  const removed = await Movie.findOneAndUpdate(
+    { _id: id, deletedAt: null, __v: input.version },
+    { $set: { deletedAt: new Date(), deletedBy: adminId }, $inc: { __v: 1 } }, { new: true }
+  );
+  if (!removed) throw movieError('Phim đã được thay đổi. Vui lòng tải lại trước khi xóa.', 409);
+  return removed;
 }

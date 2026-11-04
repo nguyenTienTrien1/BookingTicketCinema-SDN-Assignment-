@@ -10,4 +10,5 @@ r.get('/admin', verifyToken, requireRole('admin'), c.adminMovies);
 r.post('/', verifyToken, requireRole('admin'), c.addMovie);
 r.get('/admin/:id', verifyToken, requireRole('admin'), c.movieDetail);
 r.put('/:id', verifyToken, requireRole('admin'), c.updateMovie);
+r.delete('/:id', verifyToken, requireRole('admin'), c.deleteMovie);
 export default r;

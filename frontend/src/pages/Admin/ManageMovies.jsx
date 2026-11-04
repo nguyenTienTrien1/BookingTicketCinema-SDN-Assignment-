@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { getAdminMovies } from '../../services/movieService';
+import { getAdminMovies, deleteMovie } from '../../services/movieService';
 import './movies.css';
 
 function classificationOf(movie) {
@@ -18,6 +18,24 @@ export default function ManageMovies() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
+  const [deleting, setDeleting] = useState(null);
+  const [actionError, setActionError] = useState('');
+  const [message, setMessage] = useState(location.state?.message || '');
+
+  async function handleDelete(movie) {
+    if (deleting || !window.confirm(`Xóa phim “${movie.title}” khỏi danh mục? Phim đã có suất chiếu sẽ không thể xóa.`)) return;
+    setDeleting(movie._id);
+    setActionError('');
+    setMessage('');
+    try {
+      await deleteMovie(movie._id, movie.__v);
+      setMessage(`Đã xóa phim “${movie.title}”.`);
+      if (result.movies.length === 1 && page > 1) setPage(page - 1);
+      else setReload(reload + 1);
+    } catch (error) {
+      setActionError(error.message);
+    } finally { setDeleting(null); }
+  }
 
   useEffect(() => {
     let ignore = false;
@@ -46,7 +64,8 @@ export default function ManageMovies() {
           <Link className="moviePrimary" to="/admin/movies/new">+ Thêm phim</Link>
         </header>
 
-        {location.state?.message && <p className="movieSuccess" role="status">{location.state.message}</p>}
+        {message && <p className="movieSuccess" role="status">{message}</p>}
+        {actionError && <p className="movieError" role="alert">{actionError}</p>}
         <section className="moviePanel" aria-label="Danh sách phim">
           <form className="movieToolbar" onSubmit={handleSearch} role="search">
             <label htmlFor="movie-search">Tìm theo tên phim</label>
@@ -78,7 +97,10 @@ export default function ManageMovies() {
                   <td>{movie.duration} phút</td>
                   <td>{movie.releaseDate ? new Date(movie.releaseDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' }) : 'Chưa cập nhật'}</td>
                   <td>{movie.rating ?? 0}/10</td>
-                  <td><Link className="movieSecondary" to={`/admin/movies/${movie._id}/edit`} aria-label={`Sửa phim ${movie.title}`}>Sửa</Link></td>
+                  <td><Link className="movieSecondary" to={`/admin/movies/${movie._id}/edit`} aria-label={`Sửa phim ${movie.title}`}>Sửa</Link>
+                    <button className="movieSecondary" type="button" disabled={Boolean(deleting)} onClick={() => handleDelete(movie)} aria-label={`Xóa phim ${movie.title}`}>
+                      {deleting === movie._id ? 'Đang xóa…' : 'Xóa'}
+                    </button></td>
                 </tr>)}</tbody>
               </table>
             </div>}

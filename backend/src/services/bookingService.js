@@ -72,7 +72,7 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
   if (!showtime) throw bookingError('Không tìm thấy suất chiếu.', 404);
 
   const movie = await Movie.findById(showtime.movie);
-  if (!movie || movie.classification === 'C') {
+  if (!movie || movie.deletedAt || movie.classification === 'C') {
     throw bookingError('Phim không được phép bán vé.', 400);
   }
 

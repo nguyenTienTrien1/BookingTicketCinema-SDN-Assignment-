@@ -20,3 +20,7 @@ export function getAdminMovie(id) {
 export function updateMovie(id, movie) {
   return api(`/movies/${id}`, { method: 'PUT', body: JSON.stringify(movie) });
 }
+
+export function deleteMovie(id, version) {
+  return api(`/movies/${id}`, { method: 'DELETE', body: JSON.stringify({ version }) });
+}
