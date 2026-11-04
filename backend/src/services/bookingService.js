@@ -38,7 +38,7 @@ async function foodSnapshot(items, session) {
  return { items: result, total };
 }
 async function checkAge(movie, member, actor, guardian) {
- if (!movie || movie.classification === 'C') throw fail('Phim không được phép bán vé.');
+ if (!movie || movie.deletedAt || movie.classification === 'C') throw fail('Phim không được phép bán vé.');
  const required = { T13: 13, T16: 16, T18: 18 }[movie.classification] || movie.ageLimit || 0;
  if (actor) {
   if ((required > 0 || movie.classification === 'K') && guardian !== true) throw fail('Nhân viên cần xác nhận kiểm tra tuổi/điều kiện người giám hộ.');

@@ -12,3 +12,15 @@ export function addMovie(movie) {
     method: 'POST', credentials: 'include', body: JSON.stringify(movie)
   });
 }
+
+export function getAdminMovie(id) {
+  return api(`/movies/admin/${id}`);
+}
+
+export function updateMovie(id, movie) {
+  return api(`/movies/${id}`, { method: 'PUT', body: JSON.stringify(movie) });
+}
+
+export function deleteMovie(id, version) {
+  return api(`/movies/${id}`, { method: 'DELETE', body: JSON.stringify({ version }) });
+}

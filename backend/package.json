@@ -7,9 +7,11 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node src/utils/seed.js",
+    "seed:food-counter": "node seedFoodCounter.js",
     "test:movies": "node --test test_movies.js",
+    "test:food-sales": "node --test test_food_sales.js",
     "test:profile": "node --test test_profile.js",
-    "test": "node --test test_movies.js test_profile.js test_regression.js test_roles.js test_counter_points.js test_complete_uc.js",
+    "test": "node --test test_movies.js test_profile.js test_regression.js test_roles.js test_counter_points.js test_complete_uc.js test_food_sales.js",
     "db:local": "node scripts/local-db.js",
     "test:e2e": "node scripts/test-e2e.js"
   },
