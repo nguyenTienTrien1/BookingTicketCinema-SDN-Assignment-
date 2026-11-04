@@ -18,3 +18,13 @@ export async function addMovie(req, res, next) {
     next(error);
   }
 }
+
+export async function movieDetail(req, res, next) {
+  try { res.json(await s.getAdminMovie(req.params.id)); } catch (error) { next(error); }
+}
+
+export async function updateMovie(req, res, next) {
+  try {
+    res.json({ message: 'Cập nhật phim thành công.', movie: await s.updateMovie(req.params.id, req.body, req.user._id) });
+  } catch (error) { next(error); }
+}

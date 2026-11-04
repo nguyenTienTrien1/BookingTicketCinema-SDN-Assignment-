@@ -10,6 +10,7 @@ import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import AddMovie from '../pages/Admin/AddMovie';
+import MovieForm from '../pages/Admin/MovieForm';
 import Profile from '../pages/Account/Profile';
 
 /**
@@ -67,10 +68,12 @@ export default function AppRoutes() {
       <Route path="/admin/movies/new" element={
         <ProtectedRoute allowedRoles={['admin']}><AddMovie /></ProtectedRoute>
       } />
+      <Route path="/admin/movies/:id/edit" element={
+        <ProtectedRoute allowedRoles={['admin']}><MovieForm editing /></ProtectedRoute>
+      } />
 
       {/* 6. Preserved Cinema Application */}
       <Route path="/*" element={<CinemaMain />} />
     </Routes>
   );
 }
-

@@ -34,11 +34,11 @@ test('UC-13.1 Add Movie and UC-13.2 View Movies', async (t) => {
   function token(user) {
     return jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302', { expiresIn: '5m' });
   }
-  async function request(path = '', user, body) {
+  async function request(path = '', user, body, method) {
     const headers = { 'Content-Type': 'application/json' };
     if (user) headers.Cookie = `token=${token(user)}`;
     const response = await fetch(base + path, {
-      method: body === undefined ? 'GET' : 'POST', headers,
+      method: method || (body === undefined ? 'GET' : 'POST'), headers,
       body: body === undefined ? undefined : JSON.stringify(body)
     });
     return { status: response.status, data: await response.json() };
@@ -121,6 +121,49 @@ test('UC-13.1 Add Movie and UC-13.2 View Movies', async (t) => {
     await assert.rejects(createBooking({ userId: member._id, showtimeId: showtime._id, seats: ['A1'] }), { status: 400 });
     assert.equal(await Booking.countDocuments(), 0);
     assert.equal((await Showtime.findById(showtime._id)).seats[0].status, 'available');
+  });
+  await t.test('update validates permissions, IDs, payload and persists audit data', async () => {
+    const created = await request('', admin, { ...valid, title: 'Editable Movie' });
+    const id = created.data.movie._id;
+    const body = { ...valid, title: 'Updated Movie', version: 0, createdBy: member._id };
+    assert.equal((await request(`/admin/${id}`, admin)).status, 200);
+    assert.equal((await request(`/admin/${id}`, member)).status, 403);
+    for (const user of [undefined, member, employee]) {
+      assert.equal((await request(`/${id}`, user, body, 'PUT')).status, user ? 403 : 401);
+    }
+    assert.equal((await request('/bad-id', admin, body, 'PUT')).status, 400);
+    assert.equal((await request(`/${new mongoose.Types.ObjectId()}`, admin, body, 'PUT')).status, 404);
+    assert.equal((await request(`/${id}`, admin, { ...body, duration: -1 }, 'PUT')).status, 400);
+    assert.equal((await request(`/${id}`, admin, { ...valid, version: 0 }, 'PUT')).status, 409);
+    assert.equal((await request(`/${id}`, admin, valid, 'PUT')).status, 400);
+    const updated = await request(`/${id}`, admin, body, 'PUT');
+    assert.equal(updated.status, 200);
+    assert.equal(updated.data.movie.title, 'Updated Movie');
+    assert.equal(updated.data.movie.__v, 1);
+    assert.equal(updated.data.movie.updatedBy, String(admin._id));
+    assert.equal(updated.data.movie.createdBy, String(admin._id));
+    assert.equal((await request(`/${id}`, admin, { ...body, title: 'Stale edit' }, 'PUT')).status, 409);
+    assert.equal((await Movie.findById(id)).title, 'Updated Movie');
+  });
+  await t.test('scheduled movies protect material fields and bookings', async () => {
+    const created = await request('', admin, { ...valid, title: 'Scheduled Movie' });
+    const id = created.data.movie._id;
+    const showtime = await Showtime.create({ movie: id, cinema: 'Test', room: '2', startTime: new Date('2027-01-01'), price: 100000,
+      seats: [{ number: 'A1', status: 'booked' }, { number: 'A2', status: 'held', holdUntil: new Date(Date.now() + 600000) }] });
+    for (const change of [{ duration: 125 }, { classification: 'C' }, { title: 'Renamed' }, { releaseDate: '2027-02-01' }]) {
+      assert.equal((await request(`/${id}`, admin, { ...valid, title: 'Scheduled Movie', version: 0, ...change }, 'PUT')).status, 409);
+    }
+    const allowed = await request(`/${id}`, admin, { ...valid, title: 'Scheduled Movie', version: 0, description: 'New description' }, 'PUT');
+    assert.equal(allowed.status, 200);
+    assert.equal((await Showtime.findById(showtime._id)).seats[0].status, 'booked');
+  });
+  await t.test('failed update does not change the persisted movie', async () => {
+    const created = await request('', admin, { ...valid, title: 'DB Failure Movie' });
+    const mock = t.mock.method(Movie, 'findOneAndUpdate', async () => { throw new Error('Database write failed'); });
+    try {
+      assert.equal((await request(`/${created.data.movie._id}`, admin, { ...valid, title: 'Unsaved', version: 0 }, 'PUT')).status, 500);
+    } finally { mock.mock.restore(); }
+    assert.equal((await Movie.findById(created.data.movie._id)).title, 'DB Failure Movie');
   });
   await t.test('inactive Admin sessions cannot create or list movies', async () => {
     await User.updateOne({ _id: admin._id }, { $set: { status: 'Inactive' } });

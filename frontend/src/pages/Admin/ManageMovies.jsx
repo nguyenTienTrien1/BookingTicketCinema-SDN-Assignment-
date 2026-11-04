@@ -66,7 +66,7 @@ export default function ManageMovies() {
               <table className="movieTable">
                 <caption className="movieSrOnly">Danh sách phim trong hệ thống</caption>
                 <thead><tr><th scope="col">Phim</th><th scope="col">Phân loại</th>
-                  <th scope="col">Thời lượng</th><th scope="col">Khởi chiếu</th><th scope="col">Đánh giá</th></tr></thead>
+                  <th scope="col">Thời lượng</th><th scope="col">Khởi chiếu</th><th scope="col">Đánh giá</th><th scope="col">Thao tác</th></tr></thead>
                 <tbody>{result.movies.map((movie) => <tr key={movie._id}>
                   <td><strong>{movie.title}</strong>{movie.featured && <span className="movieFeatured">Nổi bật</span>}
                     <div className="movieGenres">{movie.genre.join(' · ')}</div>
@@ -78,6 +78,7 @@ export default function ManageMovies() {
                   <td>{movie.duration} phút</td>
                   <td>{movie.releaseDate ? new Date(movie.releaseDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' }) : 'Chưa cập nhật'}</td>
                   <td>{movie.rating ?? 0}/10</td>
+                  <td><Link className="movieSecondary" to={`/admin/movies/${movie._id}/edit`} aria-label={`Sửa phim ${movie.title}`}>Sửa</Link></td>
                 </tr>)}</tbody>
               </table>
             </div>}

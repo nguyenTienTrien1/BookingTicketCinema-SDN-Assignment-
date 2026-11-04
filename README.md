@@ -30,6 +30,7 @@ Admin: `admin@cinema.com` / `admin123`
 ## Implemented CE190580 scope (Khai)
 - UC-13.1: Add Movie — Admin form with server validation and creator tracking.
 - UC-13.2: View Movies — Admin catalogue with title search, pagination and movie details.
+- UC-13.3: Update Movie — use **Sửa** in the Admin catalogue. The editor shares validation with Add Movie, checks the loaded version to reject stale writes and records `updatedBy`. Movies with any showtime lock title, duration, classification and release date; other descriptive fields remain editable.
 - Sign in at `/admin/login`, then choose **Quản lý phim** or open `/admin/movies`.
 - Choose **Thêm phim** to open `/admin/movies/new`; Cancel returns without saving.
 - Movie media uses existing local asset paths or HTTP(S) URLs; file upload is not included.

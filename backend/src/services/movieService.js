@@ -1,5 +1,6 @@
 import Movie from '../models/Movie.js';
 import Showtime from '../models/Showtime.js';
+import mongoose from 'mongoose';
 // C-classified movies remain visible to Admin, but are not published for sale.
 export const listMovies=()=>Movie.find({ classification: { $ne: 'C' } }).sort({featured:-1,createdAt:-1});
 export const listShowtimes=(movieId)=>Showtime.find(movieId?{movie:movieId}:{}).populate('movie').sort({startTime:1});
@@ -56,7 +57,7 @@ function validateMedia(value, required, name) {
   throw movieError(`${name} phải là đường dẫn /... hoặc URL http/https.`);
 }
 
-export async function createMovie(input, adminId) {
+function validateMovie(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw movieError('Thông tin phim không hợp lệ.');
   }
@@ -100,15 +101,53 @@ export async function createMovie(input, adminId) {
   const poster = validateMedia(input.poster, true, 'Poster');
   const banner = validateMedia(input.banner, false, 'Banner');
   const title = input.title.trim();
-  const existing = await Movie.findOne({
-    title: { $regex: `^${escapeSearch(title)}$`, $options: 'i' }, releaseDate
-  });
-  if (existing) throw movieError('Phim có cùng tên và ngày khởi chiếu đã tồn tại.', 409);
-
-  // Explicit fields prevent the client from changing creator or other protected data.
-  return Movie.create({
+  return {
     title, description: input.description.trim(), genre, duration: input.duration,
     classification: input.classification, ageLimit: ageLimits[input.classification],
-    releaseDate, poster, banner, rating, featured: input.featured === true, createdBy: adminId
-  });
+    releaseDate, poster, banner, rating, featured: input.featured === true
+  };
+}
+
+async function checkDuplicate(data, excludeId) {
+  const filter = { title: { $regex: `^${escapeSearch(data.title)}$`, $options: 'i' }, releaseDate: data.releaseDate };
+  if (excludeId) filter._id = { $ne: excludeId };
+  if (await Movie.exists(filter)) throw movieError('Phim có cùng tên và ngày khởi chiếu đã tồn tại.', 409);
+}
+
+export async function createMovie(input, adminId) {
+  const data = validateMovie(input);
+  await checkDuplicate(data);
+  return Movie.create({ ...data, createdBy: adminId });
+}
+
+export async function getAdminMovie(id) {
+  if (!mongoose.isObjectIdOrHexString(id)) throw movieError('Mã phim không hợp lệ.');
+  const movie = await Movie.findOne({ _id: id });
+  if (!movie) throw movieError('Không tìm thấy phim.', 404);
+  return { movie, hasShowtimes: Boolean(await Showtime.exists({ movie: id })) };
+}
+
+function checkVersion(input) {
+  if (!input || !Number.isInteger(input.version) || input.version < 0) {
+    throw movieError('Thiếu phiên bản phim hợp lệ. Vui lòng tải lại thông tin phim.');
+  }
+}
+
+export async function updateMovie(id, input, adminId) {
+  checkVersion(input);
+  const { movie, hasShowtimes } = await getAdminMovie(id);
+  const data = validateMovie(input);
+  const classification = movie.classification || (movie.ageLimit > 0 ? `T${movie.ageLimit}` : 'P');
+  if (hasShowtimes && (data.title !== movie.title || data.duration !== movie.duration ||
+      data.classification !== classification || data.releaseDate.getTime() !== movie.releaseDate?.getTime())) {
+    throw movieError('Phim đã có suất chiếu. Không thể đổi tên, thời lượng, phân loại hoặc ngày khởi chiếu.', 409);
+  }
+  await checkDuplicate(data, id);
+  const updated = await Movie.findOneAndUpdate(
+    { _id: id, __v: input.version },
+    { $set: { ...data, updatedBy: adminId }, $inc: { __v: 1 } },
+    { new: true, runValidators: true }
+  );
+  if (!updated) throw movieError('Phim đã được thay đổi. Vui lòng tải lại trước khi lưu.', 409);
+  return updated;
 }

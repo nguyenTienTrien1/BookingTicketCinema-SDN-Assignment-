@@ -11,6 +11,7 @@ const movieSchema = new mongoose.Schema({
   rating: { type: Number, default: 0, min: 0, max: 10 },
   releaseDate: Date,
   featured: { type: Boolean, default: false },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 export default mongoose.model('Movie',movieSchema);
