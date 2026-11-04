@@ -10,10 +10,10 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('pending'); // 'pending' | 'success' | 'error'
   const [message, setMessage] = useState('');
-  const verificationRequestedRef = useRef(false);
+  const verificationRequestedRef = useRef(null);
 
   // Resend state
-  const [resendEmail, setResendEmail] = useState('');
+  const [resendEmail, setResendEmail] = useState(searchParams.get('email') || '');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
   const [newVerificationLink, setNewVerificationLink] = useState('');
@@ -27,8 +27,9 @@ export default function VerifyEmail() {
     }
 
     // Guard against React 18 StrictMode double-invoking
-    if (verificationRequestedRef.current) return;
-    verificationRequestedRef.current = true;
+    if (verificationRequestedRef.current === token) return;
+    verificationRequestedRef.current = token;
+    setLoading(true);
 
     async function performVerification() {
       try {

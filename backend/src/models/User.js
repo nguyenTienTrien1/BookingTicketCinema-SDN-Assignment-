@@ -57,14 +57,8 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
-    // Only hash if not already a valid bcrypt hash
-    if (
-      !this.password.startsWith("$2a$") &&
-      !this.password.startsWith("$2b$")
-    ) {
-      const salt = await bcrypt.genSalt(10);
-      this.password = await bcrypt.hash(this.password, salt);
-    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
     next(error);
@@ -79,8 +73,8 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   }
   // Safe migration fallback for legacy plaintext passwords
   if (this.password === candidatePassword) {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(candidatePassword, salt);
+    this.password = candidatePassword;
+    this.markModified('password');
     await this.save();
     console.log(
       `[AUTH AUDIT] Migrated legacy plaintext password for ${this.email} to bcrypt hash.`,

@@ -10,12 +10,14 @@ await mongoose.connect(
     'mongodb://127.0.0.1:27017/booking_cinema'
 );
 
-await Promise.all([
-    User.deleteMany({}),
-    Movie.deleteMany({}),
-    Showtime.deleteMany({}),
-    Food.deleteMany({})
-]);
+// Seed only a new database; never erase existing accounts or bookings.
+const counts = await Promise.all([User.countDocuments(), Movie.countDocuments(), Showtime.countDocuments(), Food.countDocuments()]);
+if (counts.some(count => count > 0)) {
+    console.log('Seed skipped: database already contains cinema data.');
+    await mongoose.disconnect();
+    process.exit(0);
+}
+
 
 // =========================
 // USERS

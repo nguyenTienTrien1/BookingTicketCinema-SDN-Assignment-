@@ -16,8 +16,12 @@ export default function MemberDashboard() {
   }, []);
 
   async function handleLogout() {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (

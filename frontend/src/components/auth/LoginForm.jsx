@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import LoginInput from "./LoginInput";
 import "../../styles/auth/login.css";
 import MovieCard from "../MovieCard";
 
-export default function LoginForm({ portalType = "user" }) {
+export default function LoginForm({ portalType = "user", onLoginSuccess, onCancelLogin }) {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, loading: sessionLoading, error: sessionError } = useAuth();
 
   // Lock window scroll completely while viewing login portal
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function LoginForm({ portalType = "user" }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (loading || sessionLoading) return;
     setErrorMessage("");
     setInfoToast("");
     setLoading(true);
@@ -41,13 +43,24 @@ export default function LoginForm({ portalType = "user" }) {
     try {
       const user = await login(email, password, portalType);
 
+      if (onLoginSuccess) {
+        onLoginSuccess(user);
+        return;
+      }
+
+      const from = location.state?.from;
+      if (from?.pathname?.startsWith('/') && !from.pathname.startsWith('//')) {
+        navigate({ pathname: from.pathname, search: from.search || '', hash: from.hash || '' }, { replace: true });
+        return;
+      }
+
       // Role-based redirect
       if (user.role === "admin") {
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else if (user.role === "employee") {
-        navigate("/employee/dashboard");
+        navigate("/employee/dashboard", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       setErrorMessage(err.message || "Email hoặc mật khẩu không chính xác.");
@@ -143,9 +156,19 @@ export default function LoginForm({ portalType = "user" }) {
             <h2 className="cinemaCardHeading">{cardTitle}</h2>
           </div>
 
-          {errorMessage && (
+          {onCancelLogin && (
+            <button type="button" className="cinemaBtnGoogle" onClick={onCancelLogin} disabled={loading}>
+              Quay lại
+            </button>
+          )}
+          {(errorMessage || sessionError) && (
             <div className="cinemaAlert cinemaAlertError" role="alert">
-              <span>{errorMessage}</span>
+              <span>{errorMessage || sessionError}</span>
+              {!isAdminPortal && (
+                <Link to={`/verify-email?email=${encodeURIComponent(email)}`} className="footerSignUpLink">
+                  Chưa xác thực email? Kích hoạt tài khoản
+                </Link>
+              )}
             </div>
           )}
 
@@ -155,7 +178,7 @@ export default function LoginForm({ portalType = "user" }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="cinemaAuthForm" autoComplete="off">
+          <form onSubmit={handleSubmit} className="cinemaAuthForm" autoComplete="on">
             {/* Email Address Input */}
             <LoginInput
               id="cinema-email"
@@ -165,7 +188,7 @@ export default function LoginForm({ portalType = "user" }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="off"
+              autoComplete="username"
               icon={
                 <svg
                   width="18"
@@ -265,7 +288,7 @@ export default function LoginForm({ portalType = "user" }) {
             <button
               type="submit"
               className="cinemaBtnSubmit"
-              disabled={loading}
+              disabled={loading || sessionLoading}
             >
               {loading ? "Đang xử lý..." : "Đăng nhập"}
             </button>

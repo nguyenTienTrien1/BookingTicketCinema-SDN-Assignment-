@@ -11,6 +11,7 @@ r.get('/me', verifyToken, requireRole('member'), profile.view);
 r.patch('/me', verifyToken, requireRole('member'), profile.protectProfileWrite, profile.update);
 r.patch('/me/password', verifyToken, requireRole('member'), profile.protectProfileWrite, profile.password);
 
+r.use(verifyToken, requireRole('admin'));
 r.get('/', c.list);
 r.post('/', c.create);
 r.patch('/:id/status', c.status);

@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+
 import User from '../models/User.js';
 
 function badRequest(message) {
@@ -97,7 +97,7 @@ export async function changePassword(id, data) {
     badRequest('Mật khẩu hiện tại không chính xác.');
   }
   // Hash explicitly, including input that happens to start with a bcrypt prefix.
-  user.password = await bcrypt.hash(newPassword, 10);
+  user.password = newPassword;
   user.tokenVersion = (user.tokenVersion || 0) + 1;
   user.failedLoginAttempts = 0;
   user.lockUntil = null;

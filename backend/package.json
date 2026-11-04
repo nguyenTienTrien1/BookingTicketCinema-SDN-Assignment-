@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "seed": "node src/utils/seed.js",
     "test:movies": "node --test test_movies.js",
-    "test:profile": "node --test test_profile.js"
+    "test:profile": "node --test test_profile.js",
+    "test": "node --test test_movies.js test_profile.js test_regression.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -47,10 +47,9 @@ app.use('/api/foods', foodRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {
-  console.error('[SERVER ERROR]', err);
-
-  const status = err.status || 500;
-  let message = err.message || 'Đã xảy ra lỗi máy chủ.';
+  const status = err.name === 'ValidationError' || err.name === 'CastError' ? 400 : err.code === 11000 ? 409 : err.status || 500;
+  if (status >= 500) console.error('[SERVER ERROR]', err);
+  let message = err.name === 'CastError' ? 'Invalid ID or field value.' : err.message || 'Đã xảy ra lỗi máy chủ.';
 
   if (err.name === 'ValidationError') {
     message = 'Thông tin nhập chưa hợp lệ. Vui lòng kiểm tra lại.';

@@ -161,9 +161,25 @@ export default function RegisterForm() {
                 </svg>
               </div>
               <h3 className="successTitle">Đăng ký thành công!</h3>
-              <p className="successDesc">
-                Email xác thực đã được gửi đến <strong>{email}</strong>. Vui lòng kiểm tra hộp thư để kích hoạt tài khoản của bạn.
+              <p className="successDesc" role="status">
+                Tài khoản <strong>{email}</strong> đang chờ xác thực email.
+                Bạn cần kích hoạt tài khoản trước khi đăng nhập.
               </p>
+              <p className="successDesc">
+                {successData.emailSent && !successData.previewUrl
+                  ? 'Vui lòng kiểm tra email xác thực và thư rác.'
+                  : 'Email có thể chưa được gửi đến hộp thư thật. Dùng liên kết kích hoạt bên dưới khi chạy bản local.'}
+              </p>
+              {successData.verificationLink && (
+                <Link to={successData.verificationLink} className="cinemaBtnSubmit verifyNowBtn">
+                  Kích hoạt tài khoản
+                </Link>
+              )}
+              {successData.previewUrl && (
+                <a href={successData.previewUrl} target="_blank" rel="noopener noreferrer" className="footerSignUpLink">
+                  Xem email xác thực thử nghiệm
+                </a>
+              )}
               <div className="verifyActionBox">
                 <p className="verifyNote" style={{ margin: 0, lineHeight: 1.6 }}>
                   Vui lòng nhấp vào liên kết trong email để kích hoạt tài khoản (liên kết có hiệu lực trong <strong>24 giờ</strong>). Nếu không thấy thư, vui lòng kiểm tra thêm mục <strong>Thư rác (Spam)</strong>.
@@ -171,10 +187,10 @@ export default function RegisterForm() {
               </div>
               <div style={{ marginTop: '24px' }}>
                 <Link
-                  to="/login"
+                  to={`/verify-email?email=${encodeURIComponent(email)}`}
                   className="cinemaBtnSubmit verifyNowBtn"
                 >
-                  Quay lại trang Đăng nhập
+                  Gửi lại email xác thực
                 </Link>
               </div>
             </div>

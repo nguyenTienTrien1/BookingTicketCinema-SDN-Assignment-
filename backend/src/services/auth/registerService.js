@@ -24,7 +24,7 @@ export async function registerMember(data) {
     throw error;
   }
 
-  if (!password || typeof password !== 'string' || password.length < 6) {
+  if (!password || typeof password !== 'string' || password.length < 6 || Buffer.byteLength(password, 'utf8') > 72) {
     const error = new Error('Mật khẩu phải có tối thiểu 6 ký tự.');
     error.status = 400;
     throw error;
@@ -79,7 +79,7 @@ export async function registerMember(data) {
     fullName: fullName.trim(),
     email: normalizedEmail,
     password: password, // Pre-save hook hashes with bcrypt (BR-1)
-    phone: phone ? phone.trim() : '',
+    phone: typeof phone === 'string' ? phone.trim() : '',
     role: 'member',
     status: 'Pending Verification',
     verificationToken,
@@ -174,7 +174,7 @@ export async function verifyEmail(token) {
  * Resend verification email for Pending Verification account (BR-8)
  */
 export async function resendVerification(email) {
-  if (!email || !EMAIL_REGEX.test(email.trim())) {
+  if (typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
     const error = new Error('Địa chỉ email không hợp lệ.');
     error.status = 400;
     throw error;

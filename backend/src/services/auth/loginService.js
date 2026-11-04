@@ -10,9 +10,9 @@ const DUMMY_HASH = '$2a$10$e8wM53zB6v0qG6/kF4g8/e6Q5dY8Z8t2b1a0.d9e8f7g6h5i4j3k2
  * Follows UC-18, BR-1, BR-7, BR-8, BR-11
  */
 export async function authenticate(email, password, portalType = 'user') {
-  const normalizedEmail = (email || '').trim().toLowerCase();
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-  if (!normalizedEmail || !password) {
+  if (!normalizedEmail || typeof password !== 'string' || !password || Buffer.byteLength(password, 'utf8') > 72) {
     console.log('[AUTH AUDIT] Failure: reason="MISSING_CREDENTIALS"');
     const err = new Error(GENERIC_AUTH_ERROR);
     err.status = 401;
@@ -20,7 +20,7 @@ export async function authenticate(email, password, portalType = 'user') {
   }
 
   // 1. Find account
-  const account = await User.findOne({ email: normalizedEmail });
+  let account = await User.findOne({ email: normalizedEmail });
 
   if (!account) {
     // Constant-time dummy comparison to mitigate user-enumeration timing attacks
@@ -44,9 +44,7 @@ export async function authenticate(email, password, portalType = 'user') {
 
   // If previous lock has expired, reset counter
   if (account.lockUntil && account.lockUntil <= now) {
-    account.failedLoginAttempts = 0;
-    account.lockUntil = null;
-    await account.save();
+    await User.updateOne({ _id: account._id, lockUntil: { $lte: now } }, { $set: { failedLoginAttempts: 0, lockUntil: null } });
     console.log(`[AUTH AUDIT] Lockout period expired; counter reset for ${normalizedEmail}`);
   }
 
@@ -83,27 +81,28 @@ export async function authenticate(email, password, portalType = 'user') {
 
   if (!isMatch) {
     // Record failed attempt (BR-7: 5 consecutive failures = 15-minute lock)
-    account.failedLoginAttempts = (account.failedLoginAttempts || 0) + 1;
-    if (account.failedLoginAttempts >= 5) {
-      account.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-      console.log(`[AUTH AUDIT] Lockout triggered: email=${normalizedEmail}, attempts=${account.failedLoginAttempts}, lockUntil=${account.lockUntil.toISOString()}`);
+    const failed = await User.findByIdAndUpdate(account._id, { $inc: { failedLoginAttempts: 1 } }, { new: true });
+    if (failed && failed.failedLoginAttempts >= 5) {
+      await User.updateOne({ _id: account._id, failedLoginAttempts: { $gte: 5 } }, { $set: { lockUntil: new Date(Date.now() + 15 * 60 * 1000) } });
     }
-    await account.save();
-
-    console.log(`[AUTH AUDIT] Failure: reason="INVALID_PASSWORD", email=${normalizedEmail}, failedAttempts=${account.failedLoginAttempts}`);
+    console.log(`[AUTH AUDIT] Failure: reason="INVALID_PASSWORD", email=${normalizedEmail}, failedAttempts=${failed?.failedLoginAttempts}`);
     const err = new Error(GENERIC_AUTH_ERROR);
     err.status = 401;
     throw err;
   }
 
   // 6. Success: Reset failure count and update last login timestamp
-  account.failedLoginAttempts = 0;
-  account.lockUntil = null;
-  account.lastLogin = new Date();
-  await account.save();
+  const authenticated = await User.findOneAndUpdate(
+    { _id: account._id, password: account.password, status: account.status, role: account.role, tokenVersion: { $in: [account.tokenVersion || 0, null] },
+      $or: [{ lockUntil: null }, { lockUntil: { $lte: now } }] },
+    { $set: { failedLoginAttempts: 0, lockUntil: null, lastLogin: new Date() } },
+    { new: true }
+  );
+  if (!authenticated) throw Object.assign(new Error(GENERIC_AUTH_ERROR), { status: 401 });
+  account = authenticated;
 
   // 7. Generate JWT
-  const secret = process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302';
+  const secret = getJwtSecret();
   const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
 
   const token = jwt.sign(
@@ -144,8 +143,8 @@ export async function authenticate(email, password, portalType = 'user') {
 export async function verifySessionToken(token) {
   if (!token) return null;
   try {
-    const secret = process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302';
-    const decoded = jwt.verify(token, secret);
+    const secret = getJwtSecret();
+    const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
     const account = await User.findById(decoded.id);
     if (!account) return null;
 
@@ -173,3 +172,9 @@ export async function verifySessionToken(token) {
   }
 }
 
+
+function getJwtSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === 'production') throw new Error('JWT_SECRET must be configured.');
+  return 'supersecret_cinema_jwt_key_2026_sdn302';
+}

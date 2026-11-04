@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { loginUser, loginAdmin, logout as apiLogout, getMe } from '../services/auth/authService';
 
 const AuthContext = createContext(null);
@@ -7,19 +7,24 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const sessionRevision = useRef(0);
 
   // Restore authenticated session on page refresh via HttpOnly cookie
   useEffect(() => {
     let mounted = true;
+    const revision = sessionRevision.current;
     getMe()
       .then((currentUser) => {
-        if (mounted) {
+        if (mounted && revision === sessionRevision.current) {
           setUser(currentUser);
           setLoading(false);
         }
       })
-      .catch(() => {
-        if (mounted) setLoading(false);
+      .catch((err) => {
+        if (mounted && revision === sessionRevision.current) {
+          setError(err.message);
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -28,27 +33,33 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(email, password, portalType = 'user') {
+    const revision = ++sessionRevision.current;
     setError('');
     try {
       const response = portalType === 'admin'
         ? await loginAdmin({ email, password })
         : await loginUser({ email, password });
 
-      setUser(response.user);
+      if (!response.user?._id) throw new Error('Phản hồi đăng nhập không hợp lệ.');
+      if (revision === sessionRevision.current) {
+        setUser(response.user);
+        setLoading(false);
+      }
       return response.user;
     } catch (err) {
       setError(err.message);
       throw err;
+    } finally {
+      if (revision === sessionRevision.current) setLoading(false);
     }
   }
 
   async function logout() {
-    try {
-      await apiLogout();
-    } finally {
-      setUser(null);
-      setError('');
-    }
+    ++sessionRevision.current;
+    await apiLogout();
+    setUser(null);
+    setLoading(false);
+    setError('');
   }
 
   const value = {

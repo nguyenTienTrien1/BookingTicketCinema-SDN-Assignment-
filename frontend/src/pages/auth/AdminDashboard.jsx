@@ -16,8 +16,12 @@ export default function AdminDashboard() {
   }, []);
 
   async function handleLogout() {
-    await logout();
-    navigate('/admin/login');
+    try {
+      await logout();
+      navigate('/admin/login');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (

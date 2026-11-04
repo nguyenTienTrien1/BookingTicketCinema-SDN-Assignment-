@@ -1,1 +1,11 @@
-import {Router} from 'express';import * as c from '../controllers/bookingController.js';const r=Router();r.get('/',c.list);r.post('/',c.create);r.patch('/:id/points',c.points);r.post('/:id/pay',c.payment);export default r;
+import { Router } from 'express';
+import * as c from '../controllers/bookingController.js';
+import { verifyToken } from '../middleware/auth/verifyToken.js';
+import { requireRole } from '../middleware/auth/requireRole.js';
+const r = Router();
+r.use(verifyToken, requireRole('member'));
+r.get('/', c.list);
+r.post('/', c.create);
+r.patch('/:id/points', c.points);
+r.post('/:id/pay', c.payment);
+export default r;
