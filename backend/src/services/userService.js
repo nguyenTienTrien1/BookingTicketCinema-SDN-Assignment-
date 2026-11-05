@@ -40,6 +40,7 @@ export async function applyPoints(id, points) {
 
 function safeUser(user) {
   const result = user.toObject();
-  for (const field of ['password', 'verificationToken', 'verificationExpires', 'tokenVersion', 'failedLoginAttempts', 'lockUntil']) delete result[field];
+  for (const field of ['password', 'verificationToken', 'verificationExpires', 'tokenVersion', 'failedLoginAttempts', 'lockUntil',
+    'passwordResetTokenHash', 'passwordResetExpiresAt', 'passwordResetUsedAt', 'passwordResetRequestedAt', 'passwordResetTokenVersion']) delete result[field];
   return result;
 }

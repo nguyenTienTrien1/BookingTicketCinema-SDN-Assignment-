@@ -45,9 +45,7 @@ function ResetPasswordForm({ token }) {
           setStatus('invalid');
         } else {
           setStatus('verification-error');
-          setMessage(error.code === 'PASSWORD_RECOVERY_UNAVAILABLE'
-            ? error.message
-            : 'Không thể kiểm tra liên kết. Vui lòng kiểm tra kết nối và thử lại.');
+          setMessage(error.message || 'Không thể kiểm tra liên kết. Vui lòng kiểm tra kết nối và thử lại.');
         }
       }
     }
@@ -67,7 +65,7 @@ function ResetPasswordForm({ token }) {
     if (password.length < 6 || !password.trim()) {
       nextErrors.password = 'Mật khẩu mới cần ít nhất 6 ký tự và không chỉ chứa khoảng trắng.';
     } else if (new TextEncoder().encode(password).length > 72) {
-      nextErrors.password = 'Mật khẩu mới không được vượt quá 72 byte UTF-8. Ký tự có dấu có thể chiếm nhiều byte.';
+      nextErrors.password = 'Mật khẩu mới vượt quá độ dài tối đa cho phép.';
     }
     if (!confirmation) nextErrors.confirmation = 'Vui lòng nhập lại mật khẩu mới.';
     else if (password !== confirmation) nextErrors.confirmation = 'Xác nhận mật khẩu mới không khớp.';
@@ -104,9 +102,7 @@ function ResetPasswordForm({ token }) {
         setStatus('invalid');
       } else {
         setStatus('reset-error');
-        setMessage(error.code === 'PASSWORD_RECOVERY_UNAVAILABLE'
-          ? error.message
-          : 'Chưa thể đặt lại mật khẩu. Vui lòng kiểm tra kết nối và thử lại.');
+        setMessage(error.message || 'Chưa thể đặt lại mật khẩu. Vui lòng kiểm tra kết nối và thử lại.');
       }
     } finally {
       submittingRef.current = false;
@@ -118,8 +114,20 @@ function ResetPasswordForm({ token }) {
     document.getElementById(id).focus();
   }
 
+  const layoutProps = status === 'success'
+    ? {
+        title: 'Đặt lại thành công',
+        description: 'Mật khẩu tài khoản CINEMA+ đã được cập nhật thành công.',
+        hideFooter: true
+      }
+    : {
+        title: 'Đặt lại mật khẩu',
+        description: 'Tạo mật khẩu mới để đăng nhập lại vào CINEMA+.',
+        hideFooter: false
+      };
+
   return (
-    <PasswordRecoveryLayout title="Đặt lại mật khẩu" description="Tạo mật khẩu mới để đăng nhập lại vào CINEMA+.">
+    <PasswordRecoveryLayout {...layoutProps}>
       {status === 'validating' && (
         <p className="recoveryNote recoveryChecking" role="status" aria-busy="true">Đang kiểm tra liên kết đặt lại mật khẩu...</p>
       )}
@@ -147,9 +155,33 @@ function ResetPasswordForm({ token }) {
 
       {status === 'success' && (
         <div className="recoveryResult" ref={alertRef} tabIndex={-1} role="status">
-          <h2 className="successTitle">Đã đặt lại mật khẩu</h2>
-          <p className="successDesc">Mật khẩu mới đã được cập nhật. Bạn có thể quay lại đăng nhập.</p>
-          <Link to="/login" className="cinemaBtnSubmit verifyNowBtn">Đăng nhập</Link>
+          <div className="recoverySuccessVisual" aria-hidden="true">
+            <div className="recoverySuccessIconCircle">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+          </div>
+          <h2 className="successTitle">Đặt lại mật khẩu thành công!</h2>
+          <p className="successDesc">Mật khẩu mới đã được cập nhật. Bạn có thể dùng mật khẩu mới này để đăng nhập ngay.</p>
+          <div className="recoverySecurityNote">
+            <div className="recoverySecurityIcon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </div>
+            <div className="recoverySecurityText">
+              <strong>Bảo mật tài khoản:</strong> Các phiên đăng nhập cũ trên thiết bị khác đã được đăng xuất tự động để đảm bảo an toàn cho bạn.
+            </div>
+          </div>
+          <Link to="/login" className="cinemaBtnSubmit recoverySuccessActionBtn">
+            <span>Đăng nhập ngay</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </Link>
         </div>
       )}
 
@@ -165,7 +197,7 @@ function ResetPasswordForm({ token }) {
           )}
           <LoginInput id="reset-password" label="Mật khẩu mới" type={showPassword ? 'text' : 'password'} autoComplete="new-password"
             placeholder="Nhập mật khẩu mới" value={password} disabled={status === 'submitting'} error={errors.password}
-            hint="Ít nhất 6 ký tự, không quá 72 byte UTF-8."
+            hint="Tối thiểu 6 ký tự."
             onChange={(event) => setPassword(event.target.value)}
             rightElement={<button type="button" className="passwordEyeToggle" aria-label={showPassword ? 'Ẩn mật khẩu mới' : 'Hiện mật khẩu mới'} aria-pressed={showPassword} disabled={status === 'submitting'} onClick={() => setShowPassword(!showPassword)}><PasswordEye visible={showPassword} /></button>}
           />

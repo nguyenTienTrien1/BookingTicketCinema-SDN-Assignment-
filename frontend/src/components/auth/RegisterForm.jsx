@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { registerUser } from "../../services/auth/authService";
+import { registerUser, resendVerification } from "../../services/auth/authService";
 import LoginInput from "./LoginInput";
 import "../../styles/auth/login.css";
 
@@ -28,6 +28,32 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successData, setSuccessData] = useState(null);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendMessage, setResendMessage] = useState("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  async function handleResendEmail() {
+    if (resending || resendCooldown > 0 || !email) return;
+    setResending(true);
+    setResendMessage("");
+    try {
+      const res = await resendVerification(email);
+      setResendMessage(res.message || "Đã gửi lại email xác thực thành công. Vui lòng kiểm tra hộp thư.");
+      setResendCooldown(60);
+    } catch (err) {
+      setResendMessage(err.message || "Không thể gửi lại email lúc này. Vui lòng thử lại sau.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -144,7 +170,7 @@ export default function RegisterForm() {
 
           {successData ? (
             /* Success State & Email Verification Notice (BR-8) */
-            <div className="registerSuccessCard">
+            <div className="registerSuccessCard" role="status">
               <div className="successBadgeIcon">
                 <svg
                   width="28"
@@ -161,36 +187,63 @@ export default function RegisterForm() {
                 </svg>
               </div>
               <h3 className="successTitle">Đăng ký thành công!</h3>
-              <p className="successDesc" role="status">
-                Tài khoản <strong>{email}</strong> đang chờ xác thực email.
-                Bạn cần kích hoạt tài khoản trước khi đăng nhập.
-              </p>
               <p className="successDesc">
-                {successData.emailSent && !successData.previewUrl
-                  ? 'Vui lòng kiểm tra email xác thực và thư rác.'
-                  : 'Email có thể chưa được gửi đến hộp thư thật. Dùng liên kết kích hoạt bên dưới khi chạy bản local.'}
+                Chúng tôi đã gửi email xác thực đến địa chỉ:
               </p>
-              {successData.verificationLink && (
-                <Link to={successData.verificationLink} className="cinemaBtnSubmit verifyNowBtn">
-                  Kích hoạt tài khoản
-                </Link>
-              )}
-              {successData.previewUrl && (
-                <a href={successData.previewUrl} target="_blank" rel="noopener noreferrer" className="footerSignUpLink">
-                  Xem email xác thực thử nghiệm
-                </a>
-              )}
+              <div style={{ margin: "10px 0 18px" }}>
+                <span style={{
+                  display: "inline-block",
+                  backgroundColor: "rgba(229, 9, 20, 0.08)",
+                  border: "1px solid rgba(229, 9, 20, 0.25)",
+                  borderRadius: "20px",
+                  padding: "6px 16px",
+                  color: "#ffffff",
+                  fontWeight: 600,
+                  fontSize: "14px"
+                }}>
+                  {email}
+                </span>
+              </div>
               <div className="verifyActionBox">
-                <p className="verifyNote" style={{ margin: 0, lineHeight: 1.6 }}>
-                  Vui lòng nhấp vào liên kết trong email để kích hoạt tài khoản (liên kết có hiệu lực trong <strong>24 giờ</strong>). Nếu không thấy thư, vui lòng kiểm tra thêm mục <strong>Thư rác (Spam)</strong>.
+                <p className="verifyNote" style={{ margin: 0, lineHeight: 1.6, textAlign: "left" }}>
+                  Vui lòng mở hộp thư đến và nhấp vào liên kết xác thực để kích hoạt tài khoản của bạn (liên kết có hiệu lực trong <strong>24 giờ</strong>). Nếu chưa thấy thư, vui lòng kiểm tra thêm mục <strong>Thư rác (Spam)</strong>.
                 </p>
               </div>
-              <div style={{ marginTop: '24px' }}>
-                <Link
-                  to={`/verify-email?email=${encodeURIComponent(email)}`}
+
+              {resendMessage && (
+                <div style={{
+                  backgroundColor: resendMessage.includes("thành công") ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                  border: resendMessage.includes("thành công") ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(239, 68, 68, 0.35)",
+                  color: resendMessage.includes("thành công") ? "#34d399" : "#fca5a5",
+                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  fontSize: "13px",
+                  margin: "16px 0 8px",
+                  textAlign: "center"
+                }}>
+                  {resendMessage}
+                </div>
+              )}
+
+              <div style={{ marginTop: '16px' }}>
+                <button
+                  type="button"
                   className="cinemaBtnSubmit verifyNowBtn"
+                  onClick={handleResendEmail}
+                  disabled={resending || resendCooldown > 0}
+                  style={{ width: "100%", cursor: resendCooldown > 0 ? "not-allowed" : "pointer" }}
                 >
-                  Gửi lại email xác thực
+                  {resending
+                    ? "Đang gửi lại..."
+                    : resendCooldown > 0
+                      ? `Gửi lại email xác thực (${resendCooldown}s)`
+                      : "Gửi lại email xác thực"}
+                </button>
+              </div>
+
+              <div style={{ marginTop: '18px' }}>
+                <Link to="/login" className="footerSignUpLink">
+                  ← Quay lại trang Đăng nhập
                 </Link>
               </div>
             </div>

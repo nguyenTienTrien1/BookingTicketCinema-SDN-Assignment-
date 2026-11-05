@@ -38,6 +38,12 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
     if (loading || sessionLoading) return;
     setErrorMessage("");
     setInfoToast("");
+
+    if (!password || password.length < 6) {
+      setErrorMessage("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -151,11 +157,6 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
           {(errorMessage || sessionError) && (
             <div className="cinemaAlert cinemaAlertError" role="alert">
               <span>{errorMessage || sessionError}</span>
-              {!isAdminPortal && (
-                <Link to={`/verify-email?email=${encodeURIComponent(email)}`} className="footerSignUpLink">
-                  Chưa xác thực email? Kích hoạt tài khoản
-                </Link>
-              )}
             </div>
           )}
 
@@ -202,6 +203,7 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
               autoComplete="current-password"
               icon={
                 <svg

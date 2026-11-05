@@ -129,29 +129,46 @@ export async function getAdminDashboard() {
 export const login = loginUser;
 export default authApi;
 
-// UC-19 has no backend routes yet. These guards deliberately make no HTTP
-// request and never acknowledge an email or password update as successful.
-// Replace their bodies only after the real API contract is available.
-// Local UI interface: resolve true only after backend confirmation; normalize
-// rejected links to RESET_LINK_INVALID, and other failures to safe messages.
-// Request acknowledgement must be identical for ineligible/unknown emails and
-// email delivery failure (UC-19 E1); never expose those distinctions to the UI.
+// Keep the form interface boolean, but confirm every result with the real API.
 export async function requestPasswordReset(email) {
-  throw passwordRecoveryUnavailable();
+  let response;
+  try {
+    response = await authApi.post('/auth/forgot-password', { email });
+  } catch (error) {
+    throw passwordRecoveryError(error, 'Không thể gửi yêu cầu lúc này.');
+  }
+  if (response.data?.success !== true) throw new Error('Máy chủ chưa xác nhận yêu cầu khôi phục mật khẩu.');
+  return true;
 }
 
 export async function validatePasswordResetToken(token) {
-  throw passwordRecoveryUnavailable();
+  let response;
+  try {
+    response = await authApi.get('/auth/reset-password/verify', { params: { token } });
+  } catch (error) {
+    throw passwordRecoveryError(error, 'Không thể kiểm tra liên kết lúc này.');
+  }
+  if (response.data?.success !== true || response.data.valid !== true) {
+    throw new Error('Máy chủ chưa xác nhận liên kết đặt lại mật khẩu.');
+  }
+  return true;
 }
 
 export async function resetPassword(token, newPassword, confirmPassword) {
-  throw passwordRecoveryUnavailable();
+  let response;
+  try {
+    response = await authApi.post('/auth/reset-password', { token, newPassword, confirmPassword });
+  } catch (error) {
+    throw passwordRecoveryError(error, 'Không thể đặt lại mật khẩu lúc này.');
+  }
+  if (response.data?.success !== true) throw new Error('Máy chủ chưa xác nhận cập nhật mật khẩu.');
+  return true;
 }
 
-function passwordRecoveryUnavailable() {
-  const error = new Error('Khôi phục mật khẩu hiện chưa khả dụng. Vui lòng thử lại sau.');
-  error.code = 'PASSWORD_RECOVERY_UNAVAILABLE';
-  return error;
+function passwordRecoveryError(error, fallback) {
+  const recoveryError = new Error(getErrorMessage(error, fallback));
+  if (error.response?.data?.code === 'RESET_LINK_INVALID') recoveryError.code = 'RESET_LINK_INVALID';
+  return recoveryError;
 }
 
 

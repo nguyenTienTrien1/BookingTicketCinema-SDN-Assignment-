@@ -49,9 +49,20 @@ const userSchema = new mongoose.Schema(
     // Verification fields for BR-8 (Single-use token expiring after 24h)
     verificationToken: { type: String, default: null },
     verificationExpires: { type: Date, default: null },
+    // UC-19: only a SHA-256 digest is stored; never the emailed raw token.
+    passwordResetTokenHash: { type: String, default: null, select: false },
+    passwordResetExpiresAt: { type: Date, default: null, select: false },
+    passwordResetUsedAt: { type: Date, default: null, select: false },
+    passwordResetRequestedAt: { type: Date, default: null, select: false },
+    passwordResetTokenVersion: { type: Number, default: null, select: false },
   },
   { timestamps: true },
 );
+
+userSchema.index({ passwordResetTokenHash: 1 }, {
+  unique: true,
+  partialFilterExpression: { passwordResetTokenHash: { $type: 'string' } }
+});
 
 // Pre-save hook: Hash password with bcrypt before saving (BR-1)
 userSchema.pre("save", async function (next) {

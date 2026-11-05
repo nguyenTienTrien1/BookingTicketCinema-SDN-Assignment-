@@ -139,7 +139,7 @@ export function ProfilePanel() {
 
       {mode === 'password' && <form onSubmit={savePassword}>
         <h3>Đổi mật khẩu</h3>
-        <p className="profileHint" id="password-help">Mật khẩu mới có ít nhất 6 ký tự, tối đa 72 byte UTF-8 và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p>
+        <p className="profileHint" id="password-help">Mật khẩu mới có ít nhất 6 ký tự và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p>
         <fieldset disabled={saving} className="profileFields profilePasswordFields">
           <label htmlFor="password-current">Mật khẩu hiện tại<input id="password-current" type="password" autoComplete="current-password" required maxLength={72} value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} /></label>
           <label htmlFor="password-new">Mật khẩu mới<input id="password-new" type="password" autoComplete="new-password" aria-describedby="password-help" required minLength={6} maxLength={72} value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} /></label>
