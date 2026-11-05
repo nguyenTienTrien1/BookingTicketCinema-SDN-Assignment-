@@ -220,6 +220,11 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+.navUserWrapper {
+  position: relative;
+  display: inline-block;
+}
+
 .navUserBtn {
   display: flex;
   align-items: center;
@@ -233,11 +238,110 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  user-select: none;
 }
 
-.navUserBtn:hover {
+.navUserBtn:hover,
+.navUserBtn.open {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.25);
+}
+
+.navUserChevron {
+  color: var(--text-secondary);
+  transition: transform 0.22s ease;
+  margin-left: 2px;
+}
+
+.navUserChevron.open {
+  transform: rotate(180deg);
+}
+
+.navUserDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 230px;
+  background: #17191f;
+  background: rgba(23, 25, 31, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1000;
+  animation: navDropdownFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes navDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.navDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  color: #dedfe4;
+  font-size: 13.5px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.navDropdownItem svg {
+  flex-shrink: 0;
+  color: #a3a5ad;
+  transition: color 0.15s ease;
+}
+
+.navDropdownItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.navDropdownItem:hover svg {
+  color: #ffffff;
+}
+
+.navDropdownItem.logout {
+  color: #ff6b6b;
+}
+
+.navDropdownItem.logout svg {
+  color: #ff6b6b;
+}
+
+.navDropdownItem.logout:hover {
+  background: rgba(255, 77, 79, 0.12);
+  color: #ff4d4f;
+}
+
+.navDropdownItem.logout:hover svg {
+  color: #ff4d4f;
+}
+
+.navDropdownDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 6px;
 }
 
 .navUserAvatar {

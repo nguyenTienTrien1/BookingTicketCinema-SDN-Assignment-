@@ -5,3 +5,4 @@ dist/
 !.env.example
 *.log
 .DS_Store
+MANAGE_CINEMA_ROOM_ANALYSIS.md

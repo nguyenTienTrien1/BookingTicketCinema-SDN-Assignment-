@@ -76,14 +76,6 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
     setTimeout(() => setInfoToast(""), 4000);
   }
 
-  function handleForgotPassword(e) {
-    e.preventDefault();
-    setInfoToast(
-      "Vui lòng liên hệ ban quản trị hoặc quầy vé rạp để được hỗ trợ cấp lại mật khẩu.",
-    );
-    setTimeout(() => setInfoToast(""), 4000);
-  }
-
   function handleSignUp(e) {
     e.preventDefault();
     navigate('/register');
@@ -156,11 +148,6 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
             <h2 className="cinemaCardHeading">{cardTitle}</h2>
           </div>
 
-          {onCancelLogin && (
-            <button type="button" className="cinemaBtnGoogle" onClick={onCancelLogin} disabled={loading}>
-              Quay lại
-            </button>
-          )}
           {(errorMessage || sessionError) && (
             <div className="cinemaAlert cinemaAlertError" role="alert">
               <span>{errorMessage || sessionError}</span>
@@ -275,13 +262,12 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
 
             {/* Quên mật khẩu? (Right-aligned link) */}
             <div className="forgotPasswordRow">
-              <a
-                href="#forgot"
-                onClick={handleForgotPassword}
+              <Link
+                to="/forgot-password"
                 className="forgotPasswordLink"
               >
                 Quên mật khẩu?
-              </a>
+              </Link>
             </div>
 
             {/* Primary Submit Button: Bold Netflix Red Rounded Rectangle */}
