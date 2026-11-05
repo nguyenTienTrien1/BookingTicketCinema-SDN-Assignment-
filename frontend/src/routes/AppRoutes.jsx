@@ -23,7 +23,8 @@ import MemberSearch from '../pages/Booking/MemberSearch';
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
+      <Route path="/admin/members" element={<ProtectedRoute allowedRoles={['admin']}><MemberSearch key="admin" /></ProtectedRoute>} />
+      <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch key="employee" /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}

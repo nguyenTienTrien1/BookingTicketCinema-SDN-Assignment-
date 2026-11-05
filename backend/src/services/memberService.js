@@ -2,11 +2,18 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 
 // Counter staff receive contact details, status and loyalty information only.
-const MEMBER_FIELDS = 'fullName email phone memberPoints isVIP status';
+const EMPLOYEE_FIELDS = 'fullName email phone memberPoints isVIP status';
+const ADMIN_FIELDS = EMPLOYEE_FIELDS + ' age gender role createdAt updatedAt lastLogin';
 const SEARCH_LIMIT = 20;
 
 function memberError(message, status = 400) {
     return Object.assign(new Error(message), { status });
+}
+
+function memberFields(viewerRole) {
+    if (viewerRole === 'admin') return ADMIN_FIELDS;
+    if (viewerRole === 'employee') return EMPLOYEE_FIELDS;
+    throw memberError('Bạn không có quyền tra cứu thành viên.', 403);
 }
 
 function phonePatterns(query) {
@@ -28,7 +35,8 @@ function phonePatterns(query) {
     return variants.map((value) => '^\\s*\\+?' + value.split('').join('[\\s().-]*') + '\\s*$');
 }
 
-export async function searchMembers(query) {
+export async function searchMembers(query, viewerRole) {
+    const fields = memberFields(viewerRole);
     if (typeof query !== 'string' || !query.trim() || query.length > 254) {
         throw memberError('Vui lòng nhập email hoặc số điện thoại của thành viên.');
     }
@@ -40,13 +48,14 @@ export async function searchMembers(query) {
     } else {
         filter.$or = phonePatterns(value).map((pattern) => ({ phone: { $regex: pattern } }));
     }
-    const members = await User.find(filter).select(MEMBER_FIELDS).sort({ fullName: 1, _id: 1 }).limit(SEARCH_LIMIT + 1);
+    const members = await User.find(filter).select(fields).sort({ fullName: 1, _id: 1 }).limit(SEARCH_LIMIT + 1);
     return { members: members.slice(0, SEARCH_LIMIT), hasMore: members.length > SEARCH_LIMIT };
 }
 
-export async function getMember(id) {
+export async function getMember(id, viewerRole) {
+    const fields = memberFields(viewerRole);
     if (!mongoose.isObjectIdOrHexString(id)) throw memberError('Mã thành viên không hợp lệ.');
-    const member = await User.findOne({ _id: id, role: 'member' }).select(MEMBER_FIELDS);
+    const member = await User.findOne({ _id: id, role: 'member' }).select(fields);
     if (!member) throw memberError('Không tìm thấy thành viên.', 404);
     return member;
 }
