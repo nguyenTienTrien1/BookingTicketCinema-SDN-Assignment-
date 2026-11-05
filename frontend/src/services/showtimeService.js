@@ -9,3 +9,7 @@ export function addShowtime(data) {
   return api('/showtimes', { method: 'POST', credentials: 'include', body: JSON.stringify(data) });
 }
 
+export function updateShowtime(id, data) {
+  return api(`/showtimes/${id}`, { method: 'PUT', credentials: 'include', body: JSON.stringify(data) });
+}
+

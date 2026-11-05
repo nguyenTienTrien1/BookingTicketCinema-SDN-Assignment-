@@ -115,3 +115,52 @@ export async function createShowtime(body, adminId) {
   }
 }
 
+async function editableShowtime(id, body) {
+  checkId(id);
+  const showtime = await Showtime.findById(id);
+  if (!showtime) throw showtimeError('Không tìm thấy suất chiếu.', 404);
+  if (!body || typeof body.updatedAt !== 'string' || !showtime.updatedAt ||
+      body.updatedAt !== showtime.updatedAt.toISOString()) {
+    throw showtimeError('Suất chiếu đã thay đổi. Vui lòng tải lại danh sách trước khi tiếp tục.', 409);
+  }
+  if (showtime.startTime <= new Date()) {
+    throw showtimeError('Không thể sửa hoặc xóa suất chiếu đã bắt đầu.', 409);
+  }
+  // Keep all booking references, including cancelled bookings, for transaction history.
+  if (await Booking.exists({ showtime: id })) {
+    throw showtimeError('Suất chiếu đã có đặt vé. Không thể sửa/xóa trực tiếp; cần quy trình hủy và hoàn tiền.', 409);
+  }
+  for (const seat of showtime.seats) {
+    if (seat.status !== 'available' || seat.bookingId) {
+      throw showtimeError('Suất chiếu có ghế đang giữ hoặc đã bán. Không thể sửa/xóa trực tiếp.', 409);
+    }
+  }
+  return showtime;
+}
+
+function unbookedFilter(showtime) {
+  // Check again in the write itself in case a booking claims seats after our read.
+  return {
+    _id: showtime._id, updatedAt: showtime.updatedAt,
+    seats: { $not: { $elemMatch: { $or: [
+      { status: { $ne: 'available' } }, { bookingId: { $ne: null } }
+    ] } } }
+  };
+}
+
+export async function updateShowtime(id, body, adminId) {
+  if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
+  scheduleBusy = true;
+  try {
+    const current = await editableShowtime(id, body);
+    const data = await validateShowtime(body, id);
+    const showtime = await Showtime.findOneAndUpdate(unbookedFilter(current), { $set: data },
+      { new: true, runValidators: true });
+    if (!showtime) throw showtimeError('Suất chiếu vừa thay đổi hoặc có ghế được giữ. Vui lòng tải lại.', 409);
+    console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'update', adminId, showtimeId: id }));
+    return showtime;
+  } finally {
+    scheduleBusy = false;
+  }
+}
+

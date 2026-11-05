@@ -7,4 +7,5 @@ const router = Router();
 router.use(verifyToken, requireRole('admin'));
 router.get('/', controller.list);
 router.post('/', controller.protectWrite, controller.create);
+router.put('/:id', controller.protectWrite, controller.update);
 export default router;

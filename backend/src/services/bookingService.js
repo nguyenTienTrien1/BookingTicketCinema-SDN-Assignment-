@@ -108,7 +108,9 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
     seats: { $elemMatch: { number, status: 'available' } }
   }));
   const claimResult = await Showtime.updateOne(
-    { _id: showtimeId, $and: availabilityConditions },
+    // Reject a stale price/schedule snapshot if Admin edits before seats are claimed.
+    { _id: showtimeId, movie: showtime.movie, cinema: showtime.cinema, room: showtime.room,
+      startTime: showtime.startTime, price: showtime.price, $and: availabilityConditions },
     {
       $set: {
         'seats.$[seat].status': 'held',

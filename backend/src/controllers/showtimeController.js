@@ -28,3 +28,12 @@ export async function create(req, res, next) {
   }
 }
 
+export async function update(req, res, next) {
+  try {
+    const showtime = await service.updateShowtime(req.params.id, req.body, req.user._id);
+    res.json({ message: 'Cập nhật suất chiếu thành công.', showtime });
+  } catch (error) {
+    next(error);
+  }
+}
+
