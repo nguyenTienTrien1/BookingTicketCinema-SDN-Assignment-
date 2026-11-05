@@ -10,6 +10,7 @@ import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import ManageShowtimes from '../pages/Admin/ManageShowtimes';
+import RevenueDashboard from '../pages/Admin/RevenueDashboard';
 import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
 import FoodCounter from '../pages/Booking/FoodCounter';
@@ -24,6 +25,7 @@ import MemberSearch from '../pages/Booking/MemberSearch';
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueDashboard /></ProtectedRoute>} />
       <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />

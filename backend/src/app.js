@@ -10,6 +10,7 @@ import foodRoutes from './routes/foodRoutes.js';
 import promotionRoutes from './routes/promotionRoutes.js';
 import foodSaleRoutes from './routes/foodSaleRoutes.js';
 import memberRoutes from './routes/memberRoutes.js';
+import revenueRoutes from './routes/revenueRoutes.js';
 
 import showtimeRoutes from './routes/showtimeRoutes.js';
 
@@ -52,6 +53,7 @@ app.use('/api/foods', foodRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/food-sales', foodSaleRoutes);
 app.use('/api/members', memberRoutes);
+app.use('/api/revenue', revenueRoutes);
 
 app.use('/api/showtimes', showtimeRoutes);
 
