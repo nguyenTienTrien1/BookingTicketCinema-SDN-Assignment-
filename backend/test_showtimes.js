@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import app from './src/app.js';
@@ -10,6 +16,7 @@ import Movie from './src/models/Movie.js';
 import Showtime from './src/models/Showtime.js';
 import Booking from './src/models/Booking.js';
 import User from './src/models/User.js';
+import CinemaRoom from './src/models/CinemaRoom.js';
 import { createBooking } from './src/services/bookingService.js';
 
 test('UC-17.1–17.4 Admin showtime management', async (t) => {
@@ -32,6 +39,14 @@ test('UC-17.1–17.4 Admin showtime management', async (t) => {
   const movie = await Movie.create({ title: 'Showtime Test Movie', duration: 120, classification: 'P' });
   const otherMovie = await Movie.create({ title: 'Another Movie', duration: 90, classification: 'T13' });
   const restrictedMovie = await Movie.create({ title: 'Restricted Movie', duration: 90, classification: 'C' });
+  const layout = [];
+  for (const row of ['A', 'B', 'C', 'D', 'E']) {
+    for (let number = 1; number <= 8; number++) layout.push(row + number);
+  }
+  for (const name of ['Room 1', 'Room 2', 'Room 3', 'Failure Room', 'Concurrent Room', 'Race Room']) {
+    await CinemaRoom.create({ cinema: 'Test Cinema', name, status: 'Active', seats: layout });
+  }
+  await CinemaRoom.create({ cinema: 'Other Cinema', name: 'Room 1', status: 'Active', seats: layout });
   const start = new Date();
   start.setUTCFullYear(start.getUTCFullYear() + 1);
   start.setUTCHours(3, 0, 0, 0);
@@ -63,7 +78,7 @@ test('UC-17.1–17.4 Admin showtime management', async (t) => {
       assert.equal((await request(`/showtimes?${query}`)).status, 400);
     }
   });
-  await t.test('create initializes 40 available seats and ignores injected fields', async () => {
+  await t.test('create copies the configured room layout and ignores injected seat states', async () => {
     const result = await request('/showtimes', 'POST', { ...valid, cinema: ' Test Cinema ', seats: [{ number: 'X1', status: 'booked' }] });
     assert.equal(result.status, 201);
     created = result.data.showtime;
@@ -72,8 +87,88 @@ test('UC-17.1–17.4 Admin showtime management', async (t) => {
     assert.equal(created.seats[0].number, 'A1');
     assert.equal(created.seats[39].number, 'E8');
     assert.ok(created.seats.every((seat) => seat.status === 'available'));
+    assert.ok(created.roomId);
     const publicList = await request('/movies/showtimes');
     assert.ok(publicList.data.some((showtime) => showtime._id === created._id));
+  });
+  await t.test('room catalogue and current showtime details require Admin and hide booking references', async () => {
+    for (const user of [null, member, employee]) {
+      for (const path of ['/showtimes/rooms', `/showtimes/${created._id}`]) {
+        assert.equal((await request(path, 'GET', undefined, user)).status, user ? 403 : 401);
+      }
+    }
+    const rooms = await request('/showtimes/rooms');
+    assert.equal(rooms.status, 200);
+    assert.equal(rooms.data.length, 7);
+    const detail = await request(`/showtimes/${created._id}`);
+    assert.equal(detail.status, 200);
+    assert.equal(detail.data.movie.title, movie.title);
+    assert.equal(detail.data.seats[0].bookingId, undefined);
+    assert.equal((await request('/showtimes/bad')).status, 400);
+    assert.equal((await request(`/showtimes/${new mongoose.Types.ObjectId()}`)).status, 404);
+  });
+  await t.test('rejects nonexistent, inactive and invalid-layout rooms and deleted movies', async () => {
+    assert.equal((await request('/showtimes', 'POST', { ...valid, room: 'Missing Room' })).status, 400);
+    const room = await CinemaRoom.create({ cinema: valid.cinema, name: 'Closed Room', status: 'Maintenance', seats: ['B1'] });
+    assert.equal((await request('/showtimes', 'POST', { ...valid, room: room.name })).status, 409);
+    await CinemaRoom.collection.updateOne({ _id: room._id }, { $set: { status: 'Active', seats: ['B1', 'B1'] } });
+    assert.equal((await request('/showtimes', 'POST', { ...valid, room: room.name })).status, 409);
+    await CinemaRoom.collection.updateOne({ _id: room._id }, { $set: { seats: [] } });
+    assert.equal((await request('/showtimes', 'POST', { ...valid, room: room.name })).status, 409);
+    await CinemaRoom.deleteOne({ _id: room._id });
+    const deleted = await Movie.create({ title: 'Removed Movie', duration: 90, deletedAt: new Date() });
+    assert.equal((await request('/showtimes', 'POST', { ...valid, movie: String(deleted._id) })).status, 404);
+  });
+  await t.test('custom layouts are copied on create and changed only for unbooked screenings', async () => {
+    const custom = await CinemaRoom.create({ cinema: valid.cinema, name: 'Custom Room', status: 'Active', seats: ['C1', 'C2', 'D1'] });
+    const result = await request('/showtimes', 'POST', { ...valid, room: custom.name });
+    assert.equal(result.status, 201);
+    const screening = result.data.showtime;
+    assert.deepEqual(screening.seats.map((seat) => seat.number), custom.seats.toObject());
+    const response = await request(`/showtimes/${screening._id}`, 'PUT', {
+      ...valid, room: custom.name, updatedAt: screening.updatedAt, startTime: time(300)
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.data.showtime.seats, screening.seats);
+    const moved = await request(`/showtimes/${screening._id}`, 'PUT', {
+      ...valid, room: 'Room 2', updatedAt: response.data.showtime.updatedAt, startTime: time(300)
+    });
+    assert.equal(moved.status, 200);
+    assert.equal(moved.data.showtime.seats.length, 40);
+    await CinemaRoom.updateOne({ _id: custom._id }, { status: 'Inactive' });
+    assert.equal((await request(`/showtimes/${screening._id}`, 'PUT', {
+      ...valid, room: custom.name, updatedAt: moved.data.showtime.updatedAt
+    })).status, 409);
+    assert.equal((await Showtime.findById(screening._id)).room, 'Room 2');
+    await Showtime.deleteOne({ _id: screening._id });
+    await CinemaRoom.deleteOne({ _id: custom._id });
+  });
+  await t.test('explicit room import validates first and never overwrites existing room configurations', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cinema-rooms-test-'));
+    const filename = join(directory, 'rooms.json');
+    const uri = new URL(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/booking_cinema');
+    uri.pathname = '/' + dbName;
+    const run = promisify(execFile);
+    const options = { env: { ...process.env, MONGODB_URI: uri.toString() } };
+    const script = fileURLToPath(new URL('./importRooms.js', import.meta.url));
+    const imported = { cinema: 'Import Cinema', name: 'Room 1', status: 'Active', seats: ['F1', 'F2'] };
+    try {
+      await writeFile(filename, JSON.stringify([imported, { ...imported, name: 'Invalid', seats: ['F1', 'F1'] }]));
+      await assert.rejects(run(process.execPath, [script, filename], options));
+      assert.equal(await CinemaRoom.countDocuments({ cinema: imported.cinema }), 0);
+      await writeFile(filename, JSON.stringify([imported]));
+      await run(process.execPath, [script, filename], options);
+      await writeFile(filename, JSON.stringify([{ ...imported, status: 'Inactive', seats: ['G1'] }]));
+      await run(process.execPath, [script, filename], options);
+      const saved = await CinemaRoom.findOne({ cinema: imported.cinema });
+      assert.equal(saved.status, 'Active');
+      assert.deepEqual(saved.seats.toObject(), imported.seats);
+      assert.equal(await CinemaRoom.countDocuments({ cinema: imported.cinema }), 1);
+    } finally {
+      await CinemaRoom.deleteMany({ cinema: imported.cinema });
+      await unlink(filename);
+      await rmdir(directory);
+    }
   });
   await t.test('missing, malformed, past, unavailable and restricted data are rejected', async () => {
     const invalid = [{}, { movie: 'bad' }, { cinema: '' }, { cinema: { $ne: '' } }, { room: ' ' },
@@ -162,6 +257,20 @@ test('UC-17.1–17.4 Admin showtime management', async (t) => {
       assert.equal((await request('/showtimes', 'POST', { ...valid, room: 'Failure Room' })).status, 500);
       assert.equal(await Showtime.countDocuments(), count);
     } finally { mock.mock.restore(); }
+  });
+  await t.test('update and delete database failures preserve the record and release the schedule guard', async () => {
+    for (const [method, operation] of [['PUT', 'findOneAndUpdate'], ['DELETE', 'findOneAndDelete']]) {
+      const current = await Showtime.findById(created._id);
+      const mock = t.mock.method(Showtime, operation, async () => { throw new Error('Private save failure'); });
+      try {
+        const result = await request(`/showtimes/${created._id}`, method, {
+          ...valid, room: current.room, updatedAt: current.updatedAt.toISOString()
+        });
+        assert.equal(result.status, 500);
+        assert.ok(!result.data.message.includes('Private save failure'));
+        assert.deepEqual((await Showtime.findById(created._id)).toObject(), current.toObject());
+      } finally { mock.mock.restore(); }
+    }
   });
   await t.test('simultaneous Admin requests cannot insert overlapping showtimes', async () => {
     const body = { ...valid, room: 'Concurrent Room' };

@@ -1,110 +1,36 @@
-# BookingTicketCinema-SDN-Assignment — CINEMA+
+# BookingTicketCinema-SDN-Assignment
 
-Hệ thống đặt vé xem phim trực tuyến CINEMA+ (SDN302 Assignment).
+## UC-7.3 View Booking History (NhaNTK)
+- Members open `/bookings` from their dashboard or the account area's "Lịch sử đặt vé" section.
+- `GET /api/bookings` uses the authenticated Member, ignores client-supplied user IDs, and returns owned orders newest first, including cancelled and expired orders.
+- History shows order/payment statuses, showtime, seats, food quantities, points discount and totals. Reading history never changes a booking, seat hold or points balance. Missing catalogue references do not remove historical orders.
+- Run `npm run test:booking-history -w backend`. Tests use and remove their own temporary database, leaving `booking_cinema` unchanged.
 
----
+## UC-8 Search Member Information (NhaNTK)
+- Employees open `/employee/members` from their dashboard, search by a complete email or phone number, then select a result for current contact, status and loyalty information.
+- `GET /api/members/search?q=...` matches email case-insensitively or phone formatting (`0901 234 567`, `+84 901 234 567`, `0084901234567`). It returns up to 20 matching Members with `hasMore` for ambiguous numbers. `GET /api/members/:id` rereads the selected Member.
+- Both endpoints require an active Employee session and expose only `_id`, `fullName`, `email`, `phone`, `status`, `memberPoints`, and `isVIP`. Staff accounts and credentials are excluded. Lookups do not change accounts; audit messages contain IDs and result counts, without search terms.
+- Run `npm run test:member-search -w backend`. Tests use and remove a dedicated temporary database.
 
-## 1. Quick Start Guide for Team Members
+## Run backend
+1. Install MongoDB and make sure it is running.
+2. `cd backend`
+3. Copy `.env.example` to `.env`.
+4. `npm install`
+5. `npm run seed`
+6. `npm run dev`
 
-### Yêu cầu môi trường
-- **Node.js**: v18+ trở lên.
-- **MongoDB Local**: MongoDB Community Server đang chạy tại `mongodb://127.0.0.1:27017`.
+## Run frontend
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
+4. Open the Vite URL.
 
-### Cấu hình `.env` Backend
-1. Chuyển vào thư mục backend:
-   ```bash
-   cd backend
-   ```
-2. Tạo hoặc kiểm tra file `.env` (sao chép từ `.env.example` nếu chưa có):
-   ```env
-   PORT=3000
-   MONGODB_URI=mongodb://127.0.0.1:27017/booking_cinema
-   JWT_SECRET=supersecretjwtkey_cinema_2026
-   CLIENT_URL=http://localhost:5173
-   ```
+## Demo accounts
+Member: `member@cinema.com` / `123456`
+Admin: `admin@cinema.com` / `admin123`
 
-### Cài đặt dependencies
-- Backend:
-  ```bash
-  cd backend
-  npm install
-  ```
-- Frontend:
-  ```bash
-  cd frontend
-  npm install
-  ```
-
----
-
-## 2. Đồng bộ dữ liệu phim (Movie Seed Command)
-
-Để nạp hoặc đồng bộ toàn bộ 19 bộ phim chuẩn kèm đầy đủ poster, backdrop, trailer và trạng thái chiếu lên MongoDB Local:
-
-```bash
-cd backend
-npm run seed:movies
-```
-
-> **Đặc tính an toàn của `npm run seed:movies`:**
-> - **An toàn & Không phá hủy**: Lệnh này **không xóa** (không dùng `deleteMany`) bất kỳ User, Booking, Showtime hay Seat nào.
-> - **Bảo toàn ID**: Giữ nguyên `_id` của các phim đã có sẵn để không làm đứt gãy quan hệ Showtime → Movie.
-> - **Lặp lại an toàn (Idempotent)**: Chạy nhiều lần mà không sinh phim trùng lặp (duplicate).
-> - **Số lượng phim chuẩn**: Đúng **19 phim** (16 phim Đang chiếu — `now-showing`, 3 phim Sắp chiếu — `coming-soon`).
-
-*(Tùy chọn: Nếu muốn reset toàn bộ database gồm Users, Foods, Showtimes và Movies từ đầu, dùng lệnh `npm run seed`).*
-
----
-
-## 3. Khởi chạy ứng dụng
-
-### Chạy Backend
-```bash
-cd backend
-npm run dev
-```
-- API chạy tại: `http://localhost:3000`
-
-### Chạy Frontend
-```bash
-cd frontend
-npm run dev
-```
-- Giao diện mở tại: `http://localhost:5173`
-
----
-
-## 4. Tài khoản Demo
-- **Member**: `member@cinema.com` / `123456`
-- **Admin**: `admin@cinema.com` / `admin123`
-- **Employee**: `employee@cinema.com` / `employee123`
-
----
-
-## 5. Xử lý sự cố nếu không thấy ảnh poster / backdrop (Troubleshooting)
-1. **Kiểm tra thư mục ảnh cục bộ**:
-   Tất cả ảnh poster và backdrop được lưu trực tiếp trong repository tại:
-   - `frontend/public/images/posters/` (19 file ảnh `.jpg`)
-   - `frontend/public/images/backdrops/` (7 file ảnh `.jpg`)
-2. **Kiểm tra đường dẫn**:
-   Các phim trong database lưu đường dẫn tĩnh chuẩn:
-   - Poster: `/images/posters/<ten_phim>.jpg`
-   - Backdrop: `/images/backdrops/<ten_phim>.jpg`
-3. **Hard Reload trình duyệt**:
-   Nhấn tổ hợp phím `Ctrl + F5` (hoặc `Cmd + Shift + R` trên Mac) trên trình duyệt để xóa cache ảnh cũ.
-4. **Chạy lại lệnh đồng bộ**:
-   Nếu database trước đó chứa đường dẫn cũ dạng `/assets/posters/`, chỉ cần chạy lại:
-   ```bash
-   cd backend
-   npm run seed:movies
-   ```
-   Lệnh sẽ tự động chuẩn hóa lại toàn bộ đường dẫn ảnh sang `/images/posters/` mà không làm thay đổi ID phim.
-
----
-
-## 6. Phạm vi chức năng & Use Cases
-
-### UC-5: Member profile
+## UC-5: Member profile
 - Sign in as a Member, then open `/profile` or **Tài khoản → Hồ sơ**.
 - UC-5.1: Update full name (1–100 characters), optional phone (9–15 digits with optional `+`), optional age (0–120), and gender. Cancel discards unsaved changes.
 - UC-5.2: Supply the current password and matching new password confirmation. The new password must differ, contain at least 6 characters and fit within bcrypt's 72-byte UTF-8 limit. Five incorrect current passwords lock password attempts for 15 minutes. Success signs out all existing sessions.
@@ -135,17 +61,51 @@ npm run dev
 - Finalization runs in a MongoDB transaction, so stock and the Paid receipt commit together. Cash receipt evidence is persisted first. If price/stock changed or finalization fails, the payment stays traceable for staff reconciliation; never collect cash again for that order. Reconciliation/refund resolution requires the cinema's operating procedure; there is no automatic second charge or manual Paid override in this screen.
 - An order ID is retained in the browser session for refresh/recovery. If the response is lost, reopen the order and retry finalization of the existing payment, rather than creating a new payment.
 
-### UC-17.1–17.4: Manage Showtimes (Admin)
+#### MongoDB requirement for counter payment
+
+Transactions need a replica set (a single-node replica set is sufficient locally). The agreed database and application ports remain `booking_cinema`, backend 3000 and frontend 5173. On standalone MongoDB, the UI disables payment and the API returns 503 before recording cash; quoting and cancellation still work.
+
+To enable transactions on the local MongoDB service, add this top-level configuration to its `mongod.cfg`, restart the MongoDB service, then initialize the replica set once from `mongosh`:
+
+```yaml
+replication:
+  replSetName: rs0
+```
+
+```javascript
+rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: '127.0.0.1:27017' }] })
+```
+
+Keep `MONGODB_URI=mongodb://127.0.0.1:27017/booking_cinema`. Do not initialize again if the service already belongs to a replica set. This repository does not change or restart the installed MongoDB service automatically.
+
+Run `npm test -w backend` for regression tests. For the complete transaction/concurrency suite, point `TEST_MONGODB_URI` to a test-capable replica set and run `npm run test:food-sales -w backend`. All tests create their own temporary databases and remove only those databases.
+
+## UC-17.1–17.4: Manage Showtimes (Admin)
+- RDS numbering: **UC-17.1 Add Showtime**, **UC-17.2 View Showtimes**, **UC-17.3 Update Showtime**, **UC-17.4 Delete Showtime**. The historical View/Add commit titles used reversed numbers; this correction retains shared Git history.
 - Sign in at `/admin/login`, choose **Quản lý suất chiếu**, or open `/admin/showtimes`.
 - View the paginated list and filter by movie. Add a showtime, edit it, or review its details and confirm deletion. Cancel leaves the data unchanged.
 - Required fields: movie, cinema, room, future start time and a positive whole-number ticket price in VND. All form times use Vietnam time (UTC+7).
-- Reuses the existing Showtime model and Admin CSS. No extra classes, models, packages or schema changes. New showtimes use the seeded 40-seat layout (A1–E8); edits preserve existing seats.
-- Checks room conflicts across movies, including the movie duration plus a 15-minute cleaning buffer (BR-6). C-classified movies and screenings before the release date are rejected.
+- Reuses Express, Mongoose, React and the Admin CSS; adds no packages. `CinemaRoom` holds `cinema`, `name`, `status` (`Active`, `Inactive`, `Maintenance`) and a unique, non-empty seat layout. Admin selects a configured room; the server verifies it independently. New showtimes copy that room's seats instead of a fixed 40-seat layout. An unbooked screening moved to another layout receives the selected room's layout; unchanged layouts keep their seat identifiers. Existing showtimes remain readable without the optional new `roomId` reference.
+- Checks room conflicts across movies, including the movie duration plus a 15-minute cleaning buffer (BR-6). Deleted/C-classified movies, inactive/missing rooms, invalid layouts and screenings before the release date are rejected.
 - Direct edit/delete is blocked for started screenings, seat holds, sold seats and any booking reference, including cancelled bookings, preserving transaction history (BR-12, BR-17). Controlled cancellation, customer notice and refunds are outside these four use cases.
 - API: `GET /api/showtimes?movie=&page=1&limit=10`, `POST /api/showtimes`, `PUT /api/showtimes/:id`, `DELETE /api/showtimes/:id`. All require an active Admin session. Writes require JSON and validate the request origin.
+- Admin-only `GET /api/showtimes/rooms` returns active configured rooms; `GET /api/showtimes/:id` retrieves the latest screening for conflict recovery without seat booking identifiers. On a 409 while editing/removing, the UI reloads the current data and asks Admin to review it before another confirmation; it never retries a write automatically.
 - POST/PUT fields: `movie`, `cinema`, `room`, `startTime` (ISO timestamp with timezone), `price`. PUT/DELETE also require the `updatedAt` value from the list; stale data returns 409. DELETE sends `{ "updatedAt": "..." }` as JSON.
 - Successful writes log the acting Admin and showtime ID to the server audit log. The existing public `/api/movies/showtimes` response remains unchanged and reflects saved changes.
-- Run `npm run test:showtimes -w backend` with MongoDB running. Tests create and remove a dedicated temporary database, leaving existing cinema data untouched.
+- Room setup: copy `backend/rooms.example.json` to your own JSON file and enter the actual room names, statuses and seat numbers. Run `npm run import:rooms -w backend -- rooms.example.json` from the project root for the explicit demo example, or pass an absolute path to your own configuration. This setup command validates the input and only inserts missing rooms; it never overwrites rooms, layouts, showtimes or bookings. It is not run automatically. The UC-14 room/seat management UI remains a separate use case; this model and read endpoint provide the scheduling dependency.
+- Schedule writes are protected against concurrency within the current single Node process; multiple backend instances would need a shared database lock. Audit logs need external retention for deployment. Do not change room names/layouts directly while the server handles scheduling; UC-14 must protect those changes under BR-17 when implemented. Existing ticket price snapshots are not changed by the setup command.
+- Run `npm run test:showtimes -w backend` with MongoDB running. Tests create and remove a dedicated temporary database, leaving existing cinema data untouched. Run `npm run build` to verify the frontend build.
+
+The diagram's View → Controller → Service → Model → Database flow maps to:
+
+| RDS use case | React view/client | Controller | Service | Mongoose operation |
+| --- | --- | --- | --- | --- |
+| 17.1 Add | `ManageShowtimes` / `addShowtime` | `addShowtime` | `validateAndCreate` | `Showtime.create` |
+| 17.2 View | `ManageShowtimes` / `getAdminShowtimes` | `viewShowtimes` | `listShowtimes` | `Showtime.find` |
+| 17.3 Update | `ManageShowtimes` / `updateShowtime` | `updateShowtime` | `validateAndUpdate` | `Showtime.findOneAndUpdate` |
+| 17.4 Delete | `ManageShowtimes` / `deleteShowtime` | `deleteShowtime` | `validateAndRemove` | `Showtime.findOneAndDelete` |
+
+`ShowtimeModel` in the diagrams is the existing Mongoose `Showtime` model. Model/database operation names are expressed using Mongoose APIs rather than an extra wrapper layer. Conditional writes protect against a seat claim or stale version between validation and saving. The code retains basic JavaScript, async/await, Express middleware and the repository's existing service layer, following the SDN302 coding rules.
 
 ### Implemented CE190006 scope
 - Trang chủ trải nghiệm điện ảnh chuẩn Netflix (Hero Banner, Phim Đang Chiếu, Phim Sắp Chiếu, Footer)

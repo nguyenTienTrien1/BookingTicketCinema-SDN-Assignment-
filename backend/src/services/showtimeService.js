@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Showtime from '../models/Showtime.js';
 import Movie from '../models/Movie.js';
 import Booking from '../models/Booking.js';
+import CinemaRoom from '../models/CinemaRoom.js';
 
 // The current app runs one Node process. Reject simultaneous schedule writes
 // so two Admin requests cannot both pass the same room-conflict check.
@@ -66,7 +67,7 @@ async function validateShowtime(body, excludedId) {
     throw showtimeError('Giá vé phải là số nguyên dương (VND).');
   }
   const movie = await Movie.findById(body.movie);
-  if (!movie) throw showtimeError('Không tìm thấy phim.', 404);
+  if (!movie || movie.deletedAt) throw showtimeError('Không tìm thấy phim.', 404);
   if (movie.classification === 'C') throw showtimeError('Không thể tạo suất chiếu cho phim phân loại C.');
   if (!Number.isFinite(movie.duration) || movie.duration <= 0) {
     throw showtimeError('Phim chưa có thời lượng hợp lệ.');
@@ -77,6 +78,14 @@ async function validateShowtime(body, excludedId) {
   }
   const cinema = body.cinema.trim();
   const room = body.room.trim();
+  const configuredRoom = await CinemaRoom.findOne({ cinema, name: room })
+    .collation({ locale: 'en', strength: 2 });
+  if (!configuredRoom) throw showtimeError('Phòng chiếu chưa được cấu hình.', 400);
+  if (configuredRoom.status !== 'Active') throw showtimeError('Phòng chiếu không hoạt động.', 409);
+  const layout = configuredRoom.seats;
+  if (configuredRoom.validateSync()) {
+    throw showtimeError('Sơ đồ ghế của phòng không hợp lệ.', 409);
+  }
   const endTime = new Date(startTime.getTime() + (movie.duration + 15) * 60000);
   const filter = { cinema, room, startTime: { $lt: endTime } };
   if (excludedId) filter._id = { $ne: excludedId };
@@ -92,21 +101,21 @@ async function validateShowtime(body, excludedId) {
       throw showtimeError('Phòng đã có suất chiếu trùng lịch, gồm 15 phút dọn phòng.', 409);
     }
   }
-  return { movie: movie._id, cinema, room, startTime, price: body.price };
+  const seats = [];
+  for (const number of layout) {
+    seats.push({ number, status: 'available' });
+  }
+  return { movie: movie._id, cinema: configuredRoom.cinema, room: configuredRoom.name,
+    roomId: configuredRoom._id, startTime, price: body.price,
+    seats };
+
 }
 
-export async function createShowtime(body, adminId) {
+export async function validateAndCreate(body, adminId) {
   if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
   scheduleBusy = true;
   try {
     const data = await validateShowtime(body);
-    // Match the existing seed layout: A1–E8. Clients cannot supply seat states.
-    data.seats = [];
-    for (let row = 0; row < 5; row++) {
-      for (let number = 1; number <= 8; number++) {
-        data.seats.push({ number: String.fromCharCode(65 + row) + number, status: 'available' });
-      }
-    }
     const showtime = await Showtime.create(data);
     console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'create', adminId, showtimeId: showtime._id }));
     return showtime;
@@ -148,12 +157,17 @@ function unbookedFilter(showtime) {
   };
 }
 
-export async function updateShowtime(id, body, adminId) {
+export async function validateAndUpdate(id, body, adminId) {
   if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
   scheduleBusy = true;
   try {
     const current = await editableShowtime(id, body);
     const data = await validateShowtime(body, id);
+    // Preserve seat identifiers when the configured layout is unchanged.
+    if (current.seats.length === data.seats.length &&
+        current.seats.every((seat, index) => seat.number === data.seats[index].number)) {
+      data.seats = current.seats;
+    }
     const showtime = await Showtime.findOneAndUpdate(unbookedFilter(current), { $set: data },
       { new: true, runValidators: true });
     if (!showtime) throw showtimeError('Suất chiếu vừa thay đổi hoặc có ghế được giữ. Vui lòng tải lại.', 409);
@@ -164,7 +178,7 @@ export async function updateShowtime(id, body, adminId) {
   }
 }
 
-export async function deleteShowtime(id, body, adminId) {
+export async function validateAndRemove(id, body, adminId) {
   if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
   scheduleBusy = true;
   try {
@@ -175,4 +189,16 @@ export async function deleteShowtime(id, body, adminId) {
   } finally {
     scheduleBusy = false;
   }
+}
+
+export async function listRooms() {
+  return CinemaRoom.find({ status: 'Active' }).select('cinema name seats updatedAt').sort({ cinema: 1, name: 1 });
+}
+
+export async function getShowtime(id) {
+  checkId(id);
+  const showtime = await Showtime.findById(id).select('-seats.bookingId -seats.holdUntil')
+    .populate('movie', 'title duration classification ageLimit');
+  if (!showtime) throw showtimeError('Không tìm thấy suất chiếu.', 404);
+  return showtime;
 }

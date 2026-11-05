@@ -281,5 +281,9 @@ export async function pay(bookingId, userId, method = 'mock') {
 }
 
 export const listBookings = (userId) => Booking.find({ user: userId })
-  .populate([{ path: 'showtime', populate: { path: 'movie' } }, { path: 'foodItems.food' }])
-  .sort({ createdAt: -1 });
+  .select('showtime seats foodItems subtotal pointsUsed discount total status paymentMethod paymentStatus paymentRef expiresAt createdAt updatedAt')
+  .populate([
+    { path: 'showtime', select: 'movie cinema room startTime', populate: { path: 'movie', select: 'title' } },
+    { path: 'foodItems.food', select: 'name' }
+  ])
+  .sort({ createdAt: -1, _id: -1 });

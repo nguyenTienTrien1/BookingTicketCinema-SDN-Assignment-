@@ -14,6 +14,8 @@ import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
 import FoodCounter from '../pages/Booking/FoodCounter';
 import Profile from '../pages/Account/Profile';
+import BookingHistoryPage from '../pages/Account/BookingHistory';
+import MemberSearch from '../pages/Booking/MemberSearch';
 
 /**
  * Main application routes integrating React Router DOM
@@ -21,6 +23,8 @@ import Profile from '../pages/Account/Profile';
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
+      <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />

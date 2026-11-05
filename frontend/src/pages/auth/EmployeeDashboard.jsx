@@ -76,6 +76,9 @@ export default function EmployeeDashboard() {
         <Link to="/employee/food-sales" style={{ display: 'inline-block', background: '#c91836', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', marginRight: '12px', marginBottom: '12px' }}>
           Bán đồ ăn & thức uống
         </Link>
+        <Link to="/employee/members" style={{ display: 'inline-block', background: '#222631', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', marginRight: '12px', marginBottom: '12px' }}>
+          Tra cứu thành viên
+        </Link>
         <Link
           to="/"
           style={{
