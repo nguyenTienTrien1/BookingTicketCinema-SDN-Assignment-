@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getMovies } from '../../services/movieService';
-import { getAdminShowtimes, addShowtime, updateShowtime, deleteShowtime } from '../../services/showtimeService';
+import { getAdminShowtimes, addShowtime, updateShowtime, deleteShowtime, getShowtime, getShowtimeRooms } from '../../services/showtimeService';
 import './movies.css';
 
 const emptyForm = { movie: '', cinema: '', room: '', startTime: '', price: '80000' };
@@ -12,6 +12,7 @@ function displayTime(value) {
 
 export default function ManageShowtimes() {
   const [movies, setMovies] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [movieError, setMovieError] = useState('');
   const [result, setResult] = useState({ showtimes: [], total: 0, totalPages: 0 });
   const [movieFilter, setMovieFilter] = useState('');
@@ -20,6 +21,7 @@ export default function ManageShowtimes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
   const [mode, setMode] = useState('');
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -30,7 +32,9 @@ export default function ManageShowtimes() {
 
   useEffect(() => {
     let ignore = false;
-    getMovies().then((data) => { if (!ignore) { setMovies(data); setMovieError(''); } })
+    Promise.all([getMovies(), getShowtimeRooms()]).then(([movieData, roomData]) => {
+      if (!ignore) { setMovies(movieData); setRooms(roomData); setMovieError(''); }
+    })
       .catch((err) => { if (!ignore) setMovieError(err.message); });
     return () => { ignore = true; };
   }, [reload]);
@@ -59,6 +63,7 @@ export default function ManageShowtimes() {
     setSelected(showtime);
     setFormError('');
     setMessage('');
+    setRecoveryError('');
     if (showtime && nextMode === 'edit') {
       // datetime-local is explicitly interpreted as Vietnam time, regardless of device timezone.
       const localTime = new Date(new Date(showtime.startTime).getTime() + 7 * 60 * 60000);
@@ -105,7 +110,21 @@ export default function ManageShowtimes() {
       setPage(1);
       setReload((value) => value + 1);
     } catch (err) {
-      setFormError(err.message);
+      if (err.status === 409 && selected) {
+        // Reload the server version before asking the Admin to submit again.
+        try {
+          const current = await getShowtime(selected._id);
+          openEditor(mode, current);
+          setReload((value) => value + 1);
+          setFormError(`${err.message} Đã tải dữ liệu mới nhất; vui lòng kiểm tra trước khi xác nhận lại.`);
+        } catch (reloadError) {
+          closeEditor();
+          setRecoveryError(reloadError.message);
+          setReload((value) => value + 1);
+        }
+      } else {
+        setFormError(err.message);
+      }
     } finally {
       setSaving(false);
     }
@@ -113,8 +132,20 @@ export default function ManageShowtimes() {
 
   function refresh() {
     closeEditor();
+    setRecoveryError('');
     setReload((value) => value + 1);
   }
+
+  let editorTitle = 'Thêm suất chiếu';
+  let submitLabel = 'Lưu suất chiếu';
+  if (mode === 'edit') {
+    editorTitle = 'Cập nhật suất chiếu';
+  } else if (mode === 'delete') {
+    editorTitle = 'Xác nhận xóa suất chiếu';
+    submitLabel = 'Xác nhận xóa';
+  }
+  if (saving) submitLabel = 'Đang xử lý…';
+  const selectedRoom = rooms.find((room) => room.cinema === form.cinema && room.name === form.room);
 
   return (
     <main className="movieAdmin">
@@ -123,16 +154,18 @@ export default function ManageShowtimes() {
         <header className="movieAdminHeading">
           <div><p className="movieEyebrow">CINEMA+ / QUẢN TRỊ</p><h1>Quản lý suất chiếu</h1>
             <p>Lịch chiếu, phòng và giá vé. Thời gian hiển thị theo giờ Việt Nam (UTC+7).</p></div>
-          <button className="moviePrimary" disabled={saving || !!movieError || movies.length === 0}
+          <button className="moviePrimary" disabled={saving || !!movieError || movies.length === 0 || rooms.length === 0}
             onClick={() => openEditor('add')}>+ Thêm suất chiếu</button>
         </header>
         {message && <p className="movieSuccess" role="status">{message}</p>}
-        {movieError && <p className="movieError" role="alert">Không tải được danh mục phim: {movieError}</p>}
+        {recoveryError && <p className="movieError" role="alert">{recoveryError}</p>}
+        {movieError && <p className="movieError" role="alert">Không tải được danh mục phim/phòng: {movieError}</p>}
+        {!movieError && rooms.length === 0 && <p className="movieWarning" role="status">Chưa có phòng hoạt động. Cần cấu hình phòng và sơ đồ ghế trước khi thêm suất chiếu.</p>}
 
         {mode && <section className="moviePanel" aria-labelledby="showtime-editor-title">
           <form className="movieForm" onSubmit={handleSubmit}>
             <h2 id="showtime-editor-title" tabIndex={-1} ref={editor}>
-              {mode === 'delete' ? 'Xác nhận xóa suất chiếu' : mode === 'edit' ? 'Cập nhật suất chiếu' : 'Thêm suất chiếu'}
+              {editorTitle}
             </h2>
             {formError && <p className="movieError" role="alert" tabIndex={-1} ref={errorSummary}>{formError}</p>}
             <fieldset disabled={saving}>
@@ -150,19 +183,29 @@ export default function ManageShowtimes() {
                       {movies.map((movie) => <option key={movie._id} value={movie._id}>{movie.title} · {movie.duration} phút</option>)}
                     </select>
                   </label>
-                  <label>Rạp<input name="cinema" required maxLength={100} value={form.cinema} onChange={changeField} /></label>
-                  <label>Phòng chiếu<input name="room" required maxLength={100} value={form.room} onChange={changeField} /></label>
+                  <label className="movieWide">Rạp / Phòng chiếu
+                    <select required value={selectedRoom ? selectedRoom._id : ''}
+                      onChange={(event) => {
+                        const room = rooms.find((item) => item._id === event.target.value);
+                        setForm({ ...form, cinema: room ? room.cinema : '', room: room ? room.name : '' });
+                      }}>
+                      <option value="">Chọn phòng đang hoạt động</option>
+                      {rooms.map((room) => <option key={room._id} value={room._id}>
+                        {room.cinema} · {room.name} · {room.seats.length} ghế
+                      </option>)}
+                    </select>
+                  </label>
                   <label>Thời gian bắt đầu (UTC+7)<input name="startTime" type="datetime-local" required
                     value={form.startTime} onChange={changeField} /></label>
                   <label>Giá vé (VND)<input name="price" type="number" required min="1" step="1"
                     value={form.price} onChange={changeField} /></label>
                 </div>
-                <p className="movieFormHint">Suất mới có 40 ghế (A1–E8), theo cấu hình hiện tại. Cập nhật giữ nguyên sơ đồ ghế.</p>
+                <p className="movieFormHint">Ghế được lấy từ cấu hình phòng đã chọn. Chỉ suất chưa có giữ ghế hoặc đặt vé mới được thay đổi; giá vé áp dụng cho toàn bộ ghế của suất.</p>
               </>}
               <div className="movieFormActions">
                 <button className="movieSecondary" type="button" onClick={closeEditor}>Hủy</button>
                 <button className="moviePrimary" type="submit" disabled={mode !== 'delete' && !!movieError}>
-                  {saving ? 'Đang xử lý…' : mode === 'delete' ? 'Xác nhận xóa' : 'Lưu suất chiếu'}
+                  {submitLabel}
                 </button>
               </div>
             </fieldset>

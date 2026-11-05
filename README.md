@@ -82,17 +82,31 @@ Keep `MONGODB_URI=mongodb://127.0.0.1:27017/booking_cinema`. Do not initialize a
 Run `npm test -w backend` for regression tests. For the complete transaction/concurrency suite, point `TEST_MONGODB_URI` to a test-capable replica set and run `npm run test:food-sales -w backend`. All tests create their own temporary databases and remove only those databases.
 
 ## UC-17.1–17.4: Manage Showtimes (Admin)
+- RDS numbering: **UC-17.1 Add Showtime**, **UC-17.2 View Showtimes**, **UC-17.3 Update Showtime**, **UC-17.4 Delete Showtime**. The historical View/Add commit titles used reversed numbers; this correction retains shared Git history.
 - Sign in at `/admin/login`, choose **Quản lý suất chiếu**, or open `/admin/showtimes`.
 - View the paginated list and filter by movie. Add a showtime, edit it, or review its details and confirm deletion. Cancel leaves the data unchanged.
 - Required fields: movie, cinema, room, future start time and a positive whole-number ticket price in VND. All form times use Vietnam time (UTC+7).
-- Reuses the existing Showtime model and Admin CSS. No extra classes, models, packages or schema changes. New showtimes use the seeded 40-seat layout (A1–E8); edits preserve existing seats.
-- Checks room conflicts across movies, including the movie duration plus a 15-minute cleaning buffer (BR-6). C-classified movies and screenings before the release date are rejected.
+- Reuses Express, Mongoose, React and the Admin CSS; adds no packages. `CinemaRoom` holds `cinema`, `name`, `status` (`Active`, `Inactive`, `Maintenance`) and a unique, non-empty seat layout. Admin selects a configured room; the server verifies it independently. New showtimes copy that room's seats instead of a fixed 40-seat layout. An unbooked screening moved to another layout receives the selected room's layout; unchanged layouts keep their seat identifiers. Existing showtimes remain readable without the optional new `roomId` reference.
+- Checks room conflicts across movies, including the movie duration plus a 15-minute cleaning buffer (BR-6). Deleted/C-classified movies, inactive/missing rooms, invalid layouts and screenings before the release date are rejected.
 - Direct edit/delete is blocked for started screenings, seat holds, sold seats and any booking reference, including cancelled bookings, preserving transaction history (BR-12, BR-17). Controlled cancellation, customer notice and refunds are outside these four use cases.
 - API: `GET /api/showtimes?movie=&page=1&limit=10`, `POST /api/showtimes`, `PUT /api/showtimes/:id`, `DELETE /api/showtimes/:id`. All require an active Admin session. Writes require JSON and validate the request origin.
+- Admin-only `GET /api/showtimes/rooms` returns active configured rooms; `GET /api/showtimes/:id` retrieves the latest screening for conflict recovery without seat booking identifiers. On a 409 while editing/removing, the UI reloads the current data and asks Admin to review it before another confirmation; it never retries a write automatically.
 - POST/PUT fields: `movie`, `cinema`, `room`, `startTime` (ISO timestamp with timezone), `price`. PUT/DELETE also require the `updatedAt` value from the list; stale data returns 409. DELETE sends `{ "updatedAt": "..." }` as JSON.
 - Successful writes log the acting Admin and showtime ID to the server audit log. The existing public `/api/movies/showtimes` response remains unchanged and reflects saved changes.
-- The repository has no Room model/status or configurable room layouts; cinema and room remain text fields as in the existing model. Schedule writes are protected against concurrency within the current single Node process; multiple backend instances would need a shared database lock. Audit logs need external retention for deployment.
+- Room setup: copy `backend/rooms.example.json` to your own JSON file and enter the actual room names, statuses and seat numbers. Run `npm run import:rooms -w backend -- rooms.example.json` from the project root for the explicit demo example, or pass an absolute path to your own configuration. This setup command validates the input and only inserts missing rooms; it never overwrites rooms, layouts, showtimes or bookings. It is not run automatically. The UC-14 room/seat management UI remains a separate use case; this model and read endpoint provide the scheduling dependency.
+- Schedule writes are protected against concurrency within the current single Node process; multiple backend instances would need a shared database lock. Audit logs need external retention for deployment. Do not change room names/layouts directly while the server handles scheduling; UC-14 must protect those changes under BR-17 when implemented. Existing ticket price snapshots are not changed by the setup command.
 - Run `npm run test:showtimes -w backend` with MongoDB running. Tests create and remove a dedicated temporary database, leaving existing cinema data untouched. Run `npm run build` to verify the frontend build.
+
+The diagram's View → Controller → Service → Model → Database flow maps to:
+
+| RDS use case | React view/client | Controller | Service | Mongoose operation |
+| --- | --- | --- | --- | --- |
+| 17.1 Add | `ManageShowtimes` / `addShowtime` | `addShowtime` | `validateAndCreate` | `Showtime.create` |
+| 17.2 View | `ManageShowtimes` / `getAdminShowtimes` | `viewShowtimes` | `listShowtimes` | `Showtime.find` |
+| 17.3 Update | `ManageShowtimes` / `updateShowtime` | `updateShowtime` | `validateAndUpdate` | `Showtime.findOneAndUpdate` |
+| 17.4 Delete | `ManageShowtimes` / `deleteShowtime` | `deleteShowtime` | `validateAndRemove` | `Showtime.findOneAndDelete` |
+
+`ShowtimeModel` in the diagrams is the existing Mongoose `Showtime` model. Model/database operation names are expressed using Mongoose APIs rather than an extra wrapper layer. Conditional writes protect against a seat claim or stale version between validation and saving. The code retains basic JavaScript, async/await, Express middleware and the repository's existing service layer, following the SDN302 coding rules.
 
 ## Implemented CE190006 scope
 - Book Movie Ticket

@@ -11,7 +11,7 @@ export function protectWrite(req, res, next) {
   next();
 }
 
-export async function list(req, res, next) {
+export async function viewShowtimes(req, res, next) {
   try {
     res.json(await service.listShowtimes(req.query));
   } catch (error) {
@@ -19,28 +19,46 @@ export async function list(req, res, next) {
   }
 }
 
-export async function create(req, res, next) {
+export async function addShowtime(req, res, next) {
   try {
-    const showtime = await service.createShowtime(req.body, req.user._id);
+    const showtime = await service.validateAndCreate(req.body, req.user._id);
     res.status(201).json({ message: 'Thêm suất chiếu thành công.', showtime });
   } catch (error) {
     next(error);
   }
 }
 
-export async function update(req, res, next) {
+export async function updateShowtime(req, res, next) {
   try {
-    const showtime = await service.updateShowtime(req.params.id, req.body, req.user._id);
+    const showtime = await service.validateAndUpdate(req.params.id, req.body, req.user._id);
     res.json({ message: 'Cập nhật suất chiếu thành công.', showtime });
   } catch (error) {
     next(error);
   }
 }
 
-export async function remove(req, res, next) {
+export async function deleteShowtime(req, res, next) {
   try {
-    await service.deleteShowtime(req.params.id, req.body, req.user._id);
+    await service.validateAndRemove(req.params.id, req.body, req.user._id);
     res.json({ message: 'Xóa suất chiếu thành công.' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function rooms(req, res, next) {
+  try {
+    const rooms = await service.listRooms();
+    res.json(rooms);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function detail(req, res, next) {
+  try {
+    const showtime = await service.getShowtime(req.params.id);
+    res.json(showtime);
   } catch (error) {
     next(error);
   }

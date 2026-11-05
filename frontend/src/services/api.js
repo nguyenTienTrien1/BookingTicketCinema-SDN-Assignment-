@@ -9,7 +9,11 @@ export async function api(path, options = {}) {
   let data = {};
   try { data = text ? JSON.parse(text) : {}; }
   catch { throw new Error('Invalid API response. Please check the backend.'); }
-  if (!res.ok) throw new Error(data.message || 'Request failed.');
+  if (!res.ok) {
+    const error = new Error(data.message || 'Request failed.');
+    error.status = res.status;
+    throw error;
+  }
   return data;
 }
 export { API };

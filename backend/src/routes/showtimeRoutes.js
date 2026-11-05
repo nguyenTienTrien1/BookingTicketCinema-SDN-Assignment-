@@ -5,8 +5,10 @@ import { requireRole } from '../middleware/auth/requireRole.js';
 
 const router = Router();
 router.use(verifyToken, requireRole('admin'));
-router.get('/', controller.list);
-router.post('/', controller.protectWrite, controller.create);
-router.put('/:id', controller.protectWrite, controller.update);
-router.delete('/:id', controller.protectWrite, controller.remove);
+router.get('/rooms', controller.rooms);
+router.get('/:id', controller.detail);
+router.get('/', controller.viewShowtimes);
+router.post('/', controller.protectWrite, controller.addShowtime);
+router.put('/:id', controller.protectWrite, controller.updateShowtime);
+router.delete('/:id', controller.protectWrite, controller.deleteShowtime);
 export default router;
