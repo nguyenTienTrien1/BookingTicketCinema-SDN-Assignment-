@@ -6,4 +6,5 @@ import { requireRole } from '../middleware/auth/requireRole.js';
 const router = Router();
 router.use(verifyToken, requireRole('admin'));
 router.get('/', controller.list);
+router.post('/', controller.protectWrite, controller.create);
 export default router;

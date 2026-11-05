@@ -5,3 +5,7 @@ export function getAdminShowtimes(movie = '', page = 1) {
   return api(`/showtimes?${params}`, { credentials: 'include' });
 }
 
+export function addShowtime(data) {
+  return api('/showtimes', { method: 'POST', credentials: 'include', body: JSON.stringify(data) });
+}
+
