@@ -19,3 +19,15 @@ export async function dashboard(req, res, next) {
     next(error);
   }
 }
+
+export async function download(req, res, next) {
+  try {
+    const file = await revenue.exportReport(req.params.id, req.body, req.user._id);
+    console.log(`[REVENUE AUDIT] admin=${req.user._id} action=export report=${req.params.id}`);
+    res.set('Content-Type', 'text/csv; charset=utf-8');
+    res.set('Content-Disposition', `attachment; filename="${file.filename}"`);
+    res.send(file.csv);
+  } catch (error) {
+    next(error);
+  }
+}

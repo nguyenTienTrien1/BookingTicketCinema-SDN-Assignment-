@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getRevenueReport } from '../../services/revenueService';
+import { getRevenueReport, exportRevenueReport } from '../../services/revenueService';
 import './movies.css';
 import './revenue.css';
 
@@ -52,7 +52,10 @@ export default function RevenueDashboard() {
   const [filters, setFilters] = useState(initialFilters);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  const [exportError, setExportError] = useState('');
+  const [message, setMessage] = useState('');
   const [clock, setClock] = useState(Date.now());
   const errorRef = useRef(null);
   const requestRef = useRef(null);
@@ -67,6 +70,8 @@ export default function RevenueDashboard() {
     setLoading(true);
     setReport(null);
     setError('');
+    setExportError('');
+    setMessage('');
     try {
       const data = await getRevenueReport(values, controller.signal);
       if (!controller.signal.aborted) { setReport(data); setClock(Date.now()); }
@@ -84,19 +89,45 @@ export default function RevenueDashboard() {
   }, []);
 
   useEffect(() => {
-    if (error && errorRef.current) errorRef.current.focus();
-  }, [error]);
+    if ((error || exportError) && errorRef.current) errorRef.current.focus();
+  }, [error, exportError]);
 
   function changeFilter(event) {
     setFilters({ ...filters, [event.target.name]: event.target.value });
+    setMessage('');
+    setExportError('');
+  }
+
+  async function download() {
+    if (!report || dirty || expired || loading || exporting) return;
+    setExporting(true);
+    setExportError('');
+    setMessage('');
+    try {
+      const blob = await exportRevenueReport(report.reportId, filters);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `revenue_${report.filters.from}_${report.filters.to}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage('Đã tạo file CSV từ đúng dữ liệu đang hiển thị.');
+    } catch (err) {
+      setExportError(err.message);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return <main className="movieAdmin revenueAdmin"><div className="movieAdminShell">
     <Link className="movieBack" to="/admin/dashboard">← Trung tâm quản trị</Link>
     <header className="movieAdminHeading"><div><p className="movieEyebrow">CINEMA+ · BÁO CÁO</p><h1>Thống kê doanh thu</h1><p>Theo dõi tiền thu và hoàn tiền đã xác minh.</p></div>
+      <button type="button" className="moviePrimary" disabled={!report || dirty || expired || loading || exporting} onClick={download}>{exporting ? 'Đang xuất…' : 'Xuất báo cáo CSV'}</button>
     </header>
     <form className="moviePanel revenueFilters" onSubmit={(event) => { event.preventDefault(); loadReport(filters); }}>
-      <fieldset disabled={loading}>
+      <fieldset disabled={loading || exporting}>
         <legend>Bộ lọc báo cáo · Múi giờ Việt Nam (UTC+07:00)</legend>
         <div className="revenueFilterGrid">
           <label>Từ ngày<input type="date" name="from" required min="2000-01-01" max="2099-12-31" value={filters.from} onChange={changeFilter} /></label>
@@ -109,8 +140,11 @@ export default function RevenueDashboard() {
         <p className="revenueHint">Bao gồm cả ngày bắt đầu và kết thúc, tối đa 366 ngày. Báo cáo được lưu 30 phút để xuất đúng kết quả.</p>
       </fieldset>
     </form>
-    {error && <div className="movieError" role="alert" tabIndex="-1" ref={errorRef}>{error}</div>}
+    {(error || exportError) && <div className="movieError" role="alert" tabIndex="-1" ref={errorRef}>{error || exportError}</div>}
+    {message && <p className="movieSuccess" role="status">{message}</p>}
     {loading && <p className="movieState" role="status">Đang tổng hợp chứng từ doanh thu…</p>}
+    {dirty && <p className="movieWarning" role="status">Bộ lọc đã thay đổi. Nhấn Áp dụng / Làm mới trước khi xuất. Số liệu bên dưới vẫn thuộc bộ lọc đã áp dụng.</p>}
+    {expired && <p className="movieWarning" role="status">Báo cáo đã hết hạn. Vui lòng làm mới trước khi xuất.</p>}
     {report && !loading && <section aria-label="Kết quả doanh thu">
       <div className="revenueApplied"><p><strong>{report.filters.from} → {report.filters.to}</strong> · {sourceNames[report.filters.source]} · {methodNames[report.filters.method]} · Nhóm theo {report.filters.groupBy === 'day' ? 'ngày' : 'tháng'}</p>
         <p>Dữ liệu lúc {displayTime(report.dataTimestamp)} · {report.timezone} · VND</p></div>

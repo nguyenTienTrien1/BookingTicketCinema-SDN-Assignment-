@@ -164,3 +164,44 @@ export async function createReport(input, adminId) {
   const report = await RevenueReport.create({ admin: adminId, result, expiresAt });
   return { reportId: report._id, expiresAt: expiresAt.toISOString(), ...result };
 }
+
+// Quote every string, escape embedded quotes, and neutralize spreadsheet formulas.
+function csvCell(value) {
+  if (typeof value === 'number') return String(value);
+  let text = String(value);
+  if (/^[\s]*[=+@-]/.test(text)) text = "'" + text;
+  return '"' + text.replaceAll('"', '""') + '"';
+}
+
+export async function exportReport(id, input, adminId) {
+  if (!mongoose.isObjectIdOrHexString(id)) throw reportError('Mã báo cáo không hợp lệ.');
+  const filters = validateFilters(input);
+  const report = await RevenueReport.findOne({ _id: id, admin: adminId }).lean();
+  if (!report) throw reportError('Không tìm thấy báo cáo của bạn. Vui lòng tải dashboard trước.', 404);
+  if (report.expiresAt <= new Date()) throw reportError('Báo cáo đã hết hạn sau 30 phút. Vui lòng làm mới dashboard.', 410);
+  const result = report.result;
+  if (JSON.stringify(filters) !== JSON.stringify(result.filters)) {
+    throw reportError('Bộ lọc đã thay đổi. Vui lòng làm mới dashboard trước khi xuất.', 409);
+  }
+  const exportedAt = new Date().toISOString();
+  const rows = [
+    ['BÁO CÁO DOANH THU CINEMA+'], ['Mã báo cáo', String(report._id)],
+    ['Từ ngày', filters.from], ['Đến ngày', filters.to], ['Nguồn', filters.source],
+    ['Phương thức', filters.method], ['Nhóm theo', filters.groupBy],
+    ['Múi giờ', result.timezone], ['Tiền tệ', result.currency],
+    ['Thời điểm dữ liệu', result.dataTimestamp], ['Thời điểm xuất', exportedAt],
+    ['Cơ sở ghi nhận', result.basis], ['Phạm vi dữ liệu', result.sourceNote],
+    ['Hóa đơn bắp nước thiếu xác minh, không tính', result.excludedFoodSales], [],
+    ['Kỳ / nguồn', 'Giá gốc', 'Giảm giá', 'Phí', 'Điểm quy đổi (VND)', 'Tiền thu', 'Hoàn tiền', 'Thu ròng', 'Số thanh toán', 'Số hoàn tiền']
+  ];
+  function row(label, item) {
+    rows.push([label, item.gross, item.discounts, item.fees, item.points, item.payments, item.refunds, item.net, item.paymentCount, item.refundCount]);
+  }
+  row('TỔNG', result.totals);
+  row('Vé (gồm bắp nước đi kèm)', result.sources.tickets);
+  row('Bắp nước tại quầy', result.sources.food);
+  for (const item of result.series) row(item.period, item);
+  const lines = [];
+  for (const cells of rows) lines.push(cells.map(csvCell).join(','));
+  return { csv: '\uFEFF' + lines.join('\r\n') + '\r\n', filename: `revenue_${filters.from}_${filters.to}.csv` };
+}

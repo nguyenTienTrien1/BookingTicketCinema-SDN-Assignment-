@@ -6,4 +6,5 @@ import * as revenue from '../controllers/revenueController.js';
 const router = Router();
 router.use(verifyToken, requireRole('admin'), revenue.protectReportRequest);
 router.post('/reports', revenue.dashboard);
+router.post('/reports/:id/export', revenue.download);
 export default router;
