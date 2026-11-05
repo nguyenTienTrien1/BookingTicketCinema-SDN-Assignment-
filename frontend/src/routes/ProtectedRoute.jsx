@@ -27,7 +27,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // Not authenticated
   if (!user) {
-    const isTargetAdmin = allowedRoles.includes('admin');
+    const isTargetAdmin = allowedRoles.includes('admin') || allowedRoles.includes('employee');
     const redirectPath = isTargetAdmin ? '/admin/login' : '/login';
     return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }

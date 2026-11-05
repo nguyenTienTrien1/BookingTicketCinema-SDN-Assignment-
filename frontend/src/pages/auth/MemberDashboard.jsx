@@ -16,8 +16,12 @@ export default function MemberDashboard() {
   }, []);
 
   async function handleLogout() {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
@@ -71,6 +75,7 @@ export default function MemberDashboard() {
         </div>
 
         <div style={{ display: 'flex', gap: '16px' }}>
+          <Link to="/profile" style={{ color: '#ff9aa2', padding: '12px 20px' }}>Hồ sơ của tôi</Link>
           <Link
             to="/"
             style={{

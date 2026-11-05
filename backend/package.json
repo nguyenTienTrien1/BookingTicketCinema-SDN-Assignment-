@@ -7,7 +7,13 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node src/utils/seed.js",
-    "seed:movies": "node seedMovies.js"
+    "seed:movies": "node seedMovies.js",
+    "seed:food-counter": "node seedFoodCounter.js",
+    "test:movies": "node --test test_movies.js",
+    "test:food-sales": "node --test test_food_sales.js",
+    "test:profile": "node --test test_profile.js",
+    "test:showtimes": "node --test test_showtimes.js",
+    "test": "node --test test_movies.js test_profile.js test_regression.js test_food_sales.js test_showtimes.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

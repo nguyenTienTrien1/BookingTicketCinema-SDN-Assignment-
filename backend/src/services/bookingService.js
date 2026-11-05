@@ -1,7 +1,9 @@
+import mongoose from 'mongoose';
 import Booking from '../models/Booking.js';
 import Showtime from '../models/Showtime.js';
 import Food from '../models/Food.js';
 import User from '../models/User.js';
+import Movie from '../models/Movie.js';
 
 const SEAT_HOLD_MINUTES = 10;
 const POINT_VALUE = 1000;
@@ -54,6 +56,9 @@ async function releaseBookingSeats(showtimeId, bookingId, seats, status = 'avail
 }
 
 export async function createBooking({ userId, showtimeId, seats, foodItems = [] }) {
+  if (!mongoose.isObjectIdOrHexString(userId) || !mongoose.isObjectIdOrHexString(showtimeId) || !Array.isArray(foodItems) || foodItems.some((item) => !item || !mongoose.isObjectIdOrHexString(item.food))) {
+    throw bookingError('Invalid booking data.', 400);
+  }
   if (!Array.isArray(seats) || seats.length === 0) {
     throw bookingError('Vui lòng chọn ít nhất một ghế.', 400);
   }
@@ -65,6 +70,11 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
 
   const showtime = await Showtime.findById(showtimeId);
   if (!showtime) throw bookingError('Không tìm thấy suất chiếu.', 404);
+
+  const movie = await Movie.findById(showtime.movie);
+  if (!movie || movie.deletedAt || movie.classification === 'C') {
+    throw bookingError('Phim không được phép bán vé.', 400);
+  }
 
   const now = new Date();
   await releaseExpiredSeats(showtimeId, now);
@@ -98,7 +108,9 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
     seats: { $elemMatch: { number, status: 'available' } }
   }));
   const claimResult = await Showtime.updateOne(
-    { _id: showtimeId, $and: availabilityConditions },
+    // Reject a stale price/schedule snapshot if Admin edits before seats are claimed.
+    { _id: showtimeId, movie: showtime.movie, cinema: showtime.cinema, room: showtime.room,
+      startTime: showtime.startTime, price: showtime.price, $and: availabilityConditions },
     {
       $set: {
         'seats.$[seat].status': 'held',
@@ -122,7 +134,7 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
     return await booking.populate([
       { path: 'showtime', populate: { path: 'movie' } },
       { path: 'foodItems.food' },
-      { path: 'user' }
+      { path: 'user', select: 'fullName email role memberPoints status' }
     ]);
   } catch (error) {
     await Booking.deleteOne({ _id: booking._id });
@@ -173,6 +185,9 @@ export async function applyMemberPoints(bookingId, userId, points) {
 }
 
 export async function pay(bookingId, userId, method = 'mock') {
+  if (!['cash', 'vnpay', 'momo', 'credit-card', 'mock'].includes(method)) {
+    throw bookingError('Invalid payment method.', 400);
+  }
   const booking = await Booking.findOne({ _id: bookingId, user: userId });
   if (!booking) throw bookingError('Không tìm thấy đơn đặt vé.', 404);
   if (booking.status === 'paid') {

@@ -9,7 +9,7 @@ export async function register(req, res, next) {
     const result = await registerService.registerMember(req.body);
     return res.status(201).json({
       success: true,
-      ...result
+      ...publicResult(result)
     });
   } catch (error) {
     next(error);
@@ -24,7 +24,7 @@ export async function verifyEmail(req, res, next) {
   try {
     const token = req.query.token || req.body.token;
     const result = await registerService.verifyEmail(token);
-    return res.status(200).json(result);
+    return res.status(200).json(publicResult(result));
   } catch (error) {
     next(error);
   }
@@ -38,9 +38,18 @@ export async function resendVerification(req, res, next) {
   try {
     const { email } = req.body;
     const result = await registerService.resendVerification(email);
-    return res.status(200).json(result);
+    return res.status(200).json(publicResult(result));
   } catch (error) {
     next(error);
   }
 }
 
+
+function publicResult(result) {
+  if (process.env.NODE_ENV !== 'production') return result;
+  const safe = { ...result };
+  delete safe.verificationToken;
+  delete safe.verificationLink;
+  delete safe.previewUrl;
+  return safe;
+}

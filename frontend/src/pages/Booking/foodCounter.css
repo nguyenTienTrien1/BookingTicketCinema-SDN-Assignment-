@@ -1,0 +1,21 @@
+.foodCounterFields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.foodCounterFields legend { font-size: 20px; font-weight: 700; margin-bottom: 22px; }
+.foodCounterGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; }
+.foodCounterItem { border: 1px solid #383e4c; border-radius: 10px; padding: 18px; background: #191d26; }
+.foodCounterItem h2 { font-size: 17px; margin: 0 0 12px; }
+.foodCounterItem small { display: block; color: #b9c0d1; margin-bottom: 18px; }
+.foodCounterItem label, .foodPaymentForm > label { display: flex; flex-direction: column; gap: 10px; }
+.foodPaymentForm { max-width: 560px; margin-top: 24px; }
+.foodPaymentForm .foodConfirm { flex-direction: row; align-items: flex-start; line-height: 1.6; }
+.foodConfirm input { margin-top: 5px; width: 20px; height: 20px; flex-shrink: 0; }
+.foodReceiptId { color: #b9c0d1; overflow-wrap: anywhere; }
+.movieAdmin input:disabled, .movieAdmin select:disabled { opacity: .65; cursor: not-allowed; }
+.movieAdmin .movieTable td:last-child .movieSecondary { margin: 0 4px 6px 0; }
+@media (max-width: 600px) {
+  .foodReceiptTable { min-width: 0; }
+  .foodReceiptTable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .foodReceiptTable tbody, .foodReceiptTable tr { display: block; }
+  .foodReceiptTable tr { padding: 12px 0; border-bottom: 1px solid #292e3b; }
+  .foodReceiptTable td, .foodReceiptTable td:first-child { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 7px 0; border: 0; overflow-wrap: anywhere; }
+  .foodReceiptTable td::before { content: attr(data-label); color: #b9c0d1; flex-shrink: 0; }
+}

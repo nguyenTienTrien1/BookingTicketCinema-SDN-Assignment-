@@ -16,8 +16,12 @@ export default function AdminDashboard() {
   }, []);
 
   async function handleLogout() {
-    await logout();
-    navigate('/admin/login');
+    try {
+      await logout();
+      navigate('/admin/login');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
@@ -68,6 +72,14 @@ export default function AdminDashboard() {
           <p><strong>Quyền hạn (BR-11):</strong> Quản lý danh mục phim, suất chiếu, phòng chiếu, tài khoản nhân sự và báo cáo doanh thu.</p>
           {data && <p style={{ color: '#fbcfe8' }}><em>{data.message}</em></p>}
         </div>
+
+        <Link to="/admin/movies" style={{ display: 'inline-block', backgroundColor: '#c91836', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, marginRight: '12px', marginBottom: '12px' }}>
+          Quản lý phim
+        </Link>
+
+        <Link to="/admin/showtimes" className="moviePrimary" style={{ marginRight: '12px', marginBottom: '12px' }}>
+          Quản lý suất chiếu
+        </Link>
 
         <Link
           to="/"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getBookings } from '../../services/bookingService';
 import { translateAccountStatus, translateFoodName } from '../../utils/uiText';
+import { ProfilePanel } from './Profile';
 
 function formatDate(value) {
     if (!value) return 'Chưa có thông tin';
@@ -87,7 +88,7 @@ export default function Account({ user, setTab, setPending }) {
             </div>
 
             {activeSection === 'profile' ? (
-                <div className="accountProfileCard">
+                user.role === 'member' ? <ProfilePanel /> : <div className="accountProfileCard">
                     <div className="accountAvatar">{String(user.fullName || 'U').trim().charAt(0).toUpperCase()}</div>
                     <div className="accountProfileDetails">
                         <h3>{user.fullName}</h3>

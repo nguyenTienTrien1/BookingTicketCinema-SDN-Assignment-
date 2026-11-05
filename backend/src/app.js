@@ -7,6 +7,9 @@ import userRoutes from './routes/userRoutes.js';
 import movieRoutes from './routes/movieRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
+import foodSaleRoutes from './routes/foodSaleRoutes.js';
+
+import showtimeRoutes from './routes/showtimeRoutes.js';
 
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';
@@ -44,13 +47,15 @@ app.use('/api/users', userRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/foods', foodRoutes);
+app.use('/api/food-sales', foodSaleRoutes);
+
+app.use('/api/showtimes', showtimeRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {
-  console.error('[SERVER ERROR]', err);
-
-  const status = err.status || 500;
-  let message = err.message || 'Đã xảy ra lỗi máy chủ.';
+  const status = err.name === 'ValidationError' || err.name === 'CastError' ? 400 : err.code === 11000 ? 409 : err.status || 500;
+  if (status >= 500) console.error('[SERVER ERROR]', err);
+  let message = err.name === 'CastError' ? 'Invalid ID or field value.' : err.message || 'Đã xảy ra lỗi máy chủ.';
 
   if (err.name === 'ValidationError') {
     message = 'Thông tin nhập chưa hợp lệ. Vui lòng kiểm tra lại.';

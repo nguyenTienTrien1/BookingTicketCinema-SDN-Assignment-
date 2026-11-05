@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const authApi = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000,
   withCredentials: true, // Required for HttpOnly cookies
   headers: {
     'Content-Type': 'application/json'
@@ -19,7 +20,7 @@ export async function registerUser(data) {
     const res = await authApi.post('/auth/register', data);
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || 'Đăng ký không thành công. Vui lòng thử lại.';
+    const message = getErrorMessage(error, 'Đăng ký không thành công. Vui lòng thử lại.');
     throw new Error(message);
   }
 }
@@ -33,7 +34,7 @@ export async function verifyEmail(token) {
     const res = await authApi.get(`/auth/verify-email?token=${encodeURIComponent(token)}`);
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || 'Xác thực email thất bại.';
+    const message = getErrorMessage(error, 'Xác thực email thất bại.');
     throw new Error(message);
   }
 }
@@ -47,7 +48,7 @@ export async function resendVerification(email) {
     const res = await authApi.post('/auth/resend-verification', { email });
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || 'Gửi lại mã xác thực thất bại.';
+    const message = getErrorMessage(error, 'Gửi lại mã xác thực thất bại.');
     throw new Error(message);
   }
 }
@@ -61,7 +62,7 @@ export async function loginUser(credentials) {
     const res = await authApi.post('/auth/login', credentials);
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || 'Đăng nhập không thành công. Vui lòng thử lại.';
+    const message = getErrorMessage(error, 'Đăng nhập không thành công. Vui lòng thử lại.');
     throw new Error(message);
   }
 }
@@ -75,7 +76,7 @@ export async function loginAdmin(credentials) {
     const res = await authApi.post('/auth/admin/login', credentials);
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || 'Đăng nhập không thành công. Vui lòng thử lại.';
+    const message = getErrorMessage(error, 'Đăng nhập không thành công. Vui lòng thử lại.');
     throw new Error(message);
   }
 }
@@ -88,7 +89,7 @@ export async function logout() {
     const res = await authApi.post('/auth/logout');
     return res.data;
   } catch (error) {
-    const message = error.response?.data?.message || 'Đăng xuất thất bại.';
+    const message = getErrorMessage(error, 'Đăng xuất thất bại.');
     throw new Error(message);
   }
 }
@@ -101,7 +102,8 @@ export async function getMe() {
     const res = await authApi.get('/auth/me');
     return res.data?.user || null;
   } catch (error) {
-    return null;
+    if (error.response?.status === 401) return null;
+    throw new Error(getErrorMessage(error, 'Không thể khôi phục phiên đăng nhập.'));
   }
 }
 
@@ -127,3 +129,9 @@ export async function getAdminDashboard() {
 export const login = loginUser;
 export default authApi;
 
+
+function getErrorMessage(error, fallback) {
+  if (!error.response) return 'Không kết nối được máy chủ. Vui lòng kiểm tra kết nối và thử lại.';
+  if (error.response.status >= 500) return 'Máy chủ đang gặp lỗi. Vui lòng thử lại sau.';
+  return error.response.data?.message || fallback;
+}

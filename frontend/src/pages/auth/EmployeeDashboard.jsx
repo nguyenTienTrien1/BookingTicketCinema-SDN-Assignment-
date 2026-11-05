@@ -16,8 +16,12 @@ export default function EmployeeDashboard() {
   }, []);
 
   async function handleLogout() {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
@@ -69,6 +73,9 @@ export default function EmployeeDashboard() {
           {data && <p style={{ color: '#fde68a' }}><em>{data.message}</em></p>}
         </div>
 
+        <Link to="/employee/food-sales" style={{ display: 'inline-block', background: '#c91836', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', marginRight: '12px', marginBottom: '12px' }}>
+          Bán đồ ăn & thức uống
+        </Link>
         <Link
           to="/"
           style={{

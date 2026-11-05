@@ -8,6 +8,12 @@ import EmployeeDashboard from '../pages/auth/EmployeeDashboard';
 import AdminDashboard from '../pages/auth/AdminDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
+import ManageMovies from '../pages/Admin/ManageMovies';
+import ManageShowtimes from '../pages/Admin/ManageShowtimes';
+import AddMovie from '../pages/Admin/AddMovie';
+import MovieForm from '../pages/Admin/MovieForm';
+import FoodCounter from '../pages/Booking/FoodCounter';
+import Profile from '../pages/Account/Profile';
 
 /**
  * Main application routes integrating React Router DOM
@@ -15,6 +21,7 @@ import CinemaMain from '../pages/CinemaMain';
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />
 
@@ -56,6 +63,22 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="/admin/movies" element={
+        <ProtectedRoute allowedRoles={['admin']}><ManageMovies /></ProtectedRoute>
+      } />
+      <Route path="/admin/movies/new" element={
+        <ProtectedRoute allowedRoles={['admin']}><AddMovie /></ProtectedRoute>
+      } />
+      <Route path="/admin/movies/:id/edit" element={
+        <ProtectedRoute allowedRoles={['admin']}><MovieForm editing /></ProtectedRoute>
+      } />
+      <Route path="/employee/food-sales" element={
+        <ProtectedRoute allowedRoles={['employee']}><FoodCounter /></ProtectedRoute>
+      } />
+      <Route path="/admin/showtimes" element={
+        <ProtectedRoute allowedRoles={['admin']}><ManageShowtimes /></ProtectedRoute>
+      } />
 
       {/* 6. Preserved Cinema Application */}
       <Route path="/*" element={<CinemaMain />} />
