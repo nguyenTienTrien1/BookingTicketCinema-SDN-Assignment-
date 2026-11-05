@@ -1,4 +1,4 @@
-const publicTabs = ['home', 'movies', 'movie-detail', 'login'];
+const publicTabs = ['home', 'movies', 'showtimes', 'cinemas', 'movie-detail', 'login'];
 const tabsByRole = {
   guest: [...publicTabs, 'booking', 'account'],
   member: [...publicTabs, 'booking', 'payment', 'account'],

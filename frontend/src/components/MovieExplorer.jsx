@@ -5,17 +5,11 @@ import { translateGenre } from '../utils/uiText';
 export default function MovieExplorer({ movies, setSelected, setTab, compact = false }) {
     const [search, setSearch] = useState('');
     const [genre, setGenre] = useState('');
-    const [releaseYear, setReleaseYear] = useState('');
-    const [timeOrder, setTimeOrder] = useState('newest');
+    const [ratingFilter, setRatingFilter] = useState('');
+    const [sortOrder, setSortOrder] = useState('newest');
 
     const genres = useMemo(
         () => [...new Set(movies.flatMap((movie) => movie.genre || []))].sort((a, b) => a.localeCompare(b)),
-        [movies]
-    );
-    const years = useMemo(
-        () => [...new Set(movies
-            .map((movie) => movie.releaseDate && new Date(movie.releaseDate).getFullYear())
-            .filter((year) => Number.isFinite(year)))].sort((a, b) => b - a),
         [movies]
     );
 
@@ -24,15 +18,23 @@ export default function MovieExplorer({ movies, setSelected, setTab, compact = f
         return movies
             .filter((movie) => !normalizedSearch || String(movie.title || '').toLocaleLowerCase('vi').includes(normalizedSearch))
             .filter((movie) => !genre || (movie.genre || []).includes(genre))
-            .filter((movie) => !releaseYear || (
-                movie.releaseDate && new Date(movie.releaseDate).getFullYear() === Number(releaseYear)
-            ))
+            .filter((movie) => {
+                if (!ratingFilter) return true;
+                const threshold = Number(ratingFilter);
+                return Number(movie.rating || 0) >= threshold;
+            })
             .sort((a, b) => {
+                if (sortOrder === 'rating-desc') {
+                    return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+                }
+                if (sortOrder === 'rating-asc') {
+                    return (Number(a.rating) || 0) - (Number(b.rating) || 0);
+                }
                 const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
                 const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
-                return timeOrder === 'newest' ? dateB - dateA : dateA - dateB;
+                return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
             });
-    }, [movies, search, genre, releaseYear, timeOrder]);
+    }, [movies, search, genre, ratingFilter, sortOrder]);
 
     function openMovie(movie, tab) {
         setSelected(movie);
@@ -42,8 +44,8 @@ export default function MovieExplorer({ movies, setSelected, setTab, compact = f
     function clearFilters() {
         setSearch('');
         setGenre('');
-        setReleaseYear('');
-        setTimeOrder('newest');
+        setRatingFilter('');
+        setSortOrder('newest');
     }
 
     return (
@@ -52,7 +54,7 @@ export default function MovieExplorer({ movies, setSelected, setTab, compact = f
                 <div>
                     <p className="bookingEyebrow">CINEMA+ · KHÁM PHÁ</p>
                     <h2>{compact ? 'Tìm phim phù hợp' : 'Khám phá phim'}</h2>
-                    <p>Tìm theo tên, thể loại hoặc năm phát hành.</p>
+                    <p>Tìm theo tên, thể loại hoặc lượt đánh giá.</p>
                 </div>
                 <span className="movieResultCount">{filteredMovies.length} phim</span>
             </div>
@@ -75,17 +77,23 @@ export default function MovieExplorer({ movies, setSelected, setTab, compact = f
                     </select>
                 </label>
                 <label>
-                    <span>Năm phát hành</span>
-                    <select value={releaseYear} onChange={(event) => setReleaseYear(event.target.value)}>
-                        <option value="">Tất cả năm</option>
-                        {years.map((year) => <option value={year} key={year}>{year}</option>)}
+                    <span>Lượt đánh giá</span>
+                    <select value={ratingFilter} onChange={(event) => setRatingFilter(event.target.value)}>
+                        <option value="">Tất cả đánh giá</option>
+                        <option value="9">Từ 9.0 ★ trở lên (Xuất sắc)</option>
+                        <option value="8.5">Từ 8.5 ★ trở lên (Rất hay)</option>
+                        <option value="8">Từ 8.0 ★ trở lên (Đánh giá cao)</option>
+                        <option value="7.5">Từ 7.5 ★ trở lên (Phổ biến)</option>
+                        <option value="7">Từ 7.0 ★ trở lên</option>
                     </select>
                 </label>
                 <label>
-                    <span>Sắp xếp thời gian</span>
-                    <select value={timeOrder} onChange={(event) => setTimeOrder(event.target.value)}>
+                    <span>Sắp xếp</span>
+                    <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)}>
                         <option value="newest">Mới nhất trước</option>
                         <option value="oldest">Cũ nhất trước</option>
+                        <option value="rating-desc">Đánh giá cao nhất</option>
+                        <option value="rating-asc">Đánh giá thấp nhất</option>
                     </select>
                 </label>
                 <button type="button" className="movieFilterReset" onClick={clearFilters}>Xóa lọc</button>

@@ -57,8 +57,13 @@ export default function Footer({ setTab }) {
               </button>
             </li>
             <li>
-              <button type="button" onClick={() => handleNav('booking')}>
+              <button type="button" onClick={() => handleNav('showtimes')}>
                 Lịch chiếu theo rạp
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={() => handleNav('cinemas')}>
+                Hệ thống rạp chiếu
               </button>
             </li>
             <li>

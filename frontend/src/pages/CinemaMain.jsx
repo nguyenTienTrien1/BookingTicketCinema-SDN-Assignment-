@@ -6,11 +6,14 @@ import '../index.css';
 import Header from '../components/Header';
 import Home from './Home/Home';
 import Movies from './Home/Movies';
+import Showtimes from './Home/Showtimes';
+import Cinemas from './Home/Cinemas';
 import Login from './Login/Login';
 import Booking from './Booking/Booking';
 import Payment from './Payment/Payment';
 import Account from './Account/Account';
 import MovieDetail from './MovieDetail/MovieDetail';
+import AdminPortal from './Admin/AdminPortal';
 import CreateAccount from './Admin/CreateAccount';
 import UpdateAccount from './Admin/UpdateAccount';
 import AdjustPoints from './Admin/AdjustPoints';
@@ -35,11 +38,16 @@ export default function CinemaMain() {
     const [pending, setPending] = useState(null);
     const [tab, setTab] = useState(location.pathname === '/account' ? 'account' : 'home');
     useEffect(() => {
-        if (location.pathname === '/account') setTab('account');
-    }, [location.key, location.pathname]);
+        if (location.pathname === '/account') {
+            setTab('account');
+        } else if (user?.role === 'admin' && location.pathname === '/' && !sessionStorage.getItem('cinema_preview_customer')) {
+            setTab('account');
+        }
+    }, [location.pathname, user?.role]);
     const [loginReturnTab, setLoginReturnTab] = useState('home');
     const [msg, setMsg] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCinemaFilter, setSelectedCinemaFilter] = useState('');
 
 
     const handleSetUser = useCallback((newUser) => {
@@ -116,6 +124,19 @@ export default function CinemaMain() {
         case 'movies':
             page = <Movies {...props} />;
             break;
+        case 'showtimes':
+            page = <Showtimes {...props} initialCinema={selectedCinemaFilter} />;
+            break;
+        case 'cinemas':
+            page = (
+                <Cinemas
+                    {...props}
+                    onSelectCinemaForSchedule={(cinemaName) => {
+                        setSelectedCinemaFilter(cinemaName);
+                    }}
+                />
+            );
+            break;
         case 'login':
             page = (
                 <Login
@@ -141,16 +162,17 @@ export default function CinemaMain() {
             page = <Payment {...props} onDone={() => setTab('home')} />;
             break;
         case 'account':
-            page = <Account {...props} initialSection={new URLSearchParams(location.search).get('section')} />;
-            break;
         case 'create-account':
-            page = <CreateAccount {...props} />;
-            break;
         case 'update-status':
-            page = <UpdateAccount {...props} />;
-            break;
         case 'adjust-points':
-            page = <AdjustPoints {...props} />;
+            page = user?.role === 'admin' ? (
+                <AdminPortal
+                    {...props}
+                    initialTab={tab === 'account' ? 'movies' : tab}
+                />
+            ) : (
+                <Account {...props} initialSection={new URLSearchParams(location.search).get('section')} />
+            );
             break;
         default:
             page = <Home {...props} />;
@@ -165,20 +187,20 @@ export default function CinemaMain() {
         );
     }
 
+    const isAdmin = user?.role === 'admin';
+    const isAdminDashboard = isAdmin && ['account', 'create-account', 'update-status', 'adjust-points', 'counter', 'movies', 'showtimes', 'rooms', 'foods', 'promotions', 'revenue', 'profile'].includes(tab);
+
     return (
         <div className="app">
-            <div className="app-shell">
-                <Header tab={tab} setTab={setTab} user={user} onSearch={setSearchQuery} />
-                <main className={`main-content ${tab !== 'home' ? 'subpage' : ''}`}>
+            <div className={`app-shell ${isAdminDashboard ? 'adminShell' : ''}`}>
+                {!isAdminDashboard && (
+                    <Header tab={tab} setTab={setTab} user={user} onSearch={setSearchQuery} />
+                )}
+                <main className={`main-content ${tab !== 'home' ? 'subpage' : ''} ${isAdminDashboard ? 'adminMainContentWrapper' : ''}`}>
                     {page}
-                    {['employee','admin'].includes(user?.role) && <a href="/staff/tools">Tiếp nhận đơn online / Thu tiền tại quầy</a>}
-                    {user?.role === 'admin' && (
-                        <div className="adminNav">
-                            <button onClick={() => navigate('/admin/showtimes')}>Quản lý suất chiếu</button>
-                            <button onClick={() => navigate('/admin/rooms')}>Quản lý phòng chiếu</button>
-                            <button onClick={() => setTab('create-account')}>Tạo tài khoản</button>
-                            <button onClick={() => setTab('update-status')}>Trạng thái tài khoản</button>
-                            <button onClick={() => setTab('adjust-points')}>Điều chỉnh điểm</button>
+                    {user?.role === 'employee' && (
+                        <div style={{ textAlign: 'center', margin: '24px 0' }}>
+                            <a href="/staff/tools" className="moduleBtnSecondary">Tiếp nhận đơn online / Thu tiền tại quầy</a>
                         </div>
                     )}
                     {msg && <div className="toast">{msg}</div>}
