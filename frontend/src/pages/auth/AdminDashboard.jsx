@@ -77,6 +77,10 @@ export default function AdminDashboard() {
           Quản lý phim
         </Link>
 
+        <Link to="/admin/showtimes" className="moviePrimary" style={{ marginRight: '12px', marginBottom: '12px' }}>
+          Quản lý suất chiếu
+        </Link>
+
         <Link
           to="/"
           style={{

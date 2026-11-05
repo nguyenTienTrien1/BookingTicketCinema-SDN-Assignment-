@@ -9,6 +9,7 @@ import AdminDashboard from '../pages/auth/AdminDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
+import ManageShowtimes from '../pages/Admin/ManageShowtimes';
 import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
 import FoodCounter from '../pages/Booking/FoodCounter';
@@ -74,6 +75,9 @@ export default function AppRoutes() {
       } />
       <Route path="/employee/food-sales" element={
         <ProtectedRoute allowedRoles={['employee']}><FoodCounter /></ProtectedRoute>
+      } />
+      <Route path="/admin/showtimes" element={
+        <ProtectedRoute allowedRoles={['admin']}><ManageShowtimes /></ProtectedRoute>
       } />
 
       {/* 6. Preserved Cinema Application */}

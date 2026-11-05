@@ -164,3 +164,15 @@ export async function updateShowtime(id, body, adminId) {
   }
 }
 
+export async function deleteShowtime(id, body, adminId) {
+  if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
+  scheduleBusy = true;
+  try {
+    const current = await editableShowtime(id, body);
+    const showtime = await Showtime.findOneAndDelete(unbookedFilter(current));
+    if (!showtime) throw showtimeError('Suất chiếu vừa thay đổi hoặc có ghế được giữ. Vui lòng tải lại.', 409);
+    console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'delete', adminId, showtimeId: id }));
+  } finally {
+    scheduleBusy = false;
+  }
+}

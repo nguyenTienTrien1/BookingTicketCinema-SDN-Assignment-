@@ -13,3 +13,8 @@ export function updateShowtime(id, data) {
   return api(`/showtimes/${id}`, { method: 'PUT', credentials: 'include', body: JSON.stringify(data) });
 }
 
+export function deleteShowtime(id, updatedAt) {
+  return api(`/showtimes/${id}`, {
+    method: 'DELETE', credentials: 'include', body: JSON.stringify({ updatedAt })
+  });
+}

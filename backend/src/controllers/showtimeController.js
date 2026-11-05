@@ -37,3 +37,11 @@ export async function update(req, res, next) {
   }
 }
 
+export async function remove(req, res, next) {
+  try {
+    await service.deleteShowtime(req.params.id, req.body, req.user._id);
+    res.json({ message: 'Xóa suất chiếu thành công.' });
+  } catch (error) {
+    next(error);
+  }
+}

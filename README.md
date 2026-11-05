@@ -69,6 +69,19 @@ Keep `MONGODB_URI=mongodb://127.0.0.1:27017/booking_cinema`. Do not initialize a
 
 Run `npm test -w backend` for regression tests. For the complete transaction/concurrency suite, point `TEST_MONGODB_URI` to a test-capable replica set and run `npm run test:food-sales -w backend`. All tests create their own temporary databases and remove only those databases.
 
+## UC-17.1–17.4: Manage Showtimes (Admin)
+- Sign in at `/admin/login`, choose **Quản lý suất chiếu**, or open `/admin/showtimes`.
+- View the paginated list and filter by movie. Add a showtime, edit it, or review its details and confirm deletion. Cancel leaves the data unchanged.
+- Required fields: movie, cinema, room, future start time and a positive whole-number ticket price in VND. All form times use Vietnam time (UTC+7).
+- Reuses the existing Showtime model and Admin CSS. No extra classes, models, packages or schema changes. New showtimes use the seeded 40-seat layout (A1–E8); edits preserve existing seats.
+- Checks room conflicts across movies, including the movie duration plus a 15-minute cleaning buffer (BR-6). C-classified movies and screenings before the release date are rejected.
+- Direct edit/delete is blocked for started screenings, seat holds, sold seats and any booking reference, including cancelled bookings, preserving transaction history (BR-12, BR-17). Controlled cancellation, customer notice and refunds are outside these four use cases.
+- API: `GET /api/showtimes?movie=&page=1&limit=10`, `POST /api/showtimes`, `PUT /api/showtimes/:id`, `DELETE /api/showtimes/:id`. All require an active Admin session. Writes require JSON and validate the request origin.
+- POST/PUT fields: `movie`, `cinema`, `room`, `startTime` (ISO timestamp with timezone), `price`. PUT/DELETE also require the `updatedAt` value from the list; stale data returns 409. DELETE sends `{ "updatedAt": "..." }` as JSON.
+- Successful writes log the acting Admin and showtime ID to the server audit log. The existing public `/api/movies/showtimes` response remains unchanged and reflects saved changes.
+- The repository has no Room model/status or configurable room layouts; cinema and room remain text fields as in the existing model. Schedule writes are protected against concurrency within the current single Node process; multiple backend instances would need a shared database lock. Audit logs need external retention for deployment.
+- Run `npm run test:showtimes -w backend` with MongoDB running. Tests create and remove a dedicated temporary database, leaving existing cinema data untouched. Run `npm run build` to verify the frontend build.
+
 ## Implemented CE190006 scope
 - Book Movie Ticket
 - Add Food & Drink

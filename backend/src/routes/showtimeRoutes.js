@@ -8,4 +8,5 @@ router.use(verifyToken, requireRole('admin'));
 router.get('/', controller.list);
 router.post('/', controller.protectWrite, controller.create);
 router.put('/:id', controller.protectWrite, controller.update);
+router.delete('/:id', controller.protectWrite, controller.remove);
 export default router;
