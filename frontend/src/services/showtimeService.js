@@ -18,3 +18,11 @@ export function deleteShowtime(id, updatedAt) {
     method: 'DELETE', credentials: 'include', body: JSON.stringify({ updatedAt })
   });
 }
+
+export function getShowtime(id) {
+  return api(`/showtimes/${id}`);
+}
+
+export function getShowtimeRooms() {
+  return api('/showtimes/rooms');
+}

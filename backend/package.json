@@ -7,14 +7,18 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node src/utils/seed.js",
+    "seed:movies": "node seedMovies.js",
     "seed:food-counter": "node seedFoodCounter.js",
+    "import:rooms": "node importRooms.js",
     "test:movies": "node --test test_movies.js",
     "test:food-sales": "node --test test_food_sales.js",
+    "test:catalogue": "node --test test_catalogue.js",
     "test:profile": "node --test test_profile.js",
     "test:showtimes": "node --test test_showtimes.js",
     "test:booking-history": "node --test test_booking_history.js",
     "test:member-search": "node --test test_member_search.js",
-    "test": "node --test test_movies.js test_profile.js test_regression.js test_food_sales.js test_showtimes.js test_booking_history.js test_member_search.js"
+    "test:revenue": "node --test test_revenue.js",
+    "test": "node --test test_movies.js test_profile.js test_regression.js test_food_sales.js test_showtimes.js test_booking_history.js test_member_search.js test_catalogue.js test_revenue.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

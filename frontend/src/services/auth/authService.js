@@ -129,6 +129,31 @@ export async function getAdminDashboard() {
 export const login = loginUser;
 export default authApi;
 
+// UC-19 has no backend routes yet. These guards deliberately make no HTTP
+// request and never acknowledge an email or password update as successful.
+// Replace their bodies only after the real API contract is available.
+// Local UI interface: resolve true only after backend confirmation; normalize
+// rejected links to RESET_LINK_INVALID, and other failures to safe messages.
+// Request acknowledgement must be identical for ineligible/unknown emails and
+// email delivery failure (UC-19 E1); never expose those distinctions to the UI.
+export async function requestPasswordReset(email) {
+  throw passwordRecoveryUnavailable();
+}
+
+export async function validatePasswordResetToken(token) {
+  throw passwordRecoveryUnavailable();
+}
+
+export async function resetPassword(token, newPassword, confirmPassword) {
+  throw passwordRecoveryUnavailable();
+}
+
+function passwordRecoveryUnavailable() {
+  const error = new Error('Khôi phục mật khẩu hiện chưa khả dụng. Vui lòng thử lại sau.');
+  error.code = 'PASSWORD_RECOVERY_UNAVAILABLE';
+  return error;
+}
+
 
 function getErrorMessage(error, fallback) {
   if (!error.response) return 'Không kết nối được máy chủ. Vui lòng kiểm tra kết nối và thử lại.';

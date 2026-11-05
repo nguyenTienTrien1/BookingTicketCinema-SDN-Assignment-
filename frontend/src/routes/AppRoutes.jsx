@@ -3,6 +3,8 @@ import UserLogin from '../pages/auth/UserLogin';
 import AdminLogin from '../pages/auth/AdminLogin';
 import Register from '../pages/auth/Register';
 import VerifyEmail from '../pages/auth/VerifyEmail';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
 import MemberDashboard from '../pages/auth/MemberDashboard';
 import EmployeeDashboard from '../pages/auth/EmployeeDashboard';
 import AdminDashboard from '../pages/auth/AdminDashboard';
@@ -10,9 +12,11 @@ import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import ManageShowtimes from '../pages/Admin/ManageShowtimes';
+import RevenueDashboard from '../pages/Admin/RevenueDashboard';
 import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
 import FoodCounter from '../pages/Booking/FoodCounter';
+import ManageCatalogue from '../pages/Admin/ManageCatalogue';
 import Profile from '../pages/Account/Profile';
 import BookingHistoryPage from '../pages/Account/BookingHistory';
 import MemberSearch from '../pages/Booking/MemberSearch';
@@ -23,12 +27,14 @@ import MemberSearch from '../pages/Booking/MemberSearch';
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/admin/members" element={<ProtectedRoute allowedRoles={['admin']}><MemberSearch key="admin" /></ProtectedRoute>} />
-      <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch key="employee" /></ProtectedRoute>} />
+      <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueDashboard /></ProtectedRoute>} />
+      <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* 2. Admin & Employee Login (/admin/login) */}
       <Route path="/admin/login" element={<AdminLogin />} />
@@ -84,6 +90,13 @@ export default function AppRoutes() {
       <Route path="/admin/showtimes" element={
         <ProtectedRoute allowedRoles={['admin']}><ManageShowtimes /></ProtectedRoute>
       } />
+
+      <Route path="/admin/foods" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" /></ProtectedRoute>} />
+      <Route path="/admin/foods/new" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" creating /></ProtectedRoute>} />
+      <Route path="/admin/foods/:id/edit" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" editing /></ProtectedRoute>} />
+      <Route path="/admin/promotions" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" /></ProtectedRoute>} />
+      <Route path="/admin/promotions/new" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" creating /></ProtectedRoute>} />
+      <Route path="/admin/promotions/:id/edit" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" editing /></ProtectedRoute>} />
 
       {/* 6. Preserved Cinema Application */}
       <Route path="/*" element={<CinemaMain />} />

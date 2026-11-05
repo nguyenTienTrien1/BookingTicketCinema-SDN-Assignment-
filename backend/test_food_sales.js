@@ -10,6 +10,7 @@ import Food from './src/models/Food.js';
 import FoodSale from './src/models/FoodSale.js';
 import User from './src/models/User.js';
 import Booking from './src/models/Booking.js';
+import { updateFood } from './src/services/catalogueService.js';
 
 test('UC-11 Food-only counter sales', async (t) => {
   const dbName = `cinema_food_sales_test_${randomUUID().replaceAll('-', '')}`;
@@ -108,6 +109,12 @@ test('UC-11 Food-only counter sales', async (t) => {
     assert.equal((await Food.findById(drink._id)).stock, 19);
     assert.equal((await request(`/${sale._id}/cancel`, employee, 'POST')).status, 409);
     assert.equal(await Booking.countDocuments(), 0);
+  });
+  await t.test('a real completed sale invalidates the Admin inventory snapshot', async () => {
+    await assert.rejects(updateFood(String(food._id), {
+      name: food.name, price: food.price, stock: 40, available: true, version: 0
+    }, admin._id), { status: 409 });
+    assert.equal((await Food.findById(food._id)).stock, 38);
   });
   await t.test('price changes roll back all stock writes and retain cash for reconciliation', async () => {
     const sale = (await order()).data;

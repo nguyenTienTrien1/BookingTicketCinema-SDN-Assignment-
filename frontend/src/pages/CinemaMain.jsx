@@ -28,6 +28,7 @@ export default function CinemaMain() {
     const [tab, setTab] = useState('home');
     const [loginReturnTab, setLoginReturnTab] = useState('home');
     const [msg, setMsg] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Keep auth state synced with AuthContext
     useEffect(() => {
@@ -77,6 +78,7 @@ export default function CinemaMain() {
         setMsg,
         setPending,
         pending,
+        searchFilter: searchQuery,
         onRequireBookingLogin: requireBookingLogin
     };
 
@@ -131,8 +133,8 @@ export default function CinemaMain() {
     return (
         <div className="app">
             <div className="app-shell">
-                <Header tab={tab} setTab={setTab} user={user} />
-                <main className="main-content">
+                <Header tab={tab} setTab={setTab} user={user} onSearch={setSearchQuery} />
+                <main className={`main-content ${tab !== 'home' ? 'subpage' : ''}`}>
                     {page}
                     {user?.role === 'admin' && (
                         <div className="adminNav">
