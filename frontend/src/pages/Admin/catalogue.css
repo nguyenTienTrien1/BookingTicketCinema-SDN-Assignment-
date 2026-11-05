@@ -1,0 +1,12 @@
+.catalogueTabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+.catalogueTabs a[aria-current=page] { background: #441727; border-color: #fb7185; color: #fecdd3; }
+.catalogueTable td:first-child { width: 32%; }
+.catalogueTable .catalogueCode { font-family: monospace; color: #fda4af; letter-spacing: 1px; }
+.catalogueActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.movieForm > .movieSecondary { margin-bottom: 20px; }
+.movieForm input:disabled, .movieForm select:disabled { opacity: .65; cursor: not-allowed; }
+.movieForm .movieWarning { margin-bottom: 24px; }
+.catalogueTable details p { max-width: 340px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .catalogueTabs a { flex: 1; padding: 10px; font-size: 13px; }
+}

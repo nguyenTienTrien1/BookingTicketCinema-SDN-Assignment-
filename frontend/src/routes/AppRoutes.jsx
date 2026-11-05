@@ -13,6 +13,7 @@ import ManageShowtimes from '../pages/Admin/ManageShowtimes';
 import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
 import FoodCounter from '../pages/Booking/FoodCounter';
+import ManageCatalogue from '../pages/Admin/ManageCatalogue';
 import Profile from '../pages/Account/Profile';
 import BookingHistoryPage from '../pages/Account/BookingHistory';
 import MemberSearch from '../pages/Booking/MemberSearch';
@@ -83,6 +84,9 @@ export default function AppRoutes() {
       <Route path="/admin/showtimes" element={
         <ProtectedRoute allowedRoles={['admin']}><ManageShowtimes /></ProtectedRoute>
       } />
+
+      <Route path="/admin/foods" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" /></ProtectedRoute>} />
+      <Route path="/admin/promotions" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" /></ProtectedRoute>} />
 
       {/* 6. Preserved Cinema Application */}
       <Route path="/*" element={<CinemaMain />} />
