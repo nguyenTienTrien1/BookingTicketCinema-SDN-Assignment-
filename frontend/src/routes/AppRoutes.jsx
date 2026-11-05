@@ -86,7 +86,9 @@ export default function AppRoutes() {
       } />
 
       <Route path="/admin/foods" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" /></ProtectedRoute>} />
+      <Route path="/admin/foods/new" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" creating /></ProtectedRoute>} />
       <Route path="/admin/promotions" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" /></ProtectedRoute>} />
+      <Route path="/admin/promotions/new" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" creating /></ProtectedRoute>} />
 
       {/* 6. Preserved Cinema Application */}
       <Route path="/*" element={<CinemaMain />} />

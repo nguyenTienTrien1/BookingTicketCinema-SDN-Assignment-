@@ -12,4 +12,5 @@ router.get('/', async (_req, res, next) => {
 router.use(verifyToken, requireRole('admin'));
 router.get('/admin', controller.foods);
 router.get('/admin/:id', controller.food);
+router.post('/', controller.protectWrite, controller.createFood);
 export default router;
