@@ -83,7 +83,7 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [] 
   let foodTotal = 0;
   const normalizedFoodItems = foodItems.map((item) => {
     const food = foods.find((candidate) => String(candidate._id) === String(item.food));
-    if (!food) throw bookingError('Không tìm thấy món ăn hoặc thức uống.', 404);
+    if (!food || food.deletedAt || !food.available) throw bookingError('Món ăn hoặc thức uống không còn được bán.', 404);
     const quantity = Number(item.quantity);
     if (!Number.isInteger(quantity) || quantity < 1) {
       throw bookingError('Số lượng món ăn phải là số nguyên dương.', 400);

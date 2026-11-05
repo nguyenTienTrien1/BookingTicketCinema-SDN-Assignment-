@@ -1,11 +1,7 @@
 import mongoose from 'mongoose';
-
 import Food from '../models/Food.js';
-
 import Promotion from '../models/Promotion.js';
-
 import FoodSale from '../models/FoodSale.js';
-
 import Booking from '../models/Booking.js';
 
 function invalid(message, status = 400) {
@@ -76,11 +72,8 @@ async function list(Model, query, fields) {
 }
 
 export const listFoods = (query) => list(Food, query, ['name']);
-
 export const listPromotions = (query) => list(Promotion, query, ['name', 'code']);
-
 export const getFood = (id) => findRecord(Food, id);
-
 export const getPromotion = (id) => findRecord(Promotion, id);
 
 function foodData(body) {
@@ -126,6 +119,15 @@ export async function updateFood(id, body, adminId) {
     { $set: { ...data, updatedBy: adminId }, $inc: { __v: 1 } }, { new: true, runValidators: true });
   if (!record) throw invalid('Thông tin hoặc tồn kho đã thay đổi. Vui lòng tải lại trước khi lưu.', 409);
   return record;
+}
+
+export async function deleteFood(id, body, adminId) {
+  version(body);
+  await getFood(id);
+  if (await openFoodOrder(id)) throw invalid('Không thể xóa sản phẩm có đơn hàng đang xử lý hoặc chờ đối soát.', 409);
+  const record = await Food.findOneAndUpdate({ _id: id, deletedAt: null, __v: body.version },
+    { $set: { deletedAt: new Date(), deletedBy: adminId, available: false }, $inc: { __v: 1 } }, { new: true });
+  if (!record) throw invalid('Bản ghi đã thay đổi. Vui lòng tải lại trước khi xóa.', 409);
 }
 
 function date(value, name) {
@@ -180,6 +182,14 @@ export async function updatePromotion(id, body, adminId) {
     { $set: { ...data, updatedBy: adminId }, $inc: { __v: 1 } }, { new: true, runValidators: true });
   if (!record) throw invalid('Khuyến mãi hoặc số lượt sử dụng đã thay đổi. Vui lòng tải lại.', 409);
   return record;
+}
+
+export async function deletePromotion(id, body, adminId) {
+  version(body);
+  await getPromotion(id);
+  const record = await Promotion.findOneAndUpdate({ _id: id, deletedAt: null, __v: body.version },
+    { $set: { deletedAt: new Date(), deletedBy: adminId, active: false }, $inc: { __v: 1 } }, { new: true });
+  if (!record) throw invalid('Khuyến mãi đã thay đổi. Vui lòng tải lại trước khi xóa.', 409);
 }
 
 export async function availablePromotions(query) {

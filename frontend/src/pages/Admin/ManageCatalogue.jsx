@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueItem } from '../../services/catalogueService';
+import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueItem, deleteCatalogueItem } from '../../services/catalogueService';
 import './movies.css';
 import './catalogue.css';
 
@@ -31,9 +31,12 @@ function CatalogueList({ kind }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const message = location.state?.message || '';
+  const [actionError, setActionError] = useState('');
+  const [message, setMessage] = useState(location.state?.message || '');
   const [reload, setReload] = useState(0);
+  const deleting = useRef(false);
 
   useEffect(() => {
     let ignore = false;
@@ -44,7 +47,17 @@ function CatalogueList({ kind }) {
     return () => { ignore = true; };
   }, [kind, search, page, reload]);
 
-
+  async function remove(item) {
+    if (deleting.current || !window.confirm(`Xóa ${label(kind)} “${item.name}” khỏi danh mục? Lịch sử giao dịch vẫn được giữ lại.`)) return;
+    deleting.current = true; setBusy(true); setActionError(''); setMessage('');
+    try {
+      await deleteCatalogueItem(kind, item._id, item.__v);
+      setMessage(`Đã xóa “${item.name}”.`);
+      if (page > 1 && result.items.length === 1) setPage(page - 1);
+      else setReload(reload + 1);
+    } catch (err) { setActionError(err.message); }
+    finally { deleting.current = false; setBusy(false); }
+  }
 
   return <main className="movieAdmin"><div className="movieAdminShell">
     <Link className="movieBack" to="/admin/dashboard">← Trung tâm quản trị</Link>
@@ -54,6 +67,7 @@ function CatalogueList({ kind }) {
       <p>{kind === 'foods' ? 'Danh mục, giá bán và tồn kho tại rạp.' : 'Cấu hình mức giảm, thời hạn, giới hạn sử dụng và cộng dồn.'}</p></div>
       <Link className="moviePrimary" to={`/admin/${kind}/new`}>+ Thêm {label(kind)}</Link></header>
     {message && <p className="movieSuccess" role="status">{message}</p>}
+    {actionError && <p className="movieError" role="alert">{actionError}</p>}
     <section className="moviePanel" aria-label={`Danh sách ${label(kind)}`}>
       <form className="movieToolbar" role="search" onSubmit={(event) => { event.preventDefault(); setSearch(keyword.trim()); setPage(1); }}>
         <label htmlFor="catalogue-search">{kind === 'foods' ? 'Tìm tên sản phẩm' : 'Tìm mã hoặc tên'}</label>
@@ -82,7 +96,8 @@ function CatalogueList({ kind }) {
               <td>{kind === 'foods' ? money(item.price) : <>{item.discountType === 'percentage' ? `${item.value}%` : money(item.value)}</>}</td>
               <td>{kind === 'foods' ? item.stock : <>{dateText(item.startsAt)}<br />đến {dateText(item.endsAt)}</>}</td>
               <td><span className="movieBadge">{kind === 'foods' ? (item.available ? 'Đang bán' : 'Ngừng bán') : promotionState(item)}</span></td>
-              <td><Link className="movieSecondary" to={`/admin/${kind}/${item._id}/edit`} aria-label={`Sửa ${item.name}`}>Sửa</Link></td>
+              <td><div className="catalogueActions"><Link className="movieSecondary" to={`/admin/${kind}/${item._id}/edit`} aria-label={`Sửa ${item.name}`}>Sửa</Link>
+                <button className="movieSecondary" disabled={busy} onClick={() => remove(item)} aria-label={`Xóa ${item.name}`}>Xóa</button></div></td>
             </tr>)}</tbody>
           </table></div>}
         {result.totalPages > 1 && <nav className="moviePagination" aria-label="Phân trang danh mục">

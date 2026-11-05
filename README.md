@@ -44,15 +44,29 @@ Admin: `admin@cinema.com` / `admin123`
 - UC-13.2: View Movies — Admin catalogue with title search, pagination and movie details.
 - UC-13.3: Update Movie — use **Sửa** in the Admin catalogue. The editor shares validation with Add Movie, checks the loaded version to reject stale writes and records `updatedBy`. Movies with any showtime lock title, duration, classification and release date; other descriptive fields remain editable.
 - UC-13.4: Delete Movie — use **Xóa** and confirm. Movies referenced by any showtime are blocked. Other movies are soft deleted with `deletedAt`/`deletedBy`; references and audit history are retained, and the movie is hidden from public/Admin catalogues and cannot be booked.
-- UC-15.2 / UC-15.6: View F&B / Promotions — Admin lists at `/admin/foods` and `/admin/promotions` include inactive/expired records, details, literal title/code search and pagination.
 - UC-15.1 / UC-15.5: Add F&B / Promotion — Admin-only forms at `/admin/foods/new` and `/admin/promotions/new`.
+- UC-15.2 / UC-15.6: View F&B / Promotions — Admin lists at `/admin/foods` and `/admin/promotions` include inactive/expired records, details, literal title/code search and pagination.
 - UC-15.3 / UC-15.7: Update F&B / Promotion — use **Sửa**. Version checks reject stale edits; sales increment the Food version so an old Admin form cannot overwrite freshly deducted stock.
+- UC-15.4 / UC-15.8: Delete F&B / Promotion — use **Xóa** and confirm. Soft deletion hides records from sale/eligibility while preserving references, recorded sale prices, audit fields and historical promotion codes.
 - Sign in at `/admin/login`, then choose **Quản lý phim** or open `/admin/movies`.
 - Choose **Thêm phim** to open `/admin/movies/new`; Cancel returns without saving.
 - Movie media uses existing local asset paths or HTTP(S) URLs; file upload is not included.
 - Existing seeded movies keep their `ageLimit`; new movies also store the classification (`P`, `K`, `T13`, `T16`, `T18`, `C`). C movies are excluded from the public catalogue and rejected at booking.
 - API: `GET /api/movies/admin?search=&page=1&limit=10` and `POST /api/movies` require an active Admin session. Public `GET /api/movies` keeps its array response.
 - Run `npm run test:movies -w backend` with MongoDB running. Tests create and remove their own temporary database and do not change `booking_cinema`.
+
+### UC-15: F&B and promotion configuration
+
+- In the Admin dashboard, choose **Quản lý F&B** or **Quản lý khuyến mãi**. Both lists support Add, details, Edit, Cancel, confirmed Delete, empty states and retry after retrieval failures.
+- F&B fields: name, description, image URL/local path, whole-VND price, integer stock and availability. Active names must be unique, ignoring case. Legacy items without stock can be edited to establish their starting inventory.
+- Open counter orders (pending, payment received or reconciliation) and unexpired pending ticket orders protect products from deletion. Such products cannot change price/availability or reduce stock; replenishment and descriptive edits are allowed. Completed counter receipts retain their original item names and prices.
+- Promotion fields: unique uppercase code, name/description, percentage (1–100) or fixed VND discount, minimum order value, optional percentage discount cap, scope (food/ticket/all), explicit stacking choice, start/end, optional total usage limit and activation flag. Empty usage limit/cap means unlimited. Codes remain reserved after deletion for historical traceability.
+- Start/end fields are entered/displayed in Vietnam time (UTC+7), sent with an explicit offset and stored as UTC. End must be after start. Admin can manage past/future campaigns; the public eligibility list excludes paused, future, expired, exhausted and deleted records.
+- `usedCount` is server-owned and cannot be changed through Admin requests. A usage limit cannot be lowered below usage already recorded. After use, code, discount type/value and scope are locked. Creates/updates/deletes record the acting Admin; failed or cancelled requests do not change financial history.
+- API for each resource (`foods` or `promotions`): protected `GET /api/<resource>/admin`, `GET /api/<resource>/admin/:id`, `POST /api/<resource>`, `PUT /api/<resource>/:id`, `DELETE /api/<resource>/:id`. Update/Delete require the loaded `version` (`__v`). Writes require JSON and reject cross-site/untrusted-origin requests.
+- Public `GET /api/foods` keeps its array response and returns only non-deleted available items. `GET /api/promotions?scope=food` returns currently eligible campaign candidates (also supports `ticket` or `all`). These endpoints configure/expose campaign rules; they do not apply or redeem a discount.
+- Checkout integration (UC-9.2/UC-9.3) must calculate discounts against eligible items, clamp discounts to the eligible amount, enforce stacking and atomically recheck dates/limits and increment `usedCount` plus `__v` with paid settlement. Existing point payments and the cash-only F&B screen do not automatically apply promotion codes in this change.
+- Run `npm run test:catalogue -w backend` or `npm test -w backend`. Tests cover all eight Admin operations, authorization, validation, duplicate/concurrent creates, stale inventory, protected orders, campaign eligibility, preserved history and safe errors in temporary databases.
 
 ### UC-11: Standalone food and drink sales
 

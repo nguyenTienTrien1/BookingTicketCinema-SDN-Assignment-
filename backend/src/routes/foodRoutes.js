@@ -14,4 +14,5 @@ router.get('/admin', controller.foods);
 router.get('/admin/:id', controller.food);
 router.post('/', controller.protectWrite, controller.createFood);
 router.put('/:id', controller.protectWrite, controller.updateFood);
+router.delete('/:id', controller.protectWrite, controller.deleteFood);
 export default router;
