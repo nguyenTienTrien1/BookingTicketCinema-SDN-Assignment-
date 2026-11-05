@@ -1,5 +1,11 @@
 # BookingTicketCinema-SDN-Assignment
 
+## UC-7.3 View Booking History (NhaNTK)
+- Members open `/bookings` from their dashboard or the account area's "Lịch sử đặt vé" section.
+- `GET /api/bookings` uses the authenticated Member, ignores client-supplied user IDs, and returns owned orders newest first, including cancelled and expired orders.
+- History shows order/payment statuses, showtime, seats, food quantities, points discount and totals. Reading history never changes a booking, seat hold or points balance. Missing catalogue references do not remove historical orders.
+- Run `npm run test:booking-history -w backend`. Tests use and remove their own temporary database, leaving `booking_cinema` unchanged.
+
 ## Run backend
 1. Install MongoDB and make sure it is running.
 2. `cd backend`
