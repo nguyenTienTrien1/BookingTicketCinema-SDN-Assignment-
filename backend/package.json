@@ -18,7 +18,8 @@
     "test:booking-history": "node --test test_booking_history.js",
     "test:member-search": "node --test test_member_search.js",
     "test:revenue": "node --test test_revenue.js",
-    "test": "node --test test_movies.js test_profile.js test_regression.js test_food_sales.js test_showtimes.js test_booking_history.js test_member_search.js test_catalogue.js test_revenue.js"
+    "test:tickets": "node --test test_tickets.js",
+    "test": "node --test test_movies.js test_profile.js test_regression.js test_food_sales.js test_showtimes.js test_booking_history.js test_member_search.js test_catalogue.js test_revenue.js test_tickets.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -28,6 +29,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.19.3",
-    "nodemailer": "^10.2.1"
+    "nodemailer": "^10.2.1",
+    "qrcode": "^1.5.4"
   }
 }

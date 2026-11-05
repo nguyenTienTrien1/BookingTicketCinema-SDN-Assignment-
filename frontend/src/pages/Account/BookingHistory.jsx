@@ -97,6 +97,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                             </div>
                             <div className="myTicketFooter">
                                 <div><span>Tổng tiền đơn</span><strong>{Number(booking.total || 0).toLocaleString('vi-VN')}₫</strong></div>
+                                {booking.status === 'paid' && <Link className="historyLink" to={`/bookings/${booking._id}/tickets`}>Xem vé QR</Link>}
                                 {status.className === 'pending' && onContinuePayment && <button type="button" className="primary" onClick={() => onContinuePayment(booking)}>Thanh toán tiếp</button>}
                                 {status.className === 'expired' && booking.status === 'pending' && onBookAgain && <button type="button" className="ghost" onClick={onBookAgain}>Đặt lại vé</button>}
                             </div>

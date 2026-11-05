@@ -13,6 +13,13 @@
 - Uses existing Express/Mongoose/React and a native SVG chart with a visible data table; no additional packages. New files: revenue route/controller/service, `RevenueEntry` and `RevenueReport` models, Admin page/CSS, frontend service, and `backend/test_revenue.js`.
 - Checks: `npm run test:revenue -w backend`, `npm test -w backend`, `npm run build`. Integration tests create/remove their own unique temporary database and leave cinema data unchanged.
 
+## UC-7.2 QR tickets (NhaNTK)
+- Members open **Xem ve QR** from /bookings or after simulated payment to /bookings/:id/tickets. Only the authenticated owner can view their tickets. Every paid seat has a persistent 128-bit random reference and downloadable QR PNG containing no personal data.
+- Tickets and a showtime snapshot are embedded in Booking. The simulator issues tickets with its Paid update; legacy eligible paid orders initialize them once using a conditional update. Repeated/concurrent viewing preserves references and does not change check-in status. Used, revoked or expired tickets display status without usable QR.
+- Verified tickets require a matching trusted RevenueEntry payment, no confirmed refund, matching VND amount, method, evidence and original hold deadline. The existing payment simulator only issues clearly labelled demo tickets, disabled in production; Paid flags alone never establish verified admission. No settlement or revenue evidence is invented.
+- Admission defaults are 30 minutes before through 15 minutes after showtime; optional CHECKIN_OPEN_MINUTES and CHECKIN_CLOSE_MINUTES configure whole minutes from 0 to 180. The agreed connection/port configuration is unchanged.
+- GET /api/bookings/:id/tickets requires an authenticated Member and uses Cache-Control: no-store. QR generation uses qrcode. Run npm run test:tickets -w backend; tests use and remove an isolated temporary database. Build with npm run build.
+
 ## UC-7.3 View Booking History (NhaNTK)
 - Members open `/bookings` from their dashboard or the account area's "Lịch sử đặt vé" section.
 - `GET /api/bookings` uses the authenticated Member, ignores client-supplied user IDs, and returns owned orders newest first, including cancelled and expired orders.

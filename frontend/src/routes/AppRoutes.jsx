@@ -19,6 +19,7 @@ import FoodCounter from '../pages/Booking/FoodCounter';
 import ManageCatalogue from '../pages/Admin/ManageCatalogue';
 import Profile from '../pages/Account/Profile';
 import BookingHistoryPage from '../pages/Account/BookingHistory';
+import BookingTickets from '../pages/Account/BookingTickets';
 import MemberSearch from '../pages/Booking/MemberSearch';
 
 /**
@@ -27,6 +28,7 @@ import MemberSearch from '../pages/Booking/MemberSearch';
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/bookings/:id/tickets" element={<ProtectedRoute allowedRoles={['member']}><BookingTickets /></ProtectedRoute>} />
       <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueDashboard /></ProtectedRoute>} />
       <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />

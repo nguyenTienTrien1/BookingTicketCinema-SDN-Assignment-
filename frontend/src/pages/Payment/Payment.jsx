@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { applyPoints, payBooking } from '../../services/bookingService';
 import { translateFoodName } from '../../utils/uiText';
 
@@ -112,7 +113,7 @@ export default function Payment({ user, setUser, pending, onDone, setMsg, setTab
                             <span>VÉ ĐIỆN TỬ</span>
                             <strong>{booking._id}</strong>
                         </div>
-                        <div className="qrBox" aria-label="Mã QR vé mô phỏng">QR</div>
+                        <Link className="historyLink" to={`/bookings/${booking._id}/tickets`}>Xem mã QR từng vé</Link>
                         <p><strong>Phim:</strong> {booking.showtime?.movie?.title || 'Phim'}</p>
                         <p><strong>Rạp:</strong> {booking.showtime?.cinema || '—'}</p>
                         <p><strong>Ngày:</strong> {booking.showtime ? new Date(booking.showtime.startTime).toLocaleString('vi-VN') : '—'}</p>

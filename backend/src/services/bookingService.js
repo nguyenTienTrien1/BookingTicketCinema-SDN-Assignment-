@@ -4,6 +4,7 @@ import Showtime from '../models/Showtime.js';
 import Food from '../models/Food.js';
 import User from '../models/User.js';
 import Movie from '../models/Movie.js';
+import { prepareDemoTickets } from './ticketService.js';
 
 const SEAT_HOLD_MINUTES = 10;
 const POINT_VALUE = 1000;
@@ -209,6 +210,7 @@ export async function pay(bookingId, userId, method = 'mock') {
     throw bookingError('Thời gian giữ ghế 10 phút đã hết. Vui lòng chọn lại ghế.', 410);
   }
 
+  const ticketIssue = await prepareDemoTickets(booking);
   const pointDeduction = booking.pointsUsed || 0;
   if (pointDeduction > 0) {
     const deduction = await User.updateOne(
@@ -259,7 +261,8 @@ export async function pay(bookingId, userId, method = 'mock') {
         status: 'paid',
         paymentStatus: 'paid',
         paymentMethod: method,
-        paymentRef: `PAY-${Date.now()}`
+        paymentRef: `PAY-${Date.now()}`,
+        ...ticketIssue
       }
     },
     { new: true }

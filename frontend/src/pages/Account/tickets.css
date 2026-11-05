@@ -1,0 +1,15 @@
+.ticketSummary, .issuedTicket { padding: 24px; margin-bottom: 22px; }
+.ticketSummary h2 { margin-top: 0; overflow-wrap: anywhere; }
+.ticketSummary p, .issuedTicket p, .checkInHint { color: #b9c0d1; line-height: 1.65; }
+.ticketGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 22px; }
+.issuedTicket { text-align: center; min-width: 0; }
+.issuedTicketHeading { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.issuedTicketHeading h2 { margin: 0; }
+.issuedTicketHeading span { color: #b9c0d1; }
+.issuedTicketQr { display: block; margin: 0 auto; max-width: 100%; height: auto; background: #fff; border-radius: 8px; }
+.ticketCode { overflow-wrap: anywhere; font-family: monospace; user-select: all; }
+.ticketNoticeBanner { padding: 16px 20px; border: 1px solid #77602d; border-radius: 10px; line-height: 1.65; }
+.ticketDemo { background: #3b2c16; color: #f8d38b; }
+.ticketNoQr { padding: 60px 12px; }
+.ticketPage :focus-visible { outline: 3px solid #fb7185; outline-offset: 3px; }
+@media (max-width: 560px) { .ticketSummary, .issuedTicket { padding: 18px; } }
