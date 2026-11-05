@@ -46,6 +46,7 @@ Admin: `admin@cinema.com` / `admin123`
 - UC-13.4: Delete Movie — use **Xóa** and confirm. Movies referenced by any showtime are blocked. Other movies are soft deleted with `deletedAt`/`deletedBy`; references and audit history are retained, and the movie is hidden from public/Admin catalogues and cannot be booked.
 - UC-15.2 / UC-15.6: View F&B / Promotions — Admin lists at `/admin/foods` and `/admin/promotions` include inactive/expired records, details, literal title/code search and pagination.
 - UC-15.1 / UC-15.5: Add F&B / Promotion — Admin-only forms at `/admin/foods/new` and `/admin/promotions/new`.
+- UC-15.3 / UC-15.7: Update F&B / Promotion — use **Sửa**. Version checks reject stale edits; sales increment the Food version so an old Admin form cannot overwrite freshly deducted stock.
 - Sign in at `/admin/login`, then choose **Quản lý phim** or open `/admin/movies`.
 - Choose **Thêm phim** to open `/admin/movies/new`; Cancel returns without saving.
 - Movie media uses existing local asset paths or HTTP(S) URLs; file upload is not included.

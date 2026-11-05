@@ -100,7 +100,7 @@ export async function payFoodSale(id, input, employeeId) {
       for (const item of current.items) {
         const result = await Food.updateOne(
           { _id: item.food, available: true, price: item.unitPrice, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } }, { session }
+          { $inc: { stock: -item.quantity, __v: 1 } }, { session }
         );
         if (result.modifiedCount !== 1) throw saleError('Giá hoặc tồn kho đã đổi sau khi thu tiền. Cần đối soát, không thu thêm.', 409);
       }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { listCatalogue, getCatalogueItem, createCatalogueItem } from '../../services/catalogueService';
+import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueItem } from '../../services/catalogueService';
 import './movies.css';
 import './catalogue.css';
 
@@ -68,7 +68,7 @@ function CatalogueList({ kind }) {
           <div className="movieTableWrap"><table className="movieTable catalogueTable">
             <caption className="movieSrOnly">Danh sách {label(kind)}</caption>
             <thead><tr><th scope="col">{kind === 'foods' ? 'Sản phẩm' : 'Khuyến mãi'}</th><th scope="col">{kind === 'foods' ? 'Giá bán' : 'Mức giảm'}</th>
-              <th scope="col">{kind === 'foods' ? 'Tồn kho' : 'Thời hạn (giờ VN)'}</th><th scope="col">Trạng thái</th></tr></thead>
+              <th scope="col">{kind === 'foods' ? 'Tồn kho' : 'Thời hạn (giờ VN)'}</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
             <tbody>{result.items.map((item) => <tr key={item._id}>
               <td><strong>{item.name}</strong>{kind === 'promotions' && <p className="catalogueCode">{item.code}</p>}
                 <details><summary>Chi tiết</summary><p className="movieDescription">{item.description || 'Chưa có mô tả.'}</p>
@@ -82,7 +82,7 @@ function CatalogueList({ kind }) {
               <td>{kind === 'foods' ? money(item.price) : <>{item.discountType === 'percentage' ? `${item.value}%` : money(item.value)}</>}</td>
               <td>{kind === 'foods' ? item.stock : <>{dateText(item.startsAt)}<br />đến {dateText(item.endsAt)}</>}</td>
               <td><span className="movieBadge">{kind === 'foods' ? (item.available ? 'Đang bán' : 'Ngừng bán') : promotionState(item)}</span></td>
-
+              <td><Link className="movieSecondary" to={`/admin/${kind}/${item._id}/edit`} aria-label={`Sửa ${item.name}`}>Sửa</Link></td>
             </tr>)}</tbody>
           </table></div>}
         {result.totalPages > 1 && <nav className="moviePagination" aria-label="Phân trang danh mục">
@@ -141,7 +141,7 @@ function CatalogueForm({ kind, editing }) {
         minOrder: Number(form.minOrder), maxDiscount: form.discountType === 'percentage' && form.maxDiscount !== '' ? Number(form.maxDiscount) : null,
         scope: form.scope, stackable: form.stackable === 'true', startsAt: `${form.startsAt}:00+07:00`, endsAt: `${form.endsAt}:00+07:00`,
         usageLimit: form.usageLimit === '' ? null : Number(form.usageLimit), active: form.active, version: form.version };
-      const result = await createCatalogueItem(kind, data);
+      const result = editing ? await updateCatalogueItem(kind, id, data) : await createCatalogueItem(kind, data);
       navigate(`/admin/${kind}`, { replace: true, state: { message: `${editing ? 'Đã cập nhật' : 'Đã thêm'} “${result.name}”.` } });
     } catch (err) { setError(err.message); requestAnimationFrame(() => errorRef.current?.focus()); }
     finally { submitting.current = false; setSaving(false); }
@@ -191,7 +191,7 @@ function CatalogueForm({ kind, editing }) {
   </div></main>;
 }
 
-export default function ManageCatalogue({ kind, creating = false }) {
-  if (creating) return <CatalogueForm key={kind} kind={kind} editing={false} />;
+export default function ManageCatalogue({ kind, editing = false, creating = false }) {
+  if (editing || creating) return <CatalogueForm key={`${kind}-${editing}`} kind={kind} editing={editing} />;
   return <CatalogueList key={kind} kind={kind} />;
 }

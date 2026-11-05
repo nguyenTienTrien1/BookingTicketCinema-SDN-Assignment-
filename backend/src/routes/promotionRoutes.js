@@ -9,4 +9,5 @@ router.use(verifyToken, requireRole('admin'));
 router.get('/admin', controller.promotions);
 router.get('/admin/:id', controller.promotion);
 router.post('/', controller.protectWrite, controller.createPromotion);
+router.put('/:id', controller.protectWrite, controller.updatePromotion);
 export default router;

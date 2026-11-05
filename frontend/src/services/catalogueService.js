@@ -8,3 +8,5 @@ export function listCatalogue(kind, search, page) {
 export const getCatalogueItem = (kind, id) => api(`/${kind}/admin/${id}`);
 
 export const createCatalogueItem = (kind, data) => api(`/${kind}`, { method: 'POST', body: JSON.stringify(data) });
+
+export const updateCatalogueItem = (kind, id, data) => api(`/${kind}/${id}`, { method: 'PUT', body: JSON.stringify(data) });

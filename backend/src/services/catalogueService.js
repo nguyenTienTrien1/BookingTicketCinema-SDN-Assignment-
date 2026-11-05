@@ -48,6 +48,11 @@ function media(value) {
 
 function escaped(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+function version(body) {
+  checkBody(body);
+  integer(body.version, 'Phiên bản', 0, Number.MAX_SAFE_INTEGER);
+}
+
 async function findRecord(Model, id) {
   if (typeof id !== 'string' || !mongoose.isObjectIdOrHexString(id)) throw invalid('Mã bản ghi không hợp lệ.');
   const record = await Model.findOne({ _id: id, deletedAt: null });
@@ -94,11 +99,33 @@ async function checkFoodName(data, excludeId) {
   if (await Food.exists(filter)) throw invalid('Tên sản phẩm đã tồn tại.', 409);
 }
 
+async function openFoodOrder(id) {
+  if (await FoodSale.exists({ 'items.food': id, status: { $in: ['pending', 'payment_received', 'reconciliation'] } })) return true;
+  return Boolean(await Booking.exists({ 'foodItems.food': id, status: 'pending', $or: [
+    { expiresAt: { $gt: new Date() } }, { expiresAt: null }
+  ] }));
+}
+
 export async function createFood(body, adminId) {
   const data = foodData(body);
   await Food.init();
   await checkFoodName(data);
   return Food.create({ ...data, createdBy: adminId });
+}
+
+export async function updateFood(id, body, adminId) {
+  version(body);
+  const current = await getFood(id);
+  const data = foodData(body);
+  if ((data.price !== current.price || data.available !== current.available || data.stock < current.stock) && await openFoodOrder(id)) {
+    throw invalid('Sản phẩm có đơn đang xử lý. Không thể đổi giá, trạng thái bán hoặc giảm tồn kho.', 409);
+  }
+  await checkFoodName(data, id);
+  const stockFilter = current.stock === 0 ? { $or: [{ stock: 0 }, { stock: { $exists: false } }] } : { stock: current.stock };
+  const record = await Food.findOneAndUpdate({ _id: id, deletedAt: null, __v: body.version, ...stockFilter },
+    { $set: { ...data, updatedBy: adminId }, $inc: { __v: 1 } }, { new: true, runValidators: true });
+  if (!record) throw invalid('Thông tin hoặc tồn kho đã thay đổi. Vui lòng tải lại trước khi lưu.', 409);
+  return record;
 }
 
 function date(value, name) {
@@ -138,6 +165,21 @@ export async function createPromotion(body, adminId) {
   const data = promotionData(body);
   await Promotion.init();
   return Promotion.create({ ...data, createdBy: adminId });
+}
+
+export async function updatePromotion(id, body, adminId) {
+  version(body);
+  const current = await getPromotion(id);
+  const data = promotionData(body);
+  if (data.usageLimit !== null && data.usageLimit < current.usedCount) throw invalid('Giới hạn sử dụng không được nhỏ hơn số lượt đã dùng.');
+  if (current.usedCount > 0 && (data.code !== current.code || data.discountType !== current.discountType ||
+      data.value !== current.value || data.scope !== current.scope)) {
+    throw invalid('Khuyến mãi đã được dùng: không thể đổi mã, loại giảm, mức giảm hoặc phạm vi.', 409);
+  }
+  const record = await Promotion.findOneAndUpdate({ _id: id, deletedAt: null, __v: body.version, usedCount: current.usedCount },
+    { $set: { ...data, updatedBy: adminId }, $inc: { __v: 1 } }, { new: true, runValidators: true });
+  if (!record) throw invalid('Khuyến mãi hoặc số lượt sử dụng đã thay đổi. Vui lòng tải lại.', 409);
+  return record;
 }
 
 export async function availablePromotions(query) {

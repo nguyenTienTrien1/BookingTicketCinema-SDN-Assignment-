@@ -30,6 +30,10 @@ export async function createFood(req, res, next) {
   try { res.status(201).json(await service.createFood(req.body, req.user._id)); } catch (error) { handleError(error, next, 'food'); }
 }
 
+export async function updateFood(req, res, next) {
+  try { res.json(await service.updateFood(req.params.id, req.body, req.user._id)); } catch (error) { handleError(error, next, 'food'); }
+}
+
 export async function promotions(req, res, next) {
   try { res.json(await service.listPromotions(req.query)); } catch (error) { handleError(error, next, 'promotion'); }
 }
@@ -40,6 +44,10 @@ export async function promotion(req, res, next) {
 
 export async function createPromotion(req, res, next) {
   try { res.status(201).json(await service.createPromotion(req.body, req.user._id)); } catch (error) { handleError(error, next, 'promotion'); }
+}
+
+export async function updatePromotion(req, res, next) {
+  try { res.json(await service.updatePromotion(req.params.id, req.body, req.user._id)); } catch (error) { handleError(error, next, 'promotion'); }
 }
 
 export async function availablePromotions(req, res, next) {

@@ -13,4 +13,5 @@ router.use(verifyToken, requireRole('admin'));
 router.get('/admin', controller.foods);
 router.get('/admin/:id', controller.food);
 router.post('/', controller.protectWrite, controller.createFood);
+router.put('/:id', controller.protectWrite, controller.updateFood);
 export default router;
