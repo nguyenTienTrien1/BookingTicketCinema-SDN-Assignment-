@@ -4,7 +4,7 @@ import { requireRole } from '../middleware/auth/requireRole.js';
 import * as controller from '../controllers/memberController.js';
 
 const router = Router();
-router.use(verifyToken, requireRole('employee'));
+router.use(verifyToken, requireRole('employee', 'admin'));
 router.get('/search', controller.search);
 router.get('/:id', controller.detail);
 export default router;

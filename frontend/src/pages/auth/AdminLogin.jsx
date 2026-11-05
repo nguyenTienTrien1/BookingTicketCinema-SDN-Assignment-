@@ -1,11 +1,7 @@
-import React from 'react';
-import LoginForm from '../../components/auth/LoginForm';
+import { Navigate, useLocation } from 'react-router-dom';
 
-/**
- * Admin Login Page
- * Route: /admin/login
- */
+// Keep old links working while using the shared login page.
 export default function AdminLogin() {
-  return <LoginForm portalType="admin" />;
+  const location = useLocation();
+  return <Navigate to="/login" state={location.state} replace />;
 }
-

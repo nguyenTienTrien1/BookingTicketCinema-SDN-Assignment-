@@ -46,8 +46,8 @@ test('UC-5.1 Update Profile, UC-5.2 Change Password, UC-5.3 View Profile', async
     return { status: response.status, data: await response.json(), headers: response.headers };
   }
 
-  await t.test('authentication and member role required for all three endpoints', async () => {
-    for (const [session, expected] of [[null, 401], ['invalid-token', 401], [token(inactive), 401], [token(admin), 403], [token(employee), 403]]) {
+  await t.test('active authenticated session required for all three endpoints', async () => {
+    for (const [session, expected] of [[null, 401], ['invalid-token', 401], [token(inactive), 401]]) {
       for (const [method, path] of [['GET', '/users/me'], ['PATCH', '/users/me'], ['PATCH', '/users/me/password']]) {
         const result = await request(method, path, method === 'GET' ? undefined : {}, session);
         assert.equal(result.status, expected);
@@ -60,6 +60,29 @@ test('UC-5.1 Update Profile, UC-5.2 Change Password, UC-5.3 View Profile', async
     assert.equal(result.data.user._id, String(member._id));
     for (const key of ['password', 'verificationToken', 'verificationExpires', 'tokenVersion', 'failedLoginAttempts']) {
       assert.equal(key in result.data.user, false);
+    }
+  });
+  await t.test('Admin and Employee can edit their own profile and password without changing roles or other accounts', async () => {
+    for (const role of ['admin', 'employee']) {
+      const currentPassword = 'Original123';
+      const staff = await User.create({ fullName: role, email: randomUUID() + '@profile.test', role, password: currentPassword, status: 'Active' });
+      const session = token(staff);
+      const profile = await request('GET', '/users/me', undefined, session);
+      assert.equal(profile.status, 200);
+      assert.equal(profile.data.user._id, staff.id);
+      assert.equal(profile.data.user.role, role);
+      assert.equal(profile.data.user.password, undefined);
+      assert.equal((await request('PATCH', '/users/me', { fullName: 'Updated ' + role }, session)).status, 200);
+      assert.equal((await request('PATCH', '/users/me', { role: 'admin', memberPoints: 999 }, session)).status, 400);
+      assert.equal((await User.findById(staff.id)).role, role);
+      assert.equal((await User.findById(member.id)).fullName, 'Profile Member');
+      assert.equal((await request('PATCH', '/users/me/password', {
+        currentPassword, newPassword: 'NewPassword123', confirmPassword: 'NewPassword123'
+      }, session)).status, 200);
+      assert.equal((await request('GET', '/users/me', undefined, session)).status, 401);
+      const login = await request('POST', '/auth/login', { email: staff.email, password: 'NewPassword123' }, null);
+      assert.equal(login.status, 200);
+      assert.equal(login.data.user.role, role);
     }
   });
   await t.test('update persists allowed fields and leaves another member unchanged', async () => {

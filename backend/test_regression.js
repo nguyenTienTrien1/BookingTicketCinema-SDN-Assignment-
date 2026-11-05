@@ -1,3 +1,5 @@
+// Explicit legacy/custom step coverage; the configured application default is 100.
+process.env.POINT_REDEEM_STEP='1';
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -27,6 +29,15 @@ test('API authorization and booking regression', async (t) => {
   const member = await User.create({ fullName: 'Member', email: 'member@test.local', password: 'password123', status: 'Active' });
   const other = await User.create({ fullName: 'Other', email: 'other@test.local', password: 'password123', status: 'Active' });
   async function request(path, user, method = 'GET', body) {
+    // Fixtures use the explicit development-only simulator, not a provider success claim.
+    if (path.endsWith('/pay') && body?.method === 'demo' && path.startsWith('/counter')) {
+      const id = path.split('/').at(-2); const order = await Booking.findById(id);
+      body = { ...body, receivedAmount: order?.total || 0 };
+    }
+    if (path.endsWith('/status') && body && body.expectedStatus === undefined) {
+      const id = path.split('/').at(-2);
+      if (mongoose.isObjectIdOrHexString(id)) { const account = await User.findById(id); body = { ...body, expectedStatus: account?.status || 'Active' }; }
+    }
     const headers = { 'Content-Type': 'application/json' };
     if (user) headers.Cookie = 'token=' + jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302');
     const res = await fetch('http://127.0.0.1:' + server.address().port + '/api' + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -47,9 +58,10 @@ test('API authorization and booking regression', async (t) => {
     process.env.NODE_ENV = 'test';
     try {
       const credentials = { email: 'registered@test.local', password: 'password123' };
-      const registered = await request('/auth/register', null, 'POST', { ...credentials, fullName: 'New Member' });
+      const registered = await request('/auth/register', null, 'POST', { ...credentials, fullName: 'New Member', role: 'admin', status: 'Active', memberPoints: 999 });
       assert.equal(registered.status, 201);
       assert.equal(registered.data.user.status, 'Pending Verification');
+      assert.equal(registered.data.user.role, 'member');
       assert.ok(registered.data.verificationLink);
       assert.equal((await request('/auth/login', null, 'POST', credentials)).status, 401);
       const resent = await request('/auth/resend-verification', null, 'POST', { email: credentials.email });
@@ -76,10 +88,10 @@ test('API authorization and booking regression', async (t) => {
       });
     }
   });
-  await t.test('member, admin and employee use the correct portal and receive HttpOnly sessions', async () => {
+  await t.test('one login authenticates every role, preserves HttpOnly sessions and ignores client role claims', async () => {
     const employee = await User.create({ fullName: 'Employee', email: 'employee@test.local', password: 'password123', role: 'employee' });
-    for (const [user, portal] of [[member, '/auth/login'], [admin, '/auth/admin/login'], [employee, '/auth/admin/login']]) {
-      const result = await request(portal, null, 'POST', { email: '  ' + user.email.toUpperCase() + '  ', password: 'password123' });
+    for (const [user, portal] of [[member, '/auth/login'], [admin, '/auth/login'], [employee, '/auth/login']]) {
+      const result = await request(portal, null, 'POST', { email: '  ' + user.email.toUpperCase() + '  ', password: 'password123', role: 'admin', portalType: 'admin' });
       assert.equal(result.status, 200);
       assert.equal(result.data.user._id, user.id);
       assert.equal(result.data.user.password, undefined);
@@ -90,8 +102,9 @@ test('API authorization and booking regression', async (t) => {
       assert.equal(restored.status, 200);
       assert.equal((await restored.json()).user.role, user.role);
     }
-    assert.equal((await request('/auth/login', null, 'POST', { email: admin.email, password: 'password123' })).status, 401);
-    assert.equal((await request('/auth/admin/login', null, 'POST', { email: member.email, password: 'password123' })).status, 401);
+    assert.equal((await request('/auth/login', null, 'POST', { email: admin.email, password: 'wrong-password' })).status, 401);
+    assert.equal((await request('/auth/admin/login', null, 'POST', { email: member.email, password: 'password123' })).status, 200);
+    assert.equal((await request('/auth/login', null, 'POST', { email: member.email, password: 'wrong-password', role: 'admin' })).status, 401);
     const loggedOut = await request('/auth/logout', member, 'POST', {});
     assert.equal(loggedOut.status, 200);
     assert.match(loggedOut.cookie, /token=;/);
@@ -147,7 +160,8 @@ test('API authorization and booking regression', async (t) => {
     const created = await request('/users', admin, 'POST', { fullName: 'Staff', email: 'staff@test.local', password: 'password123', role: 'employee', memberPoints: 999 });
     assert.equal(created.status, 201);
     assert.equal(created.data.password, undefined);
-    assert.equal(created.data.memberPoints, 0);
+    assert.equal(created.data.user.status, 'Pending Activation');
+    assert.equal((await User.findById(created.data.user._id)).memberPoints, 0);
     assert.equal((await request('/users/' + member.id + '/points', admin, 'PATCH', { points: 'bad' })).status, 400);
     assert.equal((await request('/users/bad/status', admin, 'PATCH', { status: 'Active' })).status, 400);
   });
@@ -167,6 +181,6 @@ test('API authorization and booking regression', async (t) => {
     assert.equal((await request('/bookings/' + created.data._id + '/pay', other, 'POST', { userId: member.id })).status, 404);
     assert.equal((await request('/bookings/' + created.data._id + '/pay', member, 'POST', { method: 'invalid' })).status, 400);
     assert.equal((await Booking.findById(created.data._id)).status, 'pending');
-    assert.equal((await request('/bookings/' + created.data._id + '/pay', member, 'POST', { method: 'mock' })).status, 200);
+    assert.equal((await request('/bookings/' + created.data._id + '/pay', member, 'POST', { method: 'demo' })).status, 200);
   });
 });

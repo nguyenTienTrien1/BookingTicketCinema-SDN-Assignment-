@@ -33,18 +33,21 @@
 - Run `npm run test:booking-history -w backend`. Tests use and remove their own temporary database, leaving `booking_cinema` unchanged.
 
 ## UC-8 Search Member Information (NhaNTK)
-- Employees open `/employee/members` from their dashboard, search by a complete email or phone number, then select a result for current contact, status and loyalty information.
+- Employees open `/employee/members`; Admins open `/admin/members` from their dashboard. Both search by a complete email or phone number, then select a result for current Member information.
 - `GET /api/members/search?q=...` matches email case-insensitively or phone formatting (`0901 234 567`, `+84 901 234 567`, `0084901234567`). It returns up to 20 matching Members with `hasMore` for ambiguous numbers. `GET /api/members/:id` rereads the selected Member.
-- Both endpoints require an active Employee session and expose only `_id`, `fullName`, `email`, `phone`, `status`, `memberPoints`, and `isVIP`. Staff accounts and credentials are excluded. Lookups do not change accounts; audit messages contain IDs and result counts, without search terms.
+- Both endpoints require an active Employee or Admin session. Employees receive only `_id`, `fullName`, `email`, `phone`, `status`, `memberPoints`, and `isVIP`; Admins additionally receive `age`, `gender`, `role`, `createdAt`, `updatedAt`, and `lastLogin`. Permissions use the authenticated database role, never client-supplied roles or field lists. Staff accounts, password hashes, tokens and security counters are excluded for both roles. Lookups do not change accounts; audit messages contain actor IDs/roles and result counts, without search terms.
 - Run `npm run test:member-search -w backend`. Tests use and remove a dedicated temporary database.
 
 ## Run backend
-1. Install MongoDB and make sure it is running.
+1. Install MongoDB Server and make sure `mongod` is on PATH.
 2. `cd backend`
 3. Copy `.env.example` to `.env`.
 4. `npm install`
-5. `npm run seed`
-6. `npm run dev`
+5. `npm run db:local` (starts the local replica set required for booking transactions).
+6. `npm run seed` (initial demo data only).
+7. `npm run dev`
+
+Payment uses an explicitly labelled simulation; no real money is collected. See [completed use cases and local setup](docs/UC_COMPLETION.md) for test results, points rules, inventory and staff activation.
 
 ## Run frontend
 1. `cd frontend`

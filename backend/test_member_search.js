@@ -23,29 +23,65 @@ test('UC-8 Search Member Information', async (t) => {
     t.after(() => new Promise((resolve) => server.close(resolve)));
     const base = `http://127.0.0.1:${server.address().port}/api`;
     const member = await User.create({ fullName: 'Member A', email: 'member+one@lookup.test', password: randomUUID(), phone: '0901234567', status: 'Active', memberPoints: 30, isVIP: true,
+        age: 25, gender: 'Female', lastLogin: new Date('2026-11-01T02:00:00Z'),
         verificationToken: 'PRIVATE-VERIFICATION', verificationExpires: new Date(Date.now() + 600000) });
     const international = await User.create({ fullName: 'Member B', email: 'international@lookup.test', password: randomUUID(), phone: '+84 (902) 345-678', status: 'Banned' });
     const employee = await User.create({ fullName: 'Employee', email: 'employee@lookup.test', password: randomUUID(), role: 'employee', phone: '0901234567' });
     const admin = await User.create({ fullName: 'Admin', email: 'admin@lookup.test', password: randomUUID(), role: 'admin', phone: '0901234567' });
     const inactive = await User.create({ fullName: 'Inactive employee', email: 'inactive@lookup.test', password: randomUUID(), role: 'employee', status: 'Inactive' });
-    function token(user) { return jwt.sign({ id: user._id, role: 'employee', tokenVersion: user.tokenVersion }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302', { expiresIn: '5m' }); }
+    const inactiveAdmin = await User.create({ fullName: 'Inactive admin', email: 'inactive-admin@lookup.test', password: randomUUID(), role: 'admin', status: 'Inactive' });
+    function token(user, claimedRole = 'employee') { return jwt.sign({ id: user._id, role: claimedRole, tokenVersion: user.tokenVersion }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302', { expiresIn: '5m' }); }
     async function request(path, session = token(employee)) {
         const response = await fetch(base + path, { headers: session ? { Cookie: `token=${session}` } : {} });
         return { status: response.status, data: await response.json() };
     }
     const searchPath = (query) => '/members/search?q=' + encodeURIComponent(query);
-    function assertPermittedFields(row) {
-        assert.deepEqual(Object.keys(row).sort(), ['_id', 'email', 'fullName', 'isVIP', 'memberPoints', 'phone', 'status'].sort());
+    function assertPermittedFields(row, viewerRole = 'employee') {
+        const fields = ['_id', 'email', 'fullName', 'isVIP', 'memberPoints', 'phone', 'status'];
+        if (viewerRole === 'admin') fields.push('age', 'gender', 'role', 'createdAt', 'updatedAt', 'lastLogin');
+        assert.deepEqual(Object.keys(row).sort(), fields.sort());
         assert.equal(JSON.stringify(row).includes('PRIVATE-VERIFICATION'), false);
     }
 
-    await t.test('only authenticated active Employees may search and read details', async () => {
-        for (const [session, expected] of [[null, 401], ['invalid', 401], [token(inactive), 401], [token(member), 403], [token(admin), 403]]) {
+    await t.test('only authenticated active Employees and Admins may search and read details', async () => {
+        for (const [session, expected] of [[null, 401], ['invalid', 401], [token(inactive), 401], [token(inactiveAdmin), 401], [token(member), 403], [token(admin), 200], [token(employee), 200]]) {
             for (const path of [searchPath(member.email), `/members/${member._id}`]) {
                 assert.equal((await request(path, session)).status, expected);
             }
         }
         assert.equal((await request('/users')).status, 403);
+    });
+    await t.test('Admins receive expanded profile and account activity fields without security data', async () => {
+        const search = await request(searchPath(member.email), token(admin));
+        assert.equal(search.status, 200);
+        assert.equal(search.data.members.length, 1);
+        assertPermittedFields(search.data.members[0], 'admin');
+        const result = await request(`/members/${member._id}`, token(admin));
+        assert.equal(result.status, 200);
+        assertPermittedFields(result.data.member, 'admin');
+        assert.equal(result.data.member.age, 25);
+        assert.equal(result.data.member.gender, 'Female');
+        assert.equal(result.data.member.role, 'member');
+        assert.equal(result.data.member.lastLogin, '2026-11-01T02:00:00.000Z');
+        assert.ok(result.data.member.createdAt);
+        assert.ok(result.data.member.updatedAt);
+    });
+    await t.test('Employee data stays restricted despite spoofed role claims or requested fields', async () => {
+        const session = token(employee, 'admin');
+        const suffix = '&role=admin&viewerRole=admin&fields=age,password,verificationToken';
+        const search = await request(searchPath(member.email) + suffix, session);
+        assert.equal(search.status, 200);
+        assertPermittedFields(search.data.members[0]);
+        const detail = await request(`/members/${member._id}?role=admin&fields=age,password`, session);
+        assertPermittedFields(detail.data.member);
+        // A previously issued Admin token also follows a later database role downgrade.
+        const adminSession = token(admin, 'admin');
+        await User.updateOne({ _id: admin._id }, { $set: { role: 'employee' } });
+        try {
+            const downgraded = await request(`/members/${member._id}`, adminSession);
+            assert.equal(downgraded.status, 200);
+            assertPermittedFields(downgraded.data.member);
+        } finally { await User.updateOne({ _id: admin._id }, { $set: { role: 'admin' } }); }
     });
     await t.test('email search ignores case and ordinary outside whitespace and treats symbols literally', async () => {
         const result = await request(searchPath('  MEMBER+ONE@LOOKUP.TEST  '));
@@ -72,9 +108,11 @@ test('UC-8 Search Member Information', async (t) => {
         assert.deepEqual((await request(searchPath('901234567'))).data.members, []);
     });
     await t.test('staff accounts are excluded from lookup results and detail access', async () => {
-        for (const user of [employee, admin]) {
-            assert.deepEqual((await request(searchPath(user.email))).data.members, []);
-            assert.equal((await request(`/members/${user._id}`)).status, 404);
+        for (const viewer of [employee, admin]) {
+            for (const user of [employee, admin]) {
+                assert.deepEqual((await request(searchPath(user.email), token(viewer))).data.members, []);
+                assert.equal((await request(`/members/${user._id}`, token(viewer))).status, 404);
+            }
         }
     });
     await t.test('missing, malformed, oversized and structured queries are rejected', async () => {

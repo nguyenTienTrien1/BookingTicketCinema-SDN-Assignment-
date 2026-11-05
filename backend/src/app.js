@@ -1,3 +1,4 @@
+import paymentRoutes from './routes/paymentRoutes.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -7,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import movieRoutes from './routes/movieRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
+import counterRoutes from './routes/counterRoutes.js';
 import promotionRoutes from './routes/promotionRoutes.js';
 import foodSaleRoutes from './routes/foodSaleRoutes.js';
 import memberRoutes from './routes/memberRoutes.js';
@@ -38,6 +40,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // 4. Authentication routes
+app.get('/api/config',(_req,res)=>res.json({pointValue:1000,pointRedeemStep:Number(process.env.POINT_REDEEM_STEP||100)}));
 app.use('/api/auth', authRoutes);
 
 // 5. Protected Dashboard Endpoints (Section 15 Requirements)
@@ -50,6 +53,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/foods', foodRoutes);
+app.use('/api/payments',paymentRoutes);
+app.use('/api/counter', counterRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/food-sales', foodSaleRoutes);
 app.use('/api/members', memberRoutes);
@@ -67,7 +72,7 @@ app.use((err, _req, res, _next) => {
     message = 'Thông tin nhập chưa hợp lệ. Vui lòng kiểm tra lại.';
   } else if (err.code === 11000) {
     message = 'Email này đã được sử dụng.';
-  } else if (status >= 500) {
+  } else if (status >= 500 && status !== 503) {
     message = 'Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.';
   }
 

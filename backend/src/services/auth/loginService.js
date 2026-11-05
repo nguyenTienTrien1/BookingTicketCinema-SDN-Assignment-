@@ -6,10 +6,10 @@ const GENERIC_AUTH_ERROR = 'Email hoặc mật khẩu không chính xác.';
 const DUMMY_HASH = '$2a$10$e8wM53zB6v0qG6/kF4g8/e6Q5dY8Z8t2b1a0.d9e8f7g6h5i4j3k2';
 
 /**
- * Authenticates user for Member/Employee portal or Admin portal
+ * Authenticates every supported account role through the shared login.
  * Follows UC-18, BR-1, BR-7, BR-8, BR-11
  */
-export async function authenticate(email, password, portalType = 'user') {
+export async function authenticate(email, password) {
   const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
   if (!normalizedEmail || typeof password !== 'string' || !password || Buffer.byteLength(password, 'utf8') > 72) {
@@ -57,23 +57,9 @@ export async function authenticate(email, password, portalType = 'user') {
     throw err;
   }
 
-  // 4. Role authorization check (BR-11)
-  if (portalType === 'admin') {
-    // Admin and Employee share the administration/staff portal (/admin/login)
-    if (account.role !== 'admin' && account.role !== 'employee') {
-      console.log(`[AUTH AUDIT] Failure: reason="ROLE_MISMATCH", required=admin/employee, actual=${account.role}, email=${normalizedEmail}`);
-      const err = new Error(GENERIC_AUTH_ERROR);
-      err.status = 401;
-      throw err;
-    }
-  } else {
-    // Member portal (/login)
-    if (account.role !== 'member') {
-      console.log(`[AUTH AUDIT] Failure: reason="ROLE_MISMATCH", required=member, actual=${account.role}, email=${normalizedEmail}`);
-      const err = new Error(GENERIC_AUTH_ERROR);
-      err.status = 401;
-      throw err;
-    }
+  // A single login accepts every supported account role. API authorization stays separate.
+  if (!['member', 'employee', 'admin'].includes(account.role)) {
+    throw Object.assign(new Error(GENERIC_AUTH_ERROR), { status: 401 });
   }
 
   // 5. Password verification using bcrypt (BR-1)

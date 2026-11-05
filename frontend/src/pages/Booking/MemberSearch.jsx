@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { searchMembers, getMember } from '../../services/memberService';
 import { translateAccountStatus } from '../../utils/uiText';
 import '../Admin/movies.css';
@@ -9,7 +10,15 @@ function accountStatus(status) {
     return status === 'Pending Verification' ? 'Chờ xác thực email' : translateAccountStatus(status);
 }
 
+function formatDate(value) {
+    if (!value) return 'Chưa có thông tin';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Chưa có thông tin' : date.toLocaleString('vi-VN');
+}
+
 export default function MemberSearch() {
+    const { user } = useAuth();
+    const isAdmin = user.role === 'admin';
     const [query, setQuery] = useState('');
     const [result, setResult] = useState(null);
     const [selected, setSelected] = useState(null);
@@ -78,10 +87,13 @@ export default function MemberSearch() {
 
     return <main className="movieAdmin memberSearch">
         <div className="movieAdminShell">
-            <Link className="movieBack" to="/employee/dashboard">← Bảng điều khiển nhân viên</Link>
+            <Link className="movieBack" to={isAdmin ? '/admin/dashboard' : '/employee/dashboard'}>
+                ← {isAdmin ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển nhân viên'}
+            </Link>
             <header className="movieAdminHeading">
-                <div><p className="movieEyebrow">QUẦY VÉ CINEMA+</p><h1>Tra cứu thành viên</h1>
-                    <p>Tìm bằng email hoặc số điện thoại, sau đó chọn thành viên để xem thông tin phục vụ tại quầy.</p></div>
+                <div><p className="movieEyebrow">{isAdmin ? 'QUẢN TRỊ CINEMA+' : 'QUẦY VÉ CINEMA+'}</p><h1>Tra cứu thành viên</h1>
+                    <p>{isAdmin ? 'Tìm bằng email hoặc số điện thoại để xem thông tin hồ sơ và hoạt động tài khoản thành viên.'
+                        : 'Tìm bằng email hoặc số điện thoại, sau đó chọn thành viên để xem thông tin phục vụ tại quầy.'}</p></div>
             </header>
             <section className="moviePanel" aria-label="Tra cứu thành viên">
                 <form className="memberSearchForm" onSubmit={search} noValidate>
@@ -125,6 +137,13 @@ export default function MemberSearch() {
                             <div><dt>Trạng thái tài khoản</dt><dd>{accountStatus(selected.status)}</dd></div>
                             <div><dt>Điểm thành viên</dt><dd>{Number(selected.memberPoints || 0).toLocaleString('vi-VN')} điểm</dd></div>
                             <div><dt>Hạng thành viên</dt><dd>{selected.isVIP ? 'VIP' : 'Thành viên thường'}</dd></div>
+                            {isAdmin && <>
+                                <div><dt>Tuổi</dt><dd>{selected.age ?? 'Chưa có thông tin'}</dd></div>
+                                <div><dt>Giới tính</dt><dd>{{ Male: 'Nam', Female: 'Nữ', Other: 'Khác' }[selected.gender] || 'Chưa có thông tin'}</dd></div>
+                                <div><dt>Ngày tạo tài khoản</dt><dd>{formatDate(selected.createdAt)}</dd></div>
+                                <div><dt>Cập nhật gần nhất</dt><dd>{formatDate(selected.updatedAt)}</dd></div>
+                                <div><dt>Đăng nhập gần nhất</dt><dd>{formatDate(selected.lastLogin)}</dd></div>
+                            </>}
                         </dl>}
                     </section>
                 </div>

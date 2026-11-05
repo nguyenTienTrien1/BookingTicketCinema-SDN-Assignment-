@@ -1,23 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import LoginInput from "./LoginInput";
 import "../../styles/auth/login.css";
-import MovieCard from "../MovieCard";
+import { loginDestination } from '../../utils/permissions';
 
-export default function LoginForm({ portalType = "user", onLoginSuccess, onCancelLogin }) {
+export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading: sessionLoading, error: sessionError } = useAuth();
-
-  // Lock window scroll completely while viewing login portal
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow || "auto";
-    };
-  }, []);
 
   // Form inputs initialized empty (no pre-filled credentials)
   const [email, setEmail] = useState("");
@@ -28,10 +19,7 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
   const [errorMessage, setErrorMessage] = useState("");
   const [infoToast, setInfoToast] = useState("");
 
-  const isAdminPortal = portalType === "admin";
-  const cardTitle = isAdminPortal
-    ? "Đăng nhập Quản trị & Nhân viên"
-    : "Đăng nhập vào tài khoản";
+  const cardTitle = "Đăng nhập tài khoản";
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -47,27 +35,14 @@ export default function LoginForm({ portalType = "user", onLoginSuccess, onCance
     setLoading(true);
 
     try {
-      const user = await login(email, password, portalType);
+      const user = await login(email, password);
 
-      if (onLoginSuccess) {
+      if (onLoginSuccess && user.role === 'member') {
         onLoginSuccess(user);
         return;
       }
 
-      const from = location.state?.from;
-      if (from?.pathname?.startsWith('/') && !from.pathname.startsWith('//')) {
-        navigate({ pathname: from.pathname, search: from.search || '', hash: from.hash || '' }, { replace: true });
-        return;
-      }
-
-      // Role-based redirect
-      if (user.role === "admin") {
-        navigate("/admin/dashboard", { replace: true });
-      } else if (user.role === "employee") {
-        navigate("/employee/dashboard", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+      navigate(loginDestination(user.role, location.state), { replace: true });
     } catch (err) {
       setErrorMessage(err.message || "Email hoặc mật khẩu không chính xác.");
     } finally {

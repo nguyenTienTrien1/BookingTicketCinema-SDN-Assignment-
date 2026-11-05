@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { createBooking } from '../../services/bookingService';
+import FoodPicker from '../../components/FoodPicker';
+import { useEffect, useMemo, useState } from 'react';
+import { createCounterBooking, searchMembers } from '../../services/counterService';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
@@ -87,35 +88,27 @@ function getPoster(movie) {
     return source || '';
 }
 
-export default function BookingCounter({ user, selected, showtimes, foods, movies, setTab, setMsg, setPending }) {
+export default function BookingCounter({ user, selected, showtimes, foods, movies, pointsPolicy, setTab, setMsg, setPending }) {
     const normalizedRole = String(user?.role || '').toLowerCase();
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
-    const [step, setStep] = useState(0);
-    const [cinema, setCinema] = useState('');
+    const [guardianConfirmed, setGuardianConfirmed] = useState(false);
+    const [step, setStep] = useState(selected?.startTime ? 2 : 0);
+    const [cinema, setCinema] = useState(selected?.cinema || '');
     const [movieId, setMovieId] = useState(selected?.movie?._id || selected?._id || '');
     const [showtimeId, setShowtimeId] = useState(selected?._id || '');
-    const [coupon, setCoupon] = useState('');
     const [pointsToUse, setPointsToUse] = useState(0);
+    const [bookingBusy, setBookingBusy] = useState(false);
+    const [memberSearch, setMemberSearch] = useState('');
+    const [selectedMember, setSelectedMember] = useState(null);
+    const [customerType, setCustomerType] = useState('guest');
     const [customerInfo, setCustomerInfo] = useState({
         fullName: '',
         email: '',
         phone: ''
     });
 
-    if (!user || !['admin', 'employee'].includes(normalizedRole)) {
-        return (
-            <section className="page">
-                <h2>Không có quyền đặt vé tại quầy</h2>
-                <p>Chỉ quản trị viên và nhân viên mới được phép đặt vé trực tiếp tại quầy.</p>
-                <button type="button" className="primary" onClick={() => setTab('booking')}>
-                    Về đặt vé trên app
-                </button>
-            </section>
-        );
-    }
-
-    const pointsBalance = Number(user?.memberPoints || 0);
+    const pointsBalance = Number(selectedMember?.memberPoints || 0);
     const cinemaOptions = useMemo(() => [...new Set(showtimes.map((s) => s.cinema).filter(Boolean))], [showtimes]);
 
     const moviesForCinema = useMemo(() => {
@@ -140,10 +133,28 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
         return showtimes.find((s) => s._id === showtimeId) || null;
     }, [showtimeId, showtimes]);
 
-    const subtotal = (currentShowtime?.price || 0) * seat.length + food.reduce((sum, item) => sum + (item.price || 0), 0);
-    const totalAfterCoupon = coupon === 'CINEMA10' ? Math.max(0, subtotal - 50000) : subtotal;
-    const pointsDiscount = Math.min(Number(pointsToUse || 0), pointsBalance) * 1000;
-    const finalTotal = Math.max(0, totalAfterCoupon - pointsDiscount);
+    useEffect(() => {
+        if (!currentShowtime) return;
+        setSeat(current => current.filter(number => currentShowtime.seats.some(item => item.number === number && item.status === 'available')));
+    }, [currentShowtime]);
+
+    const subtotal = (currentShowtime?.price || 0) * seat.length + food.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+    const pointStep = pointsPolicy?.pointRedeemStep || 100;
+    const maxPoints = Math.floor(Math.min(pointsBalance, Math.floor(subtotal / 1000)) / pointStep) * pointStep;
+    const pointsDiscount = Number(pointsToUse || 0) * 1000;
+    const finalTotal = Math.max(0, subtotal - pointsDiscount);
+
+    if (!user || !['admin', 'employee'].includes(normalizedRole)) {
+        return (
+            <section className="page">
+                <h2>Không có quyền đặt vé tại quầy</h2>
+                <p>Chỉ Admin và Employee được phép bán vé trực tiếp tại quầy.</p>
+                <button type="button" className="primary" onClick={() => setTab('booking')}>
+                    Về đặt vé trên app
+                </button>
+            </section>
+        );
+    }
 
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
@@ -211,12 +222,12 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
             return;
         }
         if (step === 3) {
-            if (!customerInfo.fullName || !customerInfo.phone) {
+            if (customerType === 'member' && !selectedMember) {
                 setMsg('Vui lòng nhập tên và số điện thoại khách hàng.');
                 return;
             }
-            if (Number(pointsToUse || 0) > pointsBalance) {
-                setMsg('Số điểm thưởng không được vượt quá điểm hiện có của staff/admin.');
+            if (!Number.isSafeInteger(Number(pointsToUse)) || Number(pointsToUse) < 0 || Number(pointsToUse) % pointStep !== 0 || Number(pointsToUse) > maxPoints) {
+                setMsg('Số điểm thưởng không được vượt quá điểm hiện có của khách hàng.');
                 return;
             }
         }
@@ -229,22 +240,31 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     }
 
     async function book() {
+        if (bookingBusy) return;
         if (!currentShowtime || !seat.length) {
             setMsg('Vui lòng chọn suất chiếu và ít nhất một ghế.');
             return;
         }
 
-        if (!customerInfo.fullName || !customerInfo.phone) {
+        if (customerType === 'member' && !selectedMember) {
             setMsg('Vui lòng nhập đầy đủ thông tin khách hàng khi đặt vé tại quầy.');
             return;
         }
 
+        if (!Number.isSafeInteger(Number(pointsToUse)) || Number(pointsToUse) < 0 || Number(pointsToUse) > maxPoints) {
+            setMsg('Điểm sử dụng phải là số nguyên không âm, không vượt số dư khách hàng hoặc giá trị đơn.');
+            return;
+        }
+        setBookingBusy(true);
         try {
-            const booking = await createBooking({
-                userId: user._id,
+            const booking = await createCounterBooking({
+                customerType,
+                memberId: customerType === 'member' ? selectedMember?._id : null,
+                points: Number(pointsToUse),
+                guardianConfirmed,
                 showtimeId: currentShowtime._id,
                 seats: seat,
-                foodItems: food.map((x) => ({ food: x._id, quantity: 1 }))
+                foodItems: food.map((x) => ({ food: x._id, quantity: x.quantity || 1 }))
             });
 
             setPending(booking);
@@ -252,6 +272,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
             setTab('payment');
         } catch (error) {
             setMsg(error.message);
+        } finally {
+            setBookingBusy(false);
         }
     }
 
@@ -387,20 +409,48 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
                 {step === 3 && (
                     <div className="checkoutSection">
-                        <h3>4. Thông tin khách hàng và điểm thưởng</h3>
+                        <h3>4. Chọn loại khách hàng</h3>
+                        <fieldset disabled={bookingBusy}>
+                            <legend>Thông tin Member là tùy chọn</legend>
+                            {['guest', 'member'].map((type) => <label key={type} style={{ marginRight: '20px' }}>
+                                <input type="radio" name="counterCustomerType" value={type} checked={customerType === type}
+                                    onChange={() => { setCustomerType(type); setSelectedMember(null); setMemberSearch(''); setCustomerInfo({ fullName: '', email: '', phone: '' }); setPointsToUse(0); }} />
+                                {type === 'guest' ? 'Khách vãng lai — không cung cấp thông tin' : 'Member — có sử dụng điểm'}
+                            </label>)}
+                        </fieldset>
+                        {customerType === 'guest' && <p>Không cần tên, email, số điện thoại hoặc tài khoản. Khách không sử dụng điểm Member; nhận vé ngay tại quầy sau khi thanh toán.</p>}
+                        {customerType === 'member' && (
                         <div className="checkoutForm">
                             <input
+                                aria-label="Email hoặc số điện thoại thành viên"
+                                value={memberSearch}
+                                onChange={(event) => { setMemberSearch(event.target.value); setSelectedMember(null); setCustomerInfo({ fullName: '', email: '', phone: '' }); setPointsToUse(0); }}
+                                placeholder="Email hoặc số điện thoại thành viên"
+                            />
+                            <button type="button" onClick={async () => {
+                                try {
+                                    const results = await searchMembers(memberSearch);
+                                    const member = results.find((item) => item.status === 'Active' || item.status === 'active');
+                                    if (!member) { setMsg('Không tìm thấy thành viên đang hoạt động.'); return; }
+                                    setSelectedMember(member);
+                                    setCustomerInfo(member);
+                                } catch (error) { setMsg(error.message); }
+                            }}>Tìm thành viên</button>
+                            <input
                                 value={customerInfo.fullName}
+                                readOnly
                                 onChange={(e) => setCustomerInfo((prev) => ({ ...prev, fullName: e.target.value }))}
                                 placeholder="Họ tên khách hàng"
                             />
                             <input
                                 value={customerInfo.phone}
+                                readOnly
                                 onChange={(e) => setCustomerInfo((prev) => ({ ...prev, phone: e.target.value }))}
                                 placeholder="Số điện thoại"
                             />
                             <input
                                 value={customerInfo.email}
+                                readOnly
                                 onChange={(e) => setCustomerInfo((prev) => ({ ...prev, email: e.target.value }))}
                                 placeholder="Địa chỉ email"
                             />
@@ -408,22 +458,20 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                 <input
                                     type="number"
                                     min="0"
-                                    max={pointsBalance}
+                                    max={maxPoints}
+                                    step={pointStep}
                                     value={pointsToUse}
                                     onChange={(e) => setPointsToUse(Math.max(0, Number(e.target.value) || 0))}
                                     placeholder="Điểm thưởng"
                                 />
-                                <button type="button" onClick={() => setPointsToUse(pointsBalance)}>
-                                    Dùng tối đa ({pointsBalance})
+                                <button type="button" onClick={() => setPointsToUse(maxPoints)}>
+                                    Dùng tối đa ({maxPoints})
                                 </button>
                             </div>
                             <p className="helperText">Điểm hiện có: <strong>{pointsBalance}</strong> điểm • 1 điểm = 1.000₫</p>
                         </div>
 
-                        <div className="couponBox">
-                            <input value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Mã giảm giá (nếu có)" />
-                            <button type="button" onClick={() => setCoupon('CINEMA10')}>Áp dụng</button>
-                        </div>
+                        )}
                     </div>
                 )}
 
@@ -431,8 +479,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                     <div className="checkoutSection">
                         <h3>5. Thanh toán</h3>
                         <div className="summaryCard">
-                            <p><strong>Khách hàng:</strong> {customerInfo.fullName || 'Chưa nhập'}</p>
-                            <p><strong>Số điện thoại:</strong> {customerInfo.phone || 'Chưa nhập'}</p>
+                            <p><strong>Khách hàng:</strong> {customerType === 'guest' ? 'Khách vãng lai' : customerInfo.fullName || 'Chưa chọn Member'}</p>
+                            {customerType === 'member' && <p><strong>Số điện thoại:</strong> {customerInfo.phone || 'Không có'}</p>}
                             <p><strong>Phim:</strong> {currentMovie?.title || 'Chưa chọn phim'}</p>
                             <p><strong>Rạp:</strong> {currentShowtime?.cinema || cinema}</p>
                             <p><strong>Suất chiếu:</strong> {currentShowtime ? new Date(currentShowtime.startTime).toLocaleString('vi-VN') : 'Chưa chọn'}</p>
@@ -440,35 +488,13 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <p><strong>Bắp nước:</strong> {food.length ? food.map((f) => translateFoodName(f.name)).join(', ') : 'Không gọi thêm'}</p>
                             <p><strong>Điểm thưởng:</strong> {pointsToUse.toLocaleString()} điểm (-{pointsDiscount.toLocaleString()}₫)</p>
                             <p><strong>Tổng tạm tính:</strong> {subtotal.toLocaleString()}₫</p>
-                            <p><strong>Giảm giá:</strong> {coupon === 'CINEMA10' ? '50.000₫' : '0₫'}</p>
                             <p><strong>Thành tiền:</strong> {finalTotal.toLocaleString()}₫</p>
                         </div>
 
-                        <div className="food">
-                            {foods.map((f) => {
-                                const isChosen = food.some((x) => x._id === f._id);
-                                return (
-                                    <button
-                                        key={f._id}
-                                        type="button"
-                                        className={isChosen ? 'foodItem chosen' : 'foodItem'}
-                                        onClick={() =>
-                                            setFood((x) =>
-                                                x.some((a) => a._id === f._id)
-                                                    ? x.filter((a) => a._id !== f._id)
-                                                    : [...x, f]
-                                            )
-                                        }
-                                    >
-                                        {foodImages[f.name] && <img src={foodImages[f.name]} alt={translateFoodName(f.name)} />}
-                                        <span>{translateFoodName(f.name)}</span>
-                                        <b>{f.price?.toLocaleString()}₫</b>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        <FoodPicker foods={foods} items={food} onChange={setFood} />
 
-                        <button type="button" className="primary full" onClick={book}>Thanh toán ngay</button>
+                        <label style={{display:'block',margin:'18px 0'}}><input type="checkbox" checked={guardianConfirmed} onChange={event=>setGuardianConfirmed(event.target.checked)} /> Tôi đã kiểm tra tuổi khách và điều kiện người giám hộ theo phân loại phim.</label>
+                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy}>Thanh toán ngay</button>
                     </div>
                 )}
 

@@ -39,9 +39,13 @@ const posters = {
     'avatar fire and ash': avatar
 };
 
-export default function MovieCard({ movie, onClick, onDetail }) {
+export function getMoviePoster(movie) {
     const normalizedTitle = String(movie.title || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    const poster = posters[normalizedTitle] || movie.poster || '';
+    return movie.poster?.startsWith('http') ? movie.poster : posters[normalizedTitle] || movie.poster || '';
+}
+
+export default function MovieCard({ movie, onClick, onDetail }) {
+    const poster = getMoviePoster(movie);
     const genreText = [
         ...(movie.genre?.slice(0, 2).map(translateGenre) || []),
         ...(movie.duration ? [`${movie.duration} phút`] : [])

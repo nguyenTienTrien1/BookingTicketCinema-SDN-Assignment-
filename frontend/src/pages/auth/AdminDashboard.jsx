@@ -18,7 +18,7 @@ export default function AdminDashboard() {
   async function handleLogout() {
     try {
       await logout();
-      navigate('/admin/login');
+      navigate('/login');
     } catch (err) {
       setError(err.message);
     }
@@ -87,6 +87,9 @@ export default function AdminDashboard() {
           Quản lý suất chiếu
         </Link>
 
+        <Link to="/admin/members" style={{ display: 'inline-block', backgroundColor: '#222631', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, marginRight: '12px', marginBottom: '12px' }}>
+          Tra cứu thành viên
+        </Link>
         <Link
           to="/"
           style={{

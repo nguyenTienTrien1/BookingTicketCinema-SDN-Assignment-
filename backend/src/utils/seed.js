@@ -135,7 +135,7 @@ await Food.insertMany([
         description: '1 bắp vừa + 1 nước',
         price: 59000,
         image: '/assets/foods/combo_mini.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -143,7 +143,7 @@ await Food.insertMany([
         description: '1 bắp lớn + 2 nước',
         price: 89000,
         image: '/assets/foods/combo_couple.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -151,7 +151,7 @@ await Food.insertMany([
         description: '2 bắp lớn + 4 nước',
         price: 159000,
         image: '/assets/foods/combo_family.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -159,7 +159,7 @@ await Food.insertMany([
         description: '2 bắp vừa + 3 nước',
         price: 129000,
         image: '/assets/foods/combo_friends.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -167,7 +167,7 @@ await Food.insertMany([
         description: '2 bắp phô mai lớn + 2 nước lớn',
         price: 139000,
         image: '/assets/foods/combo_vip.png',
-        available: true
+        available: true, stock: 100
     },
 
     // POPCORN
@@ -176,7 +176,7 @@ await Food.insertMany([
         description: 'Bắp rang size nhỏ vị truyền thống',
         price: 35000,
         image: '/assets/foods/popcorn_small.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -184,7 +184,7 @@ await Food.insertMany([
         description: 'Bắp rang size vừa vị truyền thống',
         price: 45000,
         image: '/assets/foods/popcorn_medium.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -192,7 +192,7 @@ await Food.insertMany([
         description: 'Bắp rang size lớn vị truyền thống',
         price: 55000,
         image: '/assets/foods/popcorn_large.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -200,7 +200,7 @@ await Food.insertMany([
         description: 'Bắp rang vị caramel',
         price: 49000,
         image: '/assets/foods/popcorn_caramel.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -208,7 +208,7 @@ await Food.insertMany([
         description: 'Bắp rang vị phô mai',
         price: 49000,
         image: '/assets/foods/popcorn_cheese.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -216,7 +216,7 @@ await Food.insertMany([
         description: 'Bắp rang mix vị',
         price: 49000,
         image: '/assets/foods/popcorn_mix.png',
-        available: true
+        available: true, stock: 100
     },
 
     // DRINKS
@@ -225,7 +225,7 @@ await Food.insertMany([
         description: 'Coca Cola lạnh',
         price: 29000,
         image: '/assets/foods/coca_cola.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -233,7 +233,7 @@ await Food.insertMany([
         description: 'Pepsi lạnh',
         price: 29000,
         image: '/assets/foods/pepsi.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -241,7 +241,7 @@ await Food.insertMany([
         description: 'Sprite lạnh',
         price: 29000,
         image: '/assets/foods/sprite.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -249,7 +249,7 @@ await Food.insertMany([
         description: 'Fanta lạnh',
         price: 29000,
         image: '/assets/foods/fanta.png',
-        available: true
+        available: true, stock: 100
     },
 
     {
@@ -257,7 +257,7 @@ await Food.insertMany([
         description: 'Nước suối Dasani',
         price: 19000,
         image: '/assets/foods/dasani.png',
-        available: true
+        available: true, stock: 100
     }
 
 ]);

@@ -438,3 +438,11 @@ ${verificationUrl}
   }
 }
 
+
+export async function sendStaffInvitation({to,fullName,token}) {
+ if(!process.env.SMTP_HOST&&!process.env.GMAIL_USER)return {emailSent:false};
+ const transport=await getTransporter();
+ const link=new URL('/activate-staff',process.env.CLIENT_URL||'http://localhost:5173');link.searchParams.set('token',token);
+ const info=await transport.sendMail({from:process.env.EMAIL_FROM||process.env.SMTP_USER,to,subject:'CINEMA+ — Kích hoạt tài khoản nhân sự',text:'Xin chào '+fullName+'. Tự đặt mật khẩu qua liên kết có hiệu lực 24 giờ: '+link.toString()});
+ return {emailSent:!!info.messageId};
+}

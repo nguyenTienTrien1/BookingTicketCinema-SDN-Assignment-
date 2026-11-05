@@ -8,6 +8,6 @@ import { useLocation } from 'react-router-dom';
  */
 export default function UserLogin() {
   const location = useLocation();
-  return <>{location.state?.message && <p className="profileLoginNotice" role="status">{location.state.message}</p>}<LoginForm portalType="user" /></>;
+  return <>{location.state?.message && <p className="profileLoginNotice" role="status">{location.state.message}</p>}<LoginForm /></>;
 }
 

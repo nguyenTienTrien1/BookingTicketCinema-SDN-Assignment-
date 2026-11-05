@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser, resendVerification } from "../../services/auth/authService";
 import LoginInput from "./LoginInput";
@@ -6,15 +6,6 @@ import "../../styles/auth/login.css";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
-
-  // Lock window scroll while viewing register portal
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow || "auto";
-    };
-  }, []);
 
   // Form states
   const [fullName, setFullName] = useState("");
