@@ -9,6 +9,8 @@ import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
 import foodSaleRoutes from './routes/foodSaleRoutes.js';
 
+import showtimeRoutes from './routes/showtimeRoutes.js';
+
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';
 import { memberDashboard, employeeDashboard } from './controllers/auth/loginController.js';
@@ -46,6 +48,8 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/foods', foodRoutes);
 app.use('/api/food-sales', foodSaleRoutes);
+
+app.use('/api/showtimes', showtimeRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {
