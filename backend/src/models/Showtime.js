@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 
 const seatSchema = new mongoose.Schema({
   number: String,
+  type: { type: String, enum: ['Standard', 'VIP'], default: 'Standard' },
+  condition: { type: String, enum: ['Active', 'Broken', 'Maintenance', 'Disabled'], default: 'Active' },
   status: { type: String, enum: ['available', 'held', 'booked'], default: 'available' },
   holdUntil: Date,
   bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }

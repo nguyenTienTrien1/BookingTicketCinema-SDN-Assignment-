@@ -7,6 +7,7 @@ import Food from '../models/Food.js';
 import User from '../models/User.js';
 import PaymentAttempt from '../models/PaymentAttempt.js';
 import { transaction, domainError as fail } from './transaction.js';
+import { withScheduleWrite } from './showtimeService.js';
 export const POINT_VALUE = 1000;
 export function validatePoints(points, subtotal, balance) {
  const step = Number(process.env.POINT_REDEEM_STEP || 100);
@@ -44,7 +45,10 @@ async function checkAge(movie, member, actor, guardian) {
   if ((required > 0 || movie.classification === 'K') && guardian !== true) throw fail('Nhân viên cần xác nhận kiểm tra tuổi/điều kiện người giám hộ.');
  }
 }
-export async function createBooking({ userId, showtimeId, seats, foodItems = [], counterEmployee = null, points = 0, guardianConfirmed = false }) {
+export async function createBooking(data) {
+ return withScheduleWrite(function () { return createBookingWithGuard(data); });
+}
+async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [], counterEmployee = null, points = 0, guardianConfirmed = false }) {
  await expireBookings();
  if (!mongoose.isObjectIdOrHexString(showtimeId) || (!counterEmployee && !mongoose.isObjectIdOrHexString(userId)) || !Array.isArray(seats) || !seats.length || seats.some(s => typeof s !== 'string' && typeof s !== 'number') || new Set(seats.map(String)).size !== seats.length) throw fail('Dữ liệu đặt vé không hợp lệ.');
  const snapshot = await Showtime.findById(showtimeId).lean();
@@ -61,7 +65,9 @@ export async function createBooking({ userId, showtimeId, seats, foodItems = [],
   const subtotal = show.price * seats.length + food.total;
   validatePoints(points, subtotal, member?.memberPoints || 0);
   const b = new Booking({ user: userId || null, counterEmployee, showtime: show._id, seats: seats.map(String), ticketPrice: show.price, foodItems: food.items, subtotal, pointsUsed: points, discount: points * POINT_VALUE, total: subtotal - points * POINT_VALUE, expiresAt: new Date(Date.now() + 600000), ageCheckedBy: counterEmployee, guardianConfirmed });
-  const claim = await Showtime.updateOne({ _id: show._id, $and: b.seats.map(number => ({ seats: { $elemMatch: { number, status: 'available' } } })) }, { $set: { 'seats.$[s].status': 'held', 'seats.$[s].bookingId': b._id, 'seats.$[s].holdUntil': b.expiresAt } }, { session, arrayFilters: [{ 's.number': { $in: b.seats }, 's.status': 'available' }] });
+  // Operational condition is independent of available/held/booked. Missing
+  // condition on a legacy snapshot means Active, never a VIP price override.
+  const claim = await Showtime.updateOne({ _id: show._id, $and: b.seats.map(number => ({ seats: { $elemMatch: { number, status: 'available', condition: { $in: ['Active', null] } } } })) }, { $set: { 'seats.$[s].status': 'held', 'seats.$[s].bookingId': b._id, 'seats.$[s].holdUntil': b.expiresAt } }, { session, arrayFilters: [{ 's.number': { $in: b.seats }, 's.status': 'available', 's.condition': { $in: ['Active', null] } }] });
   if (claim.modifiedCount !== 1) throw fail('Ghế vừa được giữ/bán. Vui lòng chọn lại.', 409);
   await b.save({ session }); return b._id;
  }); return loadBooking(id);

@@ -36,7 +36,9 @@ export default function ManageShowtimes() {
       if (!ignore) { setMovies(movieData); setRooms(roomData); setMovieError(''); }
     })
       .catch((err) => { if (!ignore) setMovieError(err.message); });
-    return () => { ignore = true; };
+    function refreshRooms() { getShowtimeRooms().then(data => { if (!ignore) setRooms(data); }).catch(err => { if (!ignore) setMovieError(err.message); }); }
+    window.addEventListener('focus', refreshRooms);
+    return () => { ignore = true; window.removeEventListener('focus', refreshRooms); };
   }, [reload]);
 
   useEffect(() => {
@@ -237,7 +239,7 @@ export default function ManageShowtimes() {
                     {showtime.movie && <small>{showtime.movie.duration} phút</small>}</td>
                   <td>{displayTime(showtime.startTime)}</td>
                   <td>{showtime.price.toLocaleString('vi-VN')} VND</td>
-                  <td>{showtime.seats.filter((seat) => seat.status === 'available').length}/{showtime.seats.length} trống</td>
+                  <td>{showtime.seats.filter((seat) => seat.status === 'available' && (!seat.condition || seat.condition === 'Active')).length}/{showtime.seats.length} trống</td>
                   <td><button className="movieSecondary" disabled={saving}
                     aria-label={`Sửa suất chiếu ${displayTime(showtime.startTime)} tại ${showtime.room}`}
                     onClick={() => openEditor('edit', showtime)}>Sửa</button>{' '}

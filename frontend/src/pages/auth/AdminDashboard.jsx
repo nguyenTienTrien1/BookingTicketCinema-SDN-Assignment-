@@ -83,6 +83,7 @@ export default function AdminDashboard() {
           Thống kê doanh thu
         </Link>
 
+        <Link to="/admin/rooms" className="movieSecondary" style={{ marginRight: '12px', marginBottom: '12px' }}>Quản lý phòng chiếu</Link>
         <Link to="/admin/showtimes" className="moviePrimary" style={{ marginRight: '12px', marginBottom: '12px' }}>
           Quản lý suất chiếu
         </Link>

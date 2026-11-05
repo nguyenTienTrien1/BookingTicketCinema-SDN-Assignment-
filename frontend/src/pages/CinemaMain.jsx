@@ -175,6 +175,7 @@ export default function CinemaMain() {
                     {user?.role === 'admin' && (
                         <div className="adminNav">
                             <button onClick={() => navigate('/admin/showtimes')}>Quản lý suất chiếu</button>
+                            <button onClick={() => navigate('/admin/rooms')}>Quản lý phòng chiếu</button>
                             <button onClick={() => setTab('create-account')}>Tạo tài khoản</button>
                             <button onClick={() => setTab('update-status')}>Trạng thái tài khoản</button>
                             <button onClick={() => setTab('adjust-points')}>Điều chỉnh điểm</button>

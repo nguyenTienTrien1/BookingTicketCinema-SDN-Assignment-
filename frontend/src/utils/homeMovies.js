@@ -3,8 +3,8 @@ export function movieIdOf(showtime) {
 }
 
 export function availableSeats(showtime, now = Date.now()) {
-    return (showtime.seats || []).filter((seat) => seat.status === 'available' ||
-        (seat.status === 'held' && seat.holdUntil && new Date(seat.holdUntil).getTime() <= now)).length;
+    return (showtime.seats || []).filter((seat) => (!seat.condition || seat.condition === 'Active') && (seat.status === 'available' ||
+        (seat.status === 'held' && seat.holdUntil && new Date(seat.holdUntil).getTime() <= now))).length;
 }
 
 export function upcomingShowtimes(showtimes, movies, now = Date.now()) {

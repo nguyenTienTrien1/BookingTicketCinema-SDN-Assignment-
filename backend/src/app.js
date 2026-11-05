@@ -15,6 +15,7 @@ import memberRoutes from './routes/memberRoutes.js';
 import revenueRoutes from './routes/revenueRoutes.js';
 
 import showtimeRoutes from './routes/showtimeRoutes.js';
+import roomRoutes from './routes/roomRoutes.js';
 
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';
@@ -61,6 +62,7 @@ app.use('/api/members', memberRoutes);
 app.use('/api/revenue', revenueRoutes);
 
 app.use('/api/showtimes', showtimeRoutes);
+app.use('/api/rooms', roomRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {
