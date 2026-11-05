@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { verifyToken } from '../middleware/auth/verifyToken.js';
+import { requireRole } from '../middleware/auth/requireRole.js';
+import * as controller from '../controllers/ticketController.js';
+const router = Router();
+router.use(verifyToken, requireRole('employee'));
+router.get('/showtimes', controller.showtimes);
+router.get('/lookup', controller.lookup);
+router.post('/:reference/check-in', controller.protectWrite, controller.checkIn);
+export default router;

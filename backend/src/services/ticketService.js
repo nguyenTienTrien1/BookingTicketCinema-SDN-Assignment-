@@ -95,3 +95,74 @@ export async function ownedTickets(bookingId, memberId) {
   }
   return { bookingId: booking._id, bookingStatus: booking.status, mode, showtime: booking.ticketContext, window, tickets };
 }
+
+function referenceValue(value) {
+  if (typeof value !== 'string' || !/^CTD?-[A-F0-9]{32}$/.test(value.trim().toUpperCase())) throw ticketError('Mã vé không hợp lệ.');
+  return value.trim().toUpperCase();
+}
+
+export async function checkInShowtimes() {
+  const now = Date.now(), settings = admissionSettings();
+  const showtimes = await Showtime.find({ startTime: { $gte: new Date(now - settings.closeAfterMinutes * 60000), $lte: new Date(now + 86400000) } })
+    .select('movie cinema room startTime').populate({ path: 'movie', select: 'title' }).sort({ startTime: 1 }).limit(200);
+  return { showtimes, settings };
+}
+
+async function inspectTicket(reference, showtimeId) {
+  if (!mongoose.isObjectIdOrHexString(showtimeId)) throw ticketError('Vui lòng chọn suất chiếu đang soát vé.');
+  const booking = await Booking.findOne({ 'tickets.reference': reference });
+  if (!booking) throw ticketError('Không tìm thấy vé.', 404);
+  const ticket = booking.tickets.find((item) => item.reference === reference);
+  const context = booking.ticketContext;
+  if (!context?.startTime) throw ticketError('Vé chưa có thông tin suất chiếu hợp lệ.', 409);
+  const window = admissionWindow(context), now = new Date();
+  const requiresAgeCheck = ['K', 'T13', 'T16', 'T18'].includes(context.classification) || Number(context.ageLimit) > 0;
+  let reason = '';
+  const mode = await paymentMode(booking);
+  if (!mode || mode !== booking.ticketMode) reason = 'Đơn chưa thanh toán hợp lệ, đã hủy hoặc đang/đã hoàn tiền.';
+  else if (String(booking.showtime) !== String(showtimeId)) reason = 'Vé không thuộc suất chiếu đang soát.';
+  else if (ticket.status !== 'issued') reason = ticket.status === 'checked-in' ? 'Vé đã được check-in; không được sử dụng lại.' : 'Vé không còn sử dụng được.';
+  else if (now < window.opensAt) reason = 'Chưa đến giờ nhận khách cho suất chiếu này.';
+  else if (now > window.closesAt) reason = 'Đã hết giờ nhận khách cho suất chiếu này.';
+  else {
+    const showtime = await Showtime.findById(booking.showtime);
+    if (!showtime || showtime.startTime.getTime() !== context.startTime.getTime() ||
+        !showtime.seats.some((seat) => seat.number === ticket.seat && seat.status === 'booked' && String(seat.bookingId) === String(booking._id))) {
+      reason = 'Suất chiếu hoặc quyền sở hữu ghế đã thay đổi; cần kiểm tra lại.';
+    }
+  }
+  return { booking, ticket, data: { reference, seat: ticket.seat, status: ticket.status, checkedInAt: ticket.checkedInAt,
+    mode: booking.ticketMode, showtime: context, window, requiresAgeCheck, eligible: !reason, reason } };
+}
+
+export async function lookupTicket(reference, showtimeId) {
+  return (await inspectTicket(referenceValue(reference), showtimeId)).data;
+}
+
+export async function checkInTicket(reference, body, employeeId) {
+  reference = referenceValue(reference);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw ticketError('Dữ liệu check-in không hợp lệ.');
+  const { booking, ticket, data } = await inspectTicket(reference, body.showtimeId);
+  if (!data.eligible) throw ticketError(data.reason, 409);
+  if (data.requiresAgeCheck && body.ageVerified !== true) throw ticketError('Cần xác nhận đã kiểm tra độ tuổi/điều kiện người giám hộ.');
+  const now = new Date();
+  const settings = admissionSettings();
+  let saved;
+  try {
+    saved = await Booking.findOneAndUpdate({ _id: booking._id, status: 'paid', paymentStatus: 'paid', ticketMode: booking.ticketMode,
+      showtime: booking.showtime,
+      $and: [
+        { 'ticketContext.startTime': booking.ticketContext.startTime },
+        { 'ticketContext.startTime': { $gte: new Date(now.getTime() - settings.closeAfterMinutes * 60000), $lte: new Date(now.getTime() + settings.openBeforeMinutes * 60000) } }
+      ],
+      tickets: { $elemMatch: { reference, status: 'issued' } }
+    }, { $set: { 'tickets.$.status': 'checked-in', 'tickets.$.checkedInAt': now, 'tickets.$.checkedInBy': employeeId } }, { new: true });
+  } catch {
+    throw ticketError('Chưa xác nhận lưu check-in. Không cho vào rạp; hãy tra cứu lại trạng thái trước khi xử lý tiếp.', 503);
+  }
+  if (!saved) throw ticketError('Vé vừa được sử dụng, đơn đã thay đổi hoặc hết giờ nhận khách. Hãy tra cứu lại.', 409);
+  console.info('[TICKET CHECK-IN]', JSON.stringify({ bookingId: booking._id, ticketId: ticket._id, employeeId, mode: booking.ticketMode, checkedInAt: now }));
+  return { ...data, status: 'checked-in', checkedInAt: now, eligible: false,
+    admissionGranted: booking.ticketMode === 'verified',
+    message: booking.ticketMode === 'demo' ? 'Check-in mô phỏng đã lưu. Đây không phải xác nhận vào rạp.' : 'Check-in thành công. Có thể cho khách vào rạp.' };
+}

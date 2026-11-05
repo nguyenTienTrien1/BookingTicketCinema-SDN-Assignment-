@@ -79,6 +79,9 @@ export default function EmployeeDashboard() {
         <Link to="/employee/members" style={{ display: 'inline-block', background: '#222631', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', marginRight: '12px', marginBottom: '12px' }}>
           Tra cứu thành viên
         </Link>
+        <Link to="/employee/check-in" style={{ display: 'inline-block', background: '#222631', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', marginRight: '12px', marginBottom: '12px' }}>
+          Check-in vé
+        </Link>
         <Link
           to="/"
           style={{

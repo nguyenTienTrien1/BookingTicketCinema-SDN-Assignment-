@@ -12,7 +12,7 @@ import Showtime from './src/models/Showtime.js';
 import Booking from './src/models/Booking.js';
 import RevenueEntry from './src/models/RevenueEntry.js';
 
-test('UC-7.2 QR tickets', async (t) => {
+test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
   const dbName = 'cinema_tickets_test_' + randomUUID().replaceAll('-', '');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/booking_cinema', { dbName, serverSelectionTimeoutMS: 5000 });
   t.after(async () => {
@@ -60,9 +60,14 @@ test('UC-7.2 QR tickets', async (t) => {
   }
 
   const main = await fixture();
-  await t.test('only the authenticated Member can read owned QR tickets', async () => {
+  await t.test('Member ownership and active Employee authorization protect all routes', async () => {
     for (const [user, status] of [[null, 401], [other, 404], [employee, 403], [admin, 403]]) {
       assert.equal((await request(ownedPath(main.booking), user)).status, status);
+    }
+    for (const [user, status] of [[null, 401], [member, 403], [admin, 403], [inactive, 401]]) {
+      assert.equal((await request('/tickets/showtimes', user)).status, status);
+      assert.equal((await request(lookupPath('CT-' + 'A'.repeat(32), main.showtime), user)).status, status);
+      assert.equal((await request(checkPath('CT-' + 'A'.repeat(32)), user, 'POST', { showtimeId: main.showtime._id })).status, status);
     }
     assert.equal((await request('/bookings/invalid/tickets')).status, 400);
   });
@@ -106,4 +111,134 @@ test('UC-7.2 QR tickets', async (t) => {
     assert.deepEqual((await issue(mismatched)).tickets, []);
   });
 
+  await t.test('lookup is read-only, validates the chosen showtime and shows the admission window', async () => {
+    const ref = mainTickets.tickets[0].reference;
+    const response = await request(lookupPath(ref, main.showtime), employee);
+    assert.equal(response.status, 200);
+    assert.equal(response.data.eligible, true);
+    assert.equal(response.data.requiresAgeCheck, false);
+    assert.equal(response.data.window.openBeforeMinutes, 30);
+    assert.equal(response.data.window.closeAfterMinutes, 15);
+    assert.equal('user' in response.data, false);
+    assert.equal((await Booking.findById(main.booking._id)).tickets[0].status, 'issued');
+    const wrong = await request(lookupPath(ref, { _id: new mongoose.Types.ObjectId() }), employee);
+    assert.equal(wrong.data.eligible, false);
+    assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: new mongoose.Types.ObjectId() })).status, 409);
+    assert.equal((await request('/tickets/lookup?reference[$ne]=x', employee)).status, 400);
+    assert.equal((await request(lookupPath('CT-' + '0'.repeat(32), main.showtime), employee)).status, 404);
+    const list = await request('/tickets/showtimes', employee);
+    assert.equal(list.status, 200);
+    assert.equal('seats' in list.data.showtimes[0], false);
+  });
+
+  await t.test('two simultaneous check-ins admit exactly once, preserve the other seat and record the real employee', async () => {
+    const ref = mainTickets.tickets[0].reference;
+    const body = { showtimeId: main.showtime._id, employeeId: admin._id };
+    const results = await Promise.all([request(checkPath(ref), employee, 'POST', body), request(checkPath(ref), secondEmployee, 'POST', body)]);
+    assert.deepEqual(results.map((result) => result.status).sort(), [200, 409]);
+    assert.equal(results.find((result) => result.status === 200).data.admissionGranted, true);
+    const saved = await Booking.findById(main.booking._id);
+    assert.equal(saved.tickets[0].status, 'checked-in');
+    assert.ok(saved.tickets[0].checkedInAt);
+    assert.ok([String(employee._id), String(secondEmployee._id)].includes(String(saved.tickets[0].checkedInBy)));
+    assert.equal(saved.tickets[1].status, 'issued');
+    assert.equal((await request(checkPath(ref), employee, 'POST', body)).status, 409);
+    const viewed = await issue(main);
+    assert.equal(viewed.tickets[0].qrDataUrl, null);
+    assert.ok(viewed.tickets[1].qrDataUrl);
+  });
+
+  await t.test('restricted classifications require an Employee age/guardian check before any status change', async () => {
+    for (const classification of ['T18', 'K']) {
+      const fix = await fixture({ classification });
+      const ref = (await issue(fix)).tickets[0].reference;
+      assert.equal((await request(lookupPath(ref, fix.showtime), employee)).data.requiresAgeCheck, true);
+      assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id })).status, 400);
+      assert.equal((await Booking.findById(fix.booking._id)).tickets[0].status, 'issued');
+      assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id, ageVerified: true })).status, 200);
+    }
+  });
+
+  await t.test('too-early and expired tickets cannot check in; cinema window configuration is honored', async () => {
+    for (const offset of [45, -20]) {
+      const fix = await fixture({ offset });
+      const data = await issue(fix), ref = data.tickets[0].reference;
+      assert.equal((await request(lookupPath(ref, fix.showtime), employee)).data.eligible, false);
+      assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id })).status, 409);
+      if (offset < 0) { assert.equal(data.tickets[0].status, 'expired'); assert.equal(data.tickets[0].qrDataUrl, null); }
+    }
+    const previous = process.env.CHECKIN_OPEN_MINUTES;
+    try {
+      process.env.CHECKIN_OPEN_MINUTES = '60';
+      const fix = await fixture({ offset: 45 });
+      const ref = (await issue(fix)).tickets[0].reference;
+      assert.equal((await request(lookupPath(ref, fix.showtime), employee)).data.eligible, true);
+    } finally { if (previous === undefined) delete process.env.CHECKIN_OPEN_MINUTES; else process.env.CHECKIN_OPEN_MINUTES = previous; }
+  });
+
+  await t.test('a changed booking, seat owner or concurrent refund prevents admission', async () => {
+    const fix = await fixture();
+    const ref = (await issue(fix)).tickets[0].reference;
+    const original = Booking.findOneAndUpdate;
+    const mocked = t.mock.method(Booking, 'findOneAndUpdate', async function (...args) {
+      await Booking.updateOne({ _id: fix.booking._id }, { $set: { status: 'cancelled' } });
+      return original.apply(this, args);
+    });
+    try { assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id })).status, 409); }
+    finally { mocked.mock.restore(); }
+    assert.equal((await Booking.findById(fix.booking._id)).tickets[0].status, 'issued');
+    const released = await fixture();
+    const releasedRef = (await issue(released)).tickets[0].reference;
+    await Showtime.updateOne({ _id: released.showtime._id }, { $set: { 'seats.0.status': 'available', 'seats.0.bookingId': null } });
+    assert.equal((await request(checkPath(releasedRef), employee, 'POST', { showtimeId: released.showtime._id })).status, 409);
+    const refund = await fixture();
+    const refundRef = (await issue(refund)).tickets[0].reference;
+    await Booking.collection.updateOne({ _id: refund.booking._id }, { $set: { status: 'refund-requested' } });
+    assert.equal((await request(checkPath(refundRef), employee, 'POST', { showtimeId: refund.showtime._id })).status, 409);
+  });
+
+  await t.test('uncertain storage results never claim admission and retries cannot use the ticket again', async () => {
+    const fix = await fixture();
+    const ref = (await issue(fix)).tickets[0].reference;
+    const original = Booking.findOneAndUpdate;
+    const mocked = t.mock.method(Booking, 'findOneAndUpdate', async function (...args) { await original.apply(this, args); throw new Error('Unknown write result'); });
+    try {
+      const response = await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id });
+      assert.equal(response.status, 503);
+      assert.equal('admissionGranted' in response.data, false);
+    } finally { mocked.mock.restore(); }
+    assert.equal((await request(lookupPath(ref, fix.showtime), employee)).data.status, 'checked-in');
+    assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id })).status, 409);
+  });
+
+  await t.test('simulated payments issue clearly marked demo QR without claiming real admission', async () => {
+    const fix = await fixture({ paid: false, proof: false });
+    assert.equal((await request(`/bookings/${fix.booking._id}/pay`, member, 'POST', { method: 'mock' })).status, 200);
+    const stored = await Booking.findById(fix.booking._id);
+    assert.equal(stored.tickets.length, 2);
+    const data = await issue(fix), ref = data.tickets[0].reference;
+    assert.equal(data.mode, 'demo');
+    assert.match(ref, /^CTD-[A-F0-9]{32}$/);
+    const result = await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id });
+    assert.equal(result.status, 200);
+    assert.equal(result.data.admissionGranted, false);
+    assert.equal(await RevenueEntry.countDocuments({ booking: fix.booking._id }), 0);
+    const previous = { env: process.env.NODE_ENV, secret: process.env.JWT_SECRET };
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET ||= 'supersecret_cinema_jwt_key_2026_sdn302';
+      assert.deepEqual((await issue(fix)).tickets, []);
+      assert.equal((await request(lookupPath(ref, fix.showtime), employee)).data.eligible, false);
+    } finally {
+      if (previous.env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous.env;
+      if (previous.secret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = previous.secret;
+    }
+  });
+
+  await t.test('cookie-authenticated check-in rejects cross-origin and non-JSON writes', async () => {
+    const fix = await fixture(), ref = (await issue(fix)).tickets[0].reference;
+    assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id }, { Origin: 'https://other.test' })).status, 403);
+    assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id }, { 'Content-Type': 'text/plain' })).status, 415);
+    assert.equal((await Booking.findById(fix.booking._id)).tickets[0].status, 'issued');
+  });
 });

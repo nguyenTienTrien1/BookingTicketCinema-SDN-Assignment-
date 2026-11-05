@@ -1,4 +1,4 @@
-.ticketSummary, .issuedTicket { padding: 24px; margin-bottom: 22px; }
+.ticketSummary, .issuedTicket, .checkInPanel { padding: 24px; margin-bottom: 22px; }
 .ticketSummary h2 { margin-top: 0; overflow-wrap: anywhere; }
 .ticketSummary p, .issuedTicket p, .checkInHint { color: #b9c0d1; line-height: 1.65; }
 .ticketGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 22px; }
@@ -11,5 +11,18 @@
 .ticketNoticeBanner { padding: 16px 20px; border: 1px solid #77602d; border-radius: 10px; line-height: 1.65; }
 .ticketDemo { background: #3b2c16; color: #f8d38b; }
 .ticketNoQr { padding: 60px 12px; }
+.checkInFields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 18px; }
+.checkInFields label { display: grid; gap: 10px; }
+.checkInFields .moviePrimary { justify-self: start; }
+.checkInDetails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.checkInDetails dt { color: #b9c0d1; }
+.checkInDetails dd { margin: 7px 0 0; overflow-wrap: anywhere; }
+.checkInAge { display: flex; gap: 12px; line-height: 1.65; align-items: flex-start; margin: 22px 0; }
+.checkInAge input { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 4px; }
+.qrScanner { margin: 18px 0; }
+.qrScannerActions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.qrScanner input[type=file] { max-width: 100%; padding: 12px; }
+.qrScanner label { display: grid; gap: 8px; }
+.qrScanner video { display: block; width: min(100%, 480px); margin: 18px auto; border-radius: 10px; }
 .ticketPage :focus-visible { outline: 3px solid #fb7185; outline-offset: 3px; }
-@media (max-width: 560px) { .ticketSummary, .issuedTicket { padding: 18px; } }
+@media (max-width: 560px) { .ticketSummary, .issuedTicket, .checkInPanel { padding: 18px; } .checkInDetails { grid-template-columns: 1fr; } }
