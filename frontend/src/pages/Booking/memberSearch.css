@@ -1,0 +1,21 @@
+.memberSearchForm { padding: 24px; border-bottom: 1px solid #303643; }
+.memberSearchForm > label { display: block; font-weight: 600; margin-bottom: 10px; }
+.memberSearchInput { display: flex; gap: 12px; align-items: flex-start; }
+.memberSearchInput input { flex: 1; min-width: 0; }
+.memberSearchForm > p, .memberSearchHint { color: #b9c0d1; line-height: 1.6; }
+.memberSearchForm > p { margin: 12px 0 0; }
+.memberSearchGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding: 24px; }
+.memberSearchGrid > section { min-width: 0; }
+.memberSearchGrid h2 { font-size: 20px; margin: 0 0 18px; }
+.memberSearchList { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; }
+.memberSearchList button { display: grid; gap: 7px; width: 100%; min-height: 44px; text-align: left; padding: 18px; border: 1px solid #454d60; border-radius: 10px; color: #f2f3f7; background: #191d26; overflow-wrap: anywhere; }
+.memberSearchList button:hover { border-color: #fb7185; }
+.memberSearchList button[aria-pressed=true] { border-color: #fb7185; background: #2b1922; }
+.memberSearchList span { color: #b9c0d1; }
+.memberSearchList .memberSearchChoose { color: #ff9aa2; margin-top: 4px; }
+.memberSearchDetail { padding: 22px; border: 1px solid #303643; border-radius: 10px; align-self: start; background: #191d26; }
+.memberSearchDetails { display: grid; gap: 20px; margin: 24px 0 0; }
+.memberSearchDetails dt { color: #b9c0d1; }
+.memberSearchDetails dd { margin: 6px 0 0; overflow-wrap: anywhere; font-weight: 600; }
+.memberSearchForm .movieError { color: #ffc1c7; }
+@media (max-width: 760px) { .memberSearchGrid { grid-template-columns: 1fr; gap: 24px; padding: 18px; } .memberSearchForm { padding: 18px; } .memberSearchInput { flex-direction: column; } .memberSearchInput input, .memberSearchInput button { width: 100%; } }

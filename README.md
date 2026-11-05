@@ -6,6 +6,12 @@
 - History shows order/payment statuses, showtime, seats, food quantities, points discount and totals. Reading history never changes a booking, seat hold or points balance. Missing catalogue references do not remove historical orders.
 - Run `npm run test:booking-history -w backend`. Tests use and remove their own temporary database, leaving `booking_cinema` unchanged.
 
+## UC-8 Search Member Information (NhaNTK)
+- Employees open `/employee/members` from their dashboard, search by a complete email or phone number, then select a result for current contact, status and loyalty information.
+- `GET /api/members/search?q=...` matches email case-insensitively or phone formatting (`0901 234 567`, `+84 901 234 567`, `0084901234567`). It returns up to 20 matching Members with `hasMore` for ambiguous numbers. `GET /api/members/:id` rereads the selected Member.
+- Both endpoints require an active Employee session and expose only `_id`, `fullName`, `email`, `phone`, `status`, `memberPoints`, and `isVIP`. Staff accounts and credentials are excluded. Lookups do not change accounts; audit messages contain IDs and result counts, without search terms.
+- Run `npm run test:member-search -w backend`. Tests use and remove a dedicated temporary database.
+
 ## Run backend
 1. Install MongoDB and make sure it is running.
 2. `cd backend`
