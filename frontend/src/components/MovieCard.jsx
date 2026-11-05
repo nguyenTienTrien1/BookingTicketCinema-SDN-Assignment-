@@ -46,17 +46,27 @@ export function getMoviePoster(movie) {
 
 export default function MovieCard({ movie, onClick, onDetail }) {
     const poster = getMoviePoster(movie);
+    const genreText = [
+        ...(movie.genre?.slice(0, 2).map(translateGenre) || []),
+        ...(movie.duration ? [`${movie.duration} phút`] : [])
+    ].join(' · ');
 
     return (
         <article className="card">
-            <img src={poster} alt={movie.title} />
+            <img
+                src={poster}
+                alt={movie.title}
+                loading="lazy"
+                onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/images/posters/rampage.jpg';
+                }}
+            />
 
             <div className="cardInfo">
-                <b>{movie.title}</b>
+                <b title={movie.title}>{movie.title}</b>
 
-                <span>
-                    {movie.genre?.slice(0, 2).map(translateGenre).join(' · ')} · {movie.duration} phút
-                </span>
+                <span title={genreText}>{genreText}</span>
 
                 <small>★ {movie.rating || '—'}</small>
                 <div className="movieCardActions">

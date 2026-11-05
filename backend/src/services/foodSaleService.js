@@ -11,7 +11,7 @@ function saleError(message, status = 400) {
 export async function counterCatalogue() {
   const hello = await mongoose.connection.db.admin().command({ hello: 1 });
   return {
-    foods: await Food.find({ available: true }).sort({ name: 1 }),
+    foods: await Food.find({ available: true, deletedAt: null }).sort({ name: 1 }),
     paymentsEnabled: Boolean(hello.setName || hello.msg === 'isdbgrid')
   };
 }
@@ -42,7 +42,7 @@ export async function createFoodSale(input, employeeId) {
       throw saleError('Mỗi sản phẩm chỉ được chọn một lần, số lượng từ 1 đến 100.');
     }
     ids.push(String(item.food).toLowerCase());
-    const food = await Food.findOne({ _id: item.food, available: true });
+    const food = await Food.findOne({ _id: item.food, available: true, deletedAt: null });
     if (!food || !Number.isInteger(food.stock) || food.stock < item.quantity) {
       throw saleError('Sản phẩm không còn bán hoặc không đủ tồn kho.', 409);
     }
@@ -99,8 +99,8 @@ export async function payFoodSale(id, input, employeeId) {
       if (current.status !== 'payment_received') throw saleError('Đơn không còn ở trạng thái thanh toán.', 409);
       for (const item of current.items) {
         const result = await Food.updateOne(
-          { _id: item.food, available: true, price: item.unitPrice, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } }, { session }
+          { _id: item.food, available: true, deletedAt: null, price: item.unitPrice, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity, __v: 1 } }, { session }
         );
         if (result.modifiedCount !== 1) throw saleError('Giá hoặc tồn kho đã đổi sau khi thu tiền. Cần đối soát, không thu thêm.', 409);
       }

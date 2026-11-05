@@ -5,13 +5,24 @@ import PaymentAttempt from '../models/PaymentAttempt.js';
 import { settle, loadBooking, simulationFailure } from '../services/bookingService.js';
 import { createPayment, processIPN } from '../services/vnpayService.js';
 import { domainError as fail } from '../services/transaction.js';
+export async function result(req,res,next) { try {
+ const attempt = await PaymentAttempt.findOne({ref:req.params.reference,method:'vnpay'});
+ if(!attempt)throw fail('Không tìm thấy giao dịch.',404);
+ const booking = await Booking.findOne({_id:attempt.booking,user:req.user._id});
+ if(!booking)throw fail('Không tìm thấy giao dịch.',404);
+ res.json({status:attempt.status,booking:await loadBooking(booking._id)});
+ }catch(e){next(e);} }
 export async function start(req,res,next) { try {
  const b=await Booking.findOne({_id:req.params.id,user:req.user._id});if(!b)throw fail('Không tìm thấy đơn.',404);
  if(b.status==='paid')return res.json(await loadBooking(b._id));
  if(req.body.method==='demo'&&req.body.result==='failed')return res.json(await simulationFailure(b._id));
  if(req.body.method==='demo')return res.json(await settle(b._id,{kind:b.total===0?'points':'demo'}));
  if(req.body.method==='points')return res.json(await settle(b._id,{kind:'points'}));
- if(req.body.method==='cash')return res.json({status:'pending',message:'Mang mã đơn tới quầy trước khi hết hạn.',booking:await loadBooking(b._id)});
+ if(req.body.method==='cash'){
+  if(b.status!=='pending'||b.expiresAt<=new Date())throw fail('Đơn đã hủy hoặc hết hạn.',410);
+  if(b.activePayment)throw fail('Đơn đang chờ kết quả VNPay. Chưa thể chuyển sang tiền mặt.',409);
+  return res.json({status:'pending',message:'Mang mã đơn tới quầy trước khi hết hạn.',booking:await loadBooking(b._id)});
+ }
  if(req.body.method!=='vnpay')throw fail('Chọn thanh toán giả lập hoặc phương thức hợp lệ.');
  res.json(await createPayment(b._id,req.user._id,req.ip));
  }catch(e){next(e);} }

@@ -14,7 +14,8 @@ function formatDate(value) {
 function bookingStatus(booking) {
     if (booking.status === 'paid') return { label: 'Đã thanh toán', className: 'paid' };
     if (booking.status === 'cancelled') return { label: 'Đã hủy', className: 'cancelled' };
-    if (!booking.expiresAt || new Date(booking.expiresAt).getTime() <= Date.now()) {
+    const expiresAt = new Date(booking.expiresAt || 0).getTime();
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
         return { label: 'Hết thời gian giữ ghế', className: 'expired' };
     }
     return { label: 'Chờ thanh toán', className: 'pending' };
@@ -38,7 +39,7 @@ export default function Account({ user, setTab, setPending, initialSection }) {
         let active = true;
         setLoading(true);
         setError('');
-        getBookings(user._id)
+        getBookings()
             .then((result) => {
                 if (active) setBookings(Array.isArray(result) ? result : []);
             })
@@ -58,8 +59,8 @@ export default function Account({ user, setTab, setPending, initialSection }) {
         return (
             <section className="page">
                 <div className="accountEmpty">
-                    <h2>Đăng nhập để xem vé của bạn</h2>
-                    <p>Vé đã đặt sẽ được lưu tại đây.</p>
+                    <h2>Đăng nhập để xem lịch sử đặt vé</h2>
+                    <p>Các đơn đặt vé của bạn sẽ được lưu tại đây.</p>
                     <button type="button" className="primary" onClick={() => setTab('login')}>Đăng nhập</button>
                 </div>
             </section>
@@ -71,7 +72,7 @@ export default function Account({ user, setTab, setPending, initialSection }) {
             <div className="accountPageHeading">
                 <p className="bookingEyebrow">TÀI KHOẢN CINEMA+</p>
                 <h2>Tài khoản của tôi</h2>
-                <p>Quản lý thông tin cá nhân và vé xem phim đã đặt.</p>
+                <p>Quản lý thông tin cá nhân và lịch sử đặt vé.</p>
             </div>
 
             <button type="button" className="ghost" disabled={loggingOut} onClick={async () => {
@@ -104,7 +105,6 @@ export default function Account({ user, setTab, setPending, initialSection }) {
                     Hồ sơ
                 </button>
             </div>
-
             {activeSection === 'profile' ? (
                 <ProfilePanel />
             ) : (

@@ -1,0 +1,599 @@
+/* =========================================================================
+   CINEMA+ MOVIE DETAIL PAGE — CINEMATIC STREAMING & BOOKING INTERFACE
+   Matches Reference: Netflix Desktop layout (Hero backdrop, typography,
+   metadata, action buttons, Popular This Week carousel, and floating age badge)
+   ========================================================================= */
+
+:root {
+  --detail-bg: #08090d;
+  --detail-surface: #111217;
+  --detail-card: #17191f;
+  --detail-accent: #e50914;
+  --detail-accent-hover: #ff2530;
+  --detail-text-main: #ffffff;
+  --detail-text-sub: #a3a3ad;
+  --detail-text-muted: #70717a;
+  --detail-border: rgba(255, 255, 255, 0.08);
+  --detail-border-hover: rgba(255, 255, 255, 0.22);
+}
+
+/* Page Container */
+.cinematicDetailPage {
+  background-color: var(--detail-bg);
+  color: var(--detail-text-main);
+  font-family:
+    "Be Vietnam Pro",
+    "Inter",
+    -apple-system,
+    sans-serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Flat button reset */
+.cinematicDetailPage button {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* =========================================================================
+   1. HERO CINEMATIC BANNER
+   ========================================================================= */
+.detailHeroSection {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-color: var(--detail-bg);
+  background-position: right 20% center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  padding: 110px 56px 44px 56px;
+  box-sizing: border-box;
+}
+
+/* Responsive multi-directional gradient overlays */
+.detailHeroOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    /* Top navbar legibility gradient */
+    linear-gradient(
+      180deg,
+      rgba(8, 9, 13, 0.9) 0%,
+      rgba(8, 9, 13, 0.3) 18%,
+      transparent 35%
+    ),
+    /* Left typography reading gradient */
+    linear-gradient(
+        90deg,
+        rgba(8, 9, 13, 0.98) 0%,
+        rgba(8, 9, 13, 0.92) 38%,
+        rgba(8, 9, 13, 0.5) 65%,
+        rgba(8, 9, 13, 0.15) 100%
+      ),
+    /* Bottom seamless fade */
+    linear-gradient(
+        180deg,
+        transparent 60%,
+        rgba(8, 9, 13, 0.85) 88%,
+        #08090d 100%
+      );
+}
+
+/* Back breadcrumb pill */
+.detailBackBreadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(17, 18, 23, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--detail-border);
+  color: var(--detail-text-sub);
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: fit-content;
+  margin-bottom: 6px;
+}
+
+.detailBackBreadcrumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateX(-3px);
+}
+
+/* =========================================================================
+   2. HERO CONTENT (TYPOGRAPHY & ACTIONS)
+   ========================================================================= */
+.detailHeroContent {
+  position: relative;
+  z-index: 10;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Genre Tagline (Matching uppercase THRILLER | HORROR | TEEN PROGRAM) */
+.detailGenreTagline {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #cfd0d8;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Massive Title */
+.detailMovieTitle {
+  font-size: clamp(38px, 5.2vw, 68px);
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin: 0;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+}
+
+/* Metadata Row (2019 | DIRECTOR: The Duffer Brothers | SEASONS: 3...) */
+.detailMetaLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--detail-text-sub);
+  margin: 0;
+  font-weight: 500;
+}
+
+.detailMetaLine strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.metaSep {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.metaRatingStar {
+  color: #ffb800;
+  margin-right: 3px;
+}
+
+/* Description */
+.detailSynopsis {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: #c4c5cf;
+  margin: 4px 0 8px 0;
+  max-width: 580px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Action Buttons Row */
+.detailActionRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+/* Primary Red Button: STREAM NOW ▶ / ĐẶT VÉ NGAY */
+.detailPrimaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--detail-accent);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 13px 30px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+  font-family: inherit;
+}
+
+.detailPrimaryBtn:hover {
+  background-color: var(--detail-accent-hover);
+  transform: translateY(-2px);
+}
+
+.btnPlayIcon {
+  font-size: 13px;
+  display: inline-block;
+  transform: translateY(-0.5px);
+}
+
+/* Secondary Button: ALL EPISODES / TRAILER */
+.detailSecondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(17, 18, 23, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.detailSecondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+/* =========================================================================
+   3. BOTTOM-LEFT: POPULAR THIS WEEK CAROUSEL
+   ========================================================================= */
+.detailPopularSection {
+  position: relative;
+  z-index: 10;
+  max-width: 640px;
+  margin-top: 10px;
+}
+
+.detailPopularHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.detailPopularTitle {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.popularNavArrows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popularArrowBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.popularArrowBtn:hover {
+  background: var(--detail-accent);
+  border-color: var(--detail-accent);
+}
+
+/* Track of popular thumbnails */
+.popularTrack {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+}
+
+.popularTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.popularMovieCard {
+  flex: 0 0 108px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.popularPosterWrapper {
+  width: 108px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--detail-card);
+  border: 1px solid var(--detail-border);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.popularPosterImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.popularMovieCard:hover .popularPosterWrapper {
+  transform: translateY(-4px) scale(1.03);
+  border-color: var(--detail-accent);
+}
+
+.popularMovieName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--detail-text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  transition: color 0.2s ease;
+}
+
+.popularMovieCard:hover .popularMovieName {
+  color: #ffffff;
+}
+
+/* =========================================================================
+   4. RIGHT-BOTTOM FLOATING AGE LIMIT BADGE
+   ========================================================================= */
+.floatingAgeBadge {
+  position: absolute;
+  right: 0;
+  bottom: 44px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  background: rgba(17, 18, 23, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  padding: 8px 18px 8px 0;
+  backdrop-filter: blur(10px);
+}
+
+.ageBadgeAccent {
+  width: 4px;
+  height: 24px;
+  background-color: var(--detail-accent);
+  margin-right: 12px;
+  border-radius: 2px;
+}
+
+.ageBadgeText {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+/* =========================================================================
+   5. SHOWTIMES & THEATER BOOKING SECTION
+   ========================================================================= */
+.detailShowtimeSection {
+  position: relative;
+  z-index: 10;
+  padding: 60px 56px 80px 56px;
+  background: linear-gradient(180deg, #08090d 0%, #0d0f15 100%);
+  border-top: 1px solid var(--detail-border);
+}
+
+.showtimeSectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.showtimeSectionTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.showtimeSectionTitle span.icon {
+  color: var(--detail-accent);
+}
+
+.showtimeNotice {
+  font-size: 14px;
+  color: var(--detail-text-sub);
+}
+
+.cinemaShowtimesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
+}
+
+.cinemaShowtimeCard {
+  background: var(--detail-card);
+  border: 1px solid var(--detail-border);
+  border-radius: 14px;
+  padding: 24px;
+  transition: border-color 0.25s ease;
+}
+
+.cinemaShowtimeCard:hover {
+  border-color: var(--detail-border-hover);
+}
+
+.cinemaNameHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cinemaNameText {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.cinemaFormatBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid rgba(229, 9, 20, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.showtimeSlotList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.showtimeSlotBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 90px;
+}
+
+.showtimeSlotBtn:hover {
+  background: var(--detail-accent);
+  border-color: var(--detail-accent);
+  transform: translateY(-2px);
+}
+
+.slotTime {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.slotPrice {
+  font-size: 11.5px;
+  color: var(--detail-text-sub);
+  margin-top: 2px;
+}
+
+.showtimeSlotBtn:hover .slotPrice {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Coming Soon Empty State */
+.comingSoonShowtimeCard {
+  background: var(--detail-card);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.comingSoonIcon {
+  font-size: 36px;
+}
+
+.comingSoonCardTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.comingSoonCardDesc {
+  font-size: 14.5px;
+  color: var(--detail-text-sub);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   6. RESPONSIVE BREAKPOINTS
+   ========================================================================= */
+@media (max-width: 1024px) {
+  .detailHeroSection {
+    padding: 100px 32px 32px 32px;
+  }
+  .detailShowtimeSection {
+    padding: 48px 32px 64px 32px;
+  }
+  .floatingAgeBadge {
+    bottom: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .detailHeroSection {
+    padding: 90px 20px 24px 20px;
+    background-position: center top;
+  }
+  .detailMovieTitle {
+    font-size: 34px;
+  }
+  .detailPopularSection {
+    display: none;
+  }
+  .floatingAgeBadge {
+    display: none;
+  }
+  .cinemaShowtimesGrid {
+    grid-template-columns: 1fr;
+  }
+  .detailShowtimeSection {
+    padding: 36px 20px 48px 20px;
+  }
+}

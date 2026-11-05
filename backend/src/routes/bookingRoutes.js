@@ -1,4 +1,4 @@
-import {start} from '../controllers/paymentController.js';
+import {start,result} from '../controllers/paymentController.js';
 import { Router } from 'express';
 import * as c from '../controllers/bookingController.js';
 import { verifyToken } from '../middleware/auth/verifyToken.js';
@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/auth/requireRole.js';
 const r = Router();
 r.use(verifyToken, requireRole('member'));
 r.get('/', c.list);
+r.get('/payment-result/:reference', result);
 r.post('/', c.create);
 r.patch('/:id/points', c.points);
 r.post('/:id/pay', start);

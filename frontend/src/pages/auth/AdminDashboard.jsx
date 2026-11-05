@@ -77,6 +77,19 @@ export default function AdminDashboard() {
           Quản lý phim
         </Link>
 
+        <Link className="movieSecondary" to="/admin/foods" style={{ marginRight: 12, marginBottom: 12 }}>Quản lý F&B</Link>
+        <Link className="movieSecondary" to="/admin/promotions" style={{ marginRight: 12, marginBottom: 12 }}>Quản lý khuyến mãi</Link>
+        <Link to="/admin/revenue" className="moviePrimary" style={{ marginRight: '12px', marginBottom: '12px' }}>
+          Thống kê doanh thu
+        </Link>
+
+        <Link to="/admin/showtimes" className="moviePrimary" style={{ marginRight: '12px', marginBottom: '12px' }}>
+          Quản lý suất chiếu
+        </Link>
+
+        <Link to="/admin/members" style={{ display: 'inline-block', backgroundColor: '#222631', color: '#fff', padding: '12px 20px', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, marginRight: '12px', marginBottom: '12px' }}>
+          Tra cứu thành viên
+        </Link>
         <Link
           to="/"
           style={{

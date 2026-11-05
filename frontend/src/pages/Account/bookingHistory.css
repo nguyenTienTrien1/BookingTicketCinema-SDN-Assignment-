@@ -1,0 +1,16 @@
+.historyPage { padding: 32px 20px; }
+.historyHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin: 24px 0; }
+.historyHeading h2 { margin: 0 0 10px; }
+.historyHeading p, .historyCount { color: #b5b8c3; line-height: 1.6; margin: 0; }
+.historyHeading button { flex-shrink: 0; }
+.historyCount { margin-bottom: 16px; }
+.historyLink { display: inline-block; color: #ff9aa2; padding: 12px 0; }
+.bookingHistory button { min-height: 44px; }
+.bookingHistory :focus-visible, .historyLink:focus-visible { outline: 3px solid #ff9aa2; outline-offset: 3px; }
+.bookingHistory :disabled { opacity: .6; cursor: wait; }
+.bookingHistory .ticketReference { display: block; overflow-wrap: anywhere; color: #ff818a; line-height: 1.7; }
+.bookingHistory .myTicketHeader > div { min-width: 0; }
+.bookingHistory h3 { overflow-wrap: anywhere; }
+.bookingHistory .myTicketDetails p span, .bookingHistory .myTicketFooter > div span { color: #b5b8c3; }
+.bookingHistory .myTicketFooter { flex-wrap: wrap; }
+@media (max-width: 560px) { .historyHeading { flex-direction: column; gap: 12px; } .bookingHistory .myTicketContent { padding: 16px; } }

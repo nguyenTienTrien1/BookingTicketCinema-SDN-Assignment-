@@ -47,9 +47,12 @@ async function checkAge(movie, member, actor, guardian) {
 export async function createBooking({ userId, showtimeId, seats, foodItems = [], counterEmployee = null, points = 0, guardianConfirmed = false }) {
  await expireBookings();
  if (!mongoose.isObjectIdOrHexString(showtimeId) || (!counterEmployee && !mongoose.isObjectIdOrHexString(userId)) || !Array.isArray(seats) || !seats.length || seats.some(s => typeof s !== 'string' && typeof s !== 'number') || new Set(seats.map(String)).size !== seats.length) throw fail('Dữ liệu đặt vé không hợp lệ.');
+ const snapshot = await Showtime.findById(showtimeId).lean();
+ if (!snapshot) throw fail('Không tìm thấy suất chiếu.',404);
  const id = await transaction(async (session) => {
   const show = await Showtime.findById(showtimeId).session(session);
   if (!show || show.startTime <= new Date()) throw fail('Suất chiếu không còn mở bán.', 409);
+  if(show.price!==snapshot.price||String(show.movie)!==String(snapshot.movie)||show.cinema!==snapshot.cinema||show.room!==snapshot.room||show.startTime.getTime()!==snapshot.startTime.getTime())throw fail('Giá hoặc lịch chiếu vừa thay đổi. Vui lòng chọn lại.',409);
   const movie = await Movie.findById(show.movie).session(session);
   const member = userId ? await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session) : null;
   if (userId && !member) throw fail('Không tìm thấy Member đang hoạt động.');
@@ -92,7 +95,10 @@ export async function cancelBooking(id, userId) {
 export async function settle(id, evidence) {
  const result = await transaction(async (session) => {
   const b = await Booking.findById(id).session(session); if (!b) throw fail('Không tìm thấy đơn.', 404);
-  if (b.status === 'paid') return b._id;
+  if (b.status === 'paid') {
+   if(evidence.kind==='vnpay'&&(!evidence.verified||b.paymentMethod!=='vnpay'||b.paymentRef!==evidence.ref))throw fail('Đơn đã thanh toán bằng giao dịch khác; cần đối soát khoản thu này.',409);
+   return b._id;
+  }
   if (b.status !== 'pending' || b.expiresAt <= new Date()) throw fail('Đơn đã hủy hoặc hết hạn.', 410);
   const show = await Showtime.findById(b.showtime).session(session); if (!show || show.startTime <= new Date()) throw fail('Suất đã bắt đầu.', 409);
   const finalMovie = await Movie.findById(show.movie).session(session);
@@ -100,7 +106,7 @@ export async function settle(id, evidence) {
   await checkAge(finalMovie, finalMember, b.counterEmployee, b.guardianConfirmed);
   let attempt;
   if (evidence.kind === 'vnpay') {
-   attempt = await PaymentAttempt.findOne({ ref: evidence.ref, booking: b._id, status: 'created', amount: b.total, currency: 'VND' }).session(session);
+   attempt = await PaymentAttempt.findOne({ ref: evidence.ref, booking: b._id, status: { $in: ['created','unresolved'] }, amount: b.total, currency: 'VND' }).session(session);
    if (!attempt || !evidence.verified || b.activePayment !== attempt.ref) throw fail('Bằng chứng thanh toán không hợp lệ.', 409);
   } else if (b.activePayment) throw fail('Đơn đang có giao dịch VNPay.', 409);
   if (evidence.kind === 'points' && b.total !== 0) throw fail('Chỉ xác nhận bằng điểm khi số tiền còn lại bằng 0.');
@@ -126,7 +132,10 @@ export async function settle(id, evidence) {
  }); return loadBooking(result);
 }
 export async function pay() { throw fail('Không chấp nhận xác nhận thanh toán từ trình duyệt.', 403); }
-export const listBookings = (userId) => Booking.find({ user: userId }).populate(populate).sort({ createdAt: -1 });
+export const listBookings = (userId) => Booking.find({ user: userId })
+ .select('showtime seats ticketPrice foodItems subtotal pointsUsed discount total status paymentMethod paymentStatus paymentRef expiresAt tickets paidAt createdAt updatedAt')
+ .populate([{path:'showtime',select:'movie cinema room startTime',populate:{path:'movie',select:'title'}},{path:'foodItems.food',select:'name'}])
+ .sort({ createdAt: -1, _id: -1 });
 
 export async function simulationFailure(id) {
  if(process.env.NODE_ENV==='production'||process.env.ENABLE_PAYMENT_SIMULATION!=='true')throw fail('Giả lập chỉ được bật ở development.',403);

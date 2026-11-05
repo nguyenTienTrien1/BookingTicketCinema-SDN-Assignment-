@@ -74,7 +74,8 @@ export default function MemberDashboard() {
           {dashboardData && <p style={{ color: '#a7f3d0' }}><em>{dashboardData.message}</em></p>}
         </div>
 
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <Link to="/bookings" style={{ color: '#ff9aa2', padding: '12px 20px' }}>Lịch sử đặt vé</Link>
           <Link to="/profile" style={{ color: '#ff9aa2', padding: '12px 20px' }}>Hồ sơ của tôi</Link>
           <Link
             to="/"

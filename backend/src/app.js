@@ -9,7 +9,12 @@ import movieRoutes from './routes/movieRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
 import counterRoutes from './routes/counterRoutes.js';
+import promotionRoutes from './routes/promotionRoutes.js';
 import foodSaleRoutes from './routes/foodSaleRoutes.js';
+import memberRoutes from './routes/memberRoutes.js';
+import revenueRoutes from './routes/revenueRoutes.js';
+
+import showtimeRoutes from './routes/showtimeRoutes.js';
 
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';
@@ -50,7 +55,12 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/foods', foodRoutes);
 app.use('/api/payments',paymentRoutes);
 app.use('/api/counter', counterRoutes);
+app.use('/api/promotions', promotionRoutes);
 app.use('/api/food-sales', foodSaleRoutes);
+app.use('/api/members', memberRoutes);
+app.use('/api/revenue', revenueRoutes);
+
+app.use('/api/showtimes', showtimeRoutes);
 
 // 7. Global Centralized Error Handling Middleware
 app.use((err, _req, res, _next) => {
@@ -62,7 +72,7 @@ app.use((err, _req, res, _next) => {
     message = 'Thông tin nhập chưa hợp lệ. Vui lòng kiểm tra lại.';
   } else if (err.code === 11000) {
     message = 'Email này đã được sử dụng.';
-  } else if (status >= 500) {
+  } else if (status >= 500 && status !== 503) {
     message = 'Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.';
   }
 

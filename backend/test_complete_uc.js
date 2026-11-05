@@ -31,6 +31,54 @@ test('Nine UC completion against transactional MongoDB',async t=>{
  async function fixture(extra={}){const movie=await Movie.create({title:'Test '+randomUUID(),genre:['Action'],duration:100,classification:'P',releaseDate:new Date(),...extra});const show=await Showtime.create({movie:movie._id,cinema:'Test',room:'1',startTime:new Date(Date.now()+3600000),price:100000,seats:[{number:'A1'},{number:'A2'}]});return {movie,show};}
  async function book(actor=member,body={},extra={}){const f=await fixture(extra);const result=await request('/bookings',actor,'POST',{showtimeId:f.show.id,seats:['A1'],...body});assert.equal(result.status,201,JSON.stringify(result.data));return {...f,b:result.data};}
 
+ await t.test('concurrent seat claims have one winner and cash payment keeps sold seats unavailable',async()=>{
+  const f=await fixture(),other=await account();
+  const results=await Promise.all([member,other].map(actor=>request('/bookings',actor,'POST',{showtimeId:f.show.id,seats:['A1']})));
+  assert.deepEqual(results.map(r=>r.status).sort(),[201,409]);
+  const b=results.find(r=>r.status===201).data;
+  assert.ok(Math.abs(new Date(b.expiresAt)-Date.now()-600000)<10000);
+  const paid=await request('/payments/bookings/'+b._id+'/cash',employee,'POST',{method:'cash',receivedAmount:b.total});
+  assert.equal(paid.status,200);assert.equal(paid.data.paymentMethod,'cash');
+  assert.equal((await request('/bookings',other,'POST',{showtimeId:f.show.id,seats:['A1']})).status,409);
+  assert.equal(await Booking.countDocuments({showtime:f.show.id}),1);
+ });
+ await t.test('VNPay signed URL, ownership, failed retry, success and duplicate callback',async()=>{
+  const saved=Object.fromEntries(['VNPAY_TMN_CODE','VNPAY_HASH_SECRET','VNPAY_RETURN_URL'].map(k=>[k,process.env[k]]));
+  Object.assign(process.env,{VNPAY_TMN_CODE:'TESTMERCHANT',VNPAY_HASH_SECRET:'test-secret',VNPAY_RETURN_URL:'http://localhost/api/payments/vnpay/return'});
+  try {
+   const {b,show}=await book(),other=await account();
+   const start=()=>request('/bookings/'+b._id+'/pay',member,'POST',{method:'vnpay'});
+   const first=await start();assert.equal(first.status,200);
+   const url=new URL(first.data.paymentUrl);assert.equal(url.hostname,'sandbox.vnpayment.vn');
+   const unsigned=Object.fromEntries(url.searchParams);assert.equal(unsigned.vnp_SecureHash,signature(unsigned));
+   assert.equal(url.searchParams.get('vnp_Amount'),String(b.total*100));
+   assert.equal((await start()).data.reference,first.data.reference);
+   assert.equal((await request('/bookings/payment-result/'+first.data.reference,other)).status,404);
+   assert.equal((await request('/bookings/'+b._id+'/pay',member,'POST',{method:'cash'})).status,409);
+   let reference=first.data.reference;
+   const callback=async(extra={})=>{
+    const params={vnp_TmnCode:process.env.VNPAY_TMN_CODE,vnp_TxnRef:reference,vnp_Amount:String(b.total*100),vnp_ResponseCode:'00',vnp_TransactionStatus:'00',vnp_TransactionNo:'123456',...extra};
+    params.vnp_SecureHash=signature(params);return request('/payments/vnpay/ipn?'+new URLSearchParams(params));
+   };
+   assert.equal((await callback({vnp_Amount:'1'})).data.RspCode,'04');
+   assert.equal((await request('/payments/vnpay/ipn?vnp_SecureHash=bad')).data.RspCode,'97');
+   assert.equal((await callback({vnp_ResponseCode:'24',vnp_TransactionStatus:'02'})).data.RspCode,'00');
+   assert.equal((await Booking.findById(b._id)).status,'pending');
+   const second=await start();assert.notEqual(second.data.reference,reference);reference=second.data.reference;
+   await PaymentAttempt.updateOne({ref:reference},{$set:{status:'unresolved',message:'Transient processing failure'}});
+   assert.equal((await callback()).data.RspCode,'00');assert.equal((await callback()).data.RspCode,'02');
+   const paidReference=reference;
+   reference=first.data.reference;
+   assert.equal((await callback({vnp_TransactionNo:'654321'})).data.RspCode,'99');
+   assert.equal((await PaymentAttempt.findOne({ref:reference})).status,'unresolved');
+   assert.equal((await Booking.findById(b._id)).paymentRef,paidReference);
+   reference=paidReference;
+   const result=await request('/bookings/payment-result/'+reference,member);
+   assert.equal(result.data.status,'succeeded');assert.equal(result.data.booking.paymentMethod,'vnpay');assert.equal(result.data.booking.tickets.length,1);
+   assert.equal((await Showtime.findById(show.id)).seats[0].status,'booked');
+   assert.equal(await PaymentAttempt.countDocuments({booking:b._id,status:'succeeded'}),1);
+  }finally{for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
+ });
  await t.test('online age checks are deferred to the counter, including payment and K guardian',async()=>{
   const f=await fixture({classification:'T18'});
   const r=await request('/bookings',member,'POST',{showtimeId:f.show.id,seats:['A1']});

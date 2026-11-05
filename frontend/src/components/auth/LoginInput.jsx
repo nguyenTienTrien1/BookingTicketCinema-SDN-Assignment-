@@ -13,8 +13,17 @@ export default function LoginInput({
   required = true,
   icon,
   rightElement,
-  autoComplete
+  autoComplete,
+  disabled = false,
+  error,
+  hint,
+  onBlur,
+  inputMode
 }) {
+  let descriptionId;
+  if (error) descriptionId = `${id}-error`;
+  else if (hint) descriptionId = `${id}-hint`;
+
   return (
     <div className="loginInputGroup">
       {label && (
@@ -22,7 +31,7 @@ export default function LoginInput({
           {label}
         </label>
       )}
-      <div className="loginInputWrapper">
+      <div className={`loginInputWrapper${error ? ' loginInputWrapperError' : ''}`}>
         {icon && (
           <div className="loginInputIcon" aria-hidden="true">
             {icon}
@@ -34,10 +43,15 @@ export default function LoginInput({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
+          onBlur={onBlur}
+          disabled={disabled}
+          inputMode={inputMode}
           required={required}
           autoComplete={autoComplete}
           className="loginInputField"
           aria-label={label || placeholder}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={descriptionId}
         />
         {rightElement && (
           <div className="loginInputRightElement">
@@ -45,6 +59,8 @@ export default function LoginInput({
           </div>
         )}
       </div>
+      {error && <p id={`${id}-error`} className="recoveryFieldError">{error}</p>}
+      {hint && !error && <p id={`${id}-hint`} className="recoveryFieldHint">{hint}</p>}
     </div>
   );
 }

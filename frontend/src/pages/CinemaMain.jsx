@@ -1,6 +1,7 @@
 import {api} from '../services/api';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import '../index.css';
 import Header from '../components/Header';
 import Home from './Home/Home';
@@ -20,6 +21,7 @@ import { canOpenTab } from '../utils/permissions';
 
 export default function CinemaMain() {
     const location = useLocation();
+    const navigate = useNavigate();
     const { user: authUser, setUser: setAuthUser } = useAuth();
     const [movies, setMovies] = useState([]);
     const [showtimes, setShowtimes] = useState([]);
@@ -37,6 +39,7 @@ export default function CinemaMain() {
     }, [location.key, location.pathname]);
     const [loginReturnTab, setLoginReturnTab] = useState('home');
     const [msg, setMsg] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
 
     const handleSetUser = useCallback((newUser) => {
@@ -101,6 +104,7 @@ export default function CinemaMain() {
         setMsg,
         setPending,
         pending,
+        searchFilter: searchQuery,
         onRequireBookingLogin: requireBookingLogin
     };
 
@@ -164,11 +168,13 @@ export default function CinemaMain() {
     return (
         <div className="app">
             <div className="app-shell">
-                <Header tab={tab} setTab={setTab} user={user} />
-                <main className="main-content">
+                <Header tab={tab} setTab={setTab} user={user} onSearch={setSearchQuery} />
+                <main className={`main-content ${tab !== 'home' ? 'subpage' : ''}`}>
                     {page}
+                    {['employee','admin'].includes(user?.role) && <a href="/staff/tools">Tiếp nhận đơn online / Thu tiền tại quầy</a>}
                     {user?.role === 'admin' && (
                         <div className="adminNav">
+                            <button onClick={() => navigate('/admin/showtimes')}>Quản lý suất chiếu</button>
                             <button onClick={() => setTab('create-account')}>Tạo tài khoản</button>
                             <button onClick={() => setTab('update-status')}>Trạng thái tài khoản</button>
                             <button onClick={() => setTab('adjust-points')}>Điều chỉnh điểm</button>

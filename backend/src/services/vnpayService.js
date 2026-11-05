@@ -13,7 +13,11 @@ export async function createPayment(bookingId, userId, ip) {
  const attempt = await transaction(async session => {
   const b = await Booking.findOne({ _id: bookingId, user: userId }).session(session); if (!b || b.status !== 'pending' || b.expiresAt <= new Date()) throw fail('Đơn không còn hiệu lực.', 410);
   if (b.total <= 0) throw fail('Đơn 0đ phải dùng thanh toán bằng điểm.');
-  if (b.activePayment) { const a = await PaymentAttempt.findOne({ ref: b.activePayment, status: 'created' }).session(session); if (a) return a; }
+  if (b.activePayment) {
+   const a = await PaymentAttempt.findOne({ ref: b.activePayment }).session(session);
+   if (a?.status === 'created') return a;
+   if (a?.status === 'unresolved') throw fail('Giao dịch đang cần đối soát. Không thanh toán lại; vui lòng liên hệ nhân viên.',409);
+  }
   const a = new PaymentAttempt({ ref: crypto.randomBytes(12).toString('hex'), booking: b._id, amount: b.total, method: 'vnpay', expiresAt: b.expiresAt });
   await a.save({session}); b.activePayment = a.ref; await b.save({session}); return a;
  });
