@@ -21,7 +21,7 @@ function bookingStatus(booking, now) {
 }
 
 const paymentLabels = { unpaid: 'Chưa thanh toán', paid: 'Đã thanh toán', failed: 'Không thành công' };
-const methodLabels = { cash: 'Tiền mặt', vnpay: 'VNPay', momo: 'MoMo', 'credit-card': 'Thẻ ngân hàng', mock: 'Mô phỏng' };
+const methodLabels = { cash: 'Tiền mặt', vnpay: 'VNPay', momo: 'MoMo', 'credit-card': 'Thẻ ngân hàng', mock: 'Mô phỏng', demo: 'Mô phỏng', points: 'Không thu thêm tiền' };
 
 export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, onBookAgain }) {
     const [bookings, setBookings] = useState([]);
@@ -94,6 +94,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                                 {booking.paymentRef && <p><span>Mã giao dịch</span><strong>{booking.paymentRef}</strong></p>}
                                 <p><span>Tạm tính</span><strong>{Number(booking.subtotal || 0).toLocaleString('vi-VN')}₫</strong></p>
                                 <p><span>Giảm từ điểm ({booking.pointsUsed || 0} điểm)</span><strong>{Number(booking.discount || 0).toLocaleString('vi-VN')}₫</strong></p>
+                                {booking.promotion && <p><span>Khuyến mãi ({booking.promotion.code})</span><strong>−{Number(booking.promotionDiscount || 0).toLocaleString('vi-VN')}₫</strong></p>}
                             </div>
                             <div className="myTicketFooter">
                                 <div><span>Tổng tiền đơn</span><strong>{Number(booking.total || 0).toLocaleString('vi-VN')}₫</strong></div>

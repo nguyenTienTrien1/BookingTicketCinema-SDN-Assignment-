@@ -154,6 +154,7 @@ export default function Account({ user, setTab, setPending, initialSection }) {
                                         <p><span>Ngày giờ</span><strong>{formatDate(showtime?.startTime)}</strong></p>
                                         <p><span>Ghế</span><strong>{booking.seats?.join(', ') || '—'}</strong></p>
                                         <p><span>Bắp nước</span><strong>{foods || 'Không gọi thêm'}</strong></p>
+                                        {booking.promotion && <p><span>Khuyến mãi ({booking.promotion.code})</span><strong>−{Number(booking.promotionDiscount || 0).toLocaleString('vi-VN')}₫</strong></p>}
                                     </div>
                                     <div className="myTicketFooter">
                                         <div>

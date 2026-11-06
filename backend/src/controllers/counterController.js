@@ -67,5 +67,14 @@ export async function payment(req, res, next) {
   } catch (error) { next(error); }
 }
 
+export async function promotion(req, res, next) {
+  try {
+    const sale = await ownedSale(req);
+    if (!sale) return res.status(404).json({ message: 'Không tìm thấy đơn bán tại quầy của bạn.' });
+    if (typeof req.body?.code !== 'string') return res.status(400).json({ message: 'Vui lòng gửi mã khuyến mãi; dùng chuỗi rỗng để bỏ mã.' });
+    res.json(await bookings.applyCounterPromotion(sale._id, sale.user, req.body.code));
+  } catch (error) { next(error); }
+}
+
 export async function food(req,res,next){try{const b=await ownedSale(req);if(!b)return res.status(404).json({message:'Không tìm thấy đơn.'});res.json(await bookings.updateFoods(b._id,b.user,req.body.foodItems));}catch(e){next(e);}}
 export async function cancel(req,res,next){try{const b=await ownedSale(req);if(!b)return res.status(404).json({message:'Không tìm thấy đơn.'});res.json(await bookings.cancelBooking(b._id,b.user));}catch(e){next(e);}}

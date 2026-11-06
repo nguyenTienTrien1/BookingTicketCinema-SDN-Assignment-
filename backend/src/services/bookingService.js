@@ -8,12 +8,20 @@ import User from '../models/User.js';
 import PaymentAttempt from '../models/PaymentAttempt.js';
 import { transaction, domainError as fail } from './transaction.js';
 import { withScheduleWrite } from './showtimeService.js';
+import { quoteCounterPromotion, consumeCounterPromotion } from './counterPromotionService.js';
 export const POINT_VALUE = 1000;
 export function validatePoints(points, subtotal, balance) {
  const step = Number(process.env.POINT_REDEEM_STEP || 100);
  if (!Number.isSafeInteger(points) || points < 0 || points % step !== 0 || points > balance || points * POINT_VALUE > subtotal) throw fail('Điểm sử dụng không hợp lệ hoặc vượt số dư/giá trị đơn.');
 }
 const populate = [{ path: 'showtime', populate: { path: 'movie' } }, { path: 'foodItems.food' }, { path: 'user', select: 'fullName email role memberPoints status' }];
+async function reprice(booking, member, session, code = booking.promotion?.code || '') {
+ const quote = await quoteCounterPromotion(code, booking, session);
+ validatePoints(booking.pointsUsed, booking.subtotal - quote.discount, member?.memberPoints || 0);
+ booking.promotion = quote.promotion; booking.promotionDiscount = quote.discount;
+ booking.discount = booking.pointsUsed * POINT_VALUE;
+ booking.total = booking.subtotal - booking.discount - quote.discount;
+}
 export const loadBooking = (id) => Booking.findById(id).populate(populate);
 export async function releaseSeats(booking, session) {
  await Showtime.updateOne({ _id: booking.showtime }, { $set: { 'seats.$[s].status': 'available', 'seats.$[s].bookingId': null, 'seats.$[s].holdUntil': null } }, { session, arrayFilters: [{ 's.bookingId': booking._id, 's.status': 'held' }] });
@@ -32,7 +40,7 @@ async function foodSnapshot(items, session) {
  for (const item of items) {
   if (!item || !mongoose.isObjectIdOrHexString(item.food) || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || seen.has(String(item.food))) throw fail('Món hoặc số lượng không hợp lệ/trùng lặp.');
   seen.add(String(item.food));
-  const f = await Food.findOne({ _id: item.food, available: true, stock: { $gte: item.quantity } }).session(session);
+  const f = await Food.findOne({ _id: item.food, available: true, deletedAt: null, stock: { $gte: item.quantity } }).session(session);
   if (!f) throw fail('Món đã ngừng bán hoặc không đủ tồn kho.', 409);
   result.push({ food: f._id, name: f.name, unitPrice: f.price, quantity: item.quantity }); total += f.price * item.quantity;
  }
@@ -48,7 +56,7 @@ async function checkAge(movie, member, actor, guardian) {
 export async function createBooking(data) {
  return withScheduleWrite(function () { return createBookingWithGuard(data); });
 }
-async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [], counterEmployee = null, points = 0, guardianConfirmed = false }) {
+async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [], counterEmployee = null, points = 0, guardianConfirmed = false, promotionCode = '' }) {
  await expireBookings();
  if (!mongoose.isObjectIdOrHexString(showtimeId) || (!counterEmployee && !mongoose.isObjectIdOrHexString(userId)) || !Array.isArray(seats) || !seats.length || seats.some(s => typeof s !== 'string' && typeof s !== 'number') || new Set(seats.map(String)).size !== seats.length) throw fail('Dữ liệu đặt vé không hợp lệ.');
  const snapshot = await Showtime.findById(showtimeId).lean();
@@ -65,6 +73,7 @@ async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [
   const subtotal = show.price * seats.length + food.total;
   validatePoints(points, subtotal, member?.memberPoints || 0);
   const b = new Booking({ user: userId || null, counterEmployee, showtime: show._id, seats: seats.map(String), ticketPrice: show.price, foodItems: food.items, subtotal, pointsUsed: points, discount: points * POINT_VALUE, total: subtotal - points * POINT_VALUE, expiresAt: new Date(Date.now() + 600000), ageCheckedBy: counterEmployee, guardianConfirmed });
+  await reprice(b, member, session, promotionCode);
   // Operational condition is independent of available/held/booked. Missing
   // condition on a legacy snapshot means Active, never a VIP price override.
   const claim = await Showtime.updateOne({ _id: show._id, $and: b.seats.map(number => ({ seats: { $elemMatch: { number, status: 'available', condition: { $in: ['Active', null] } } } })) }, { $set: { 'seats.$[s].status': 'held', 'seats.$[s].bookingId': b._id, 'seats.$[s].holdUntil': b.expiresAt } }, { session, arrayFilters: [{ 's.number': { $in: b.seats }, 's.status': 'available', 's.condition': { $in: ['Active', null] } }] });
@@ -85,13 +94,21 @@ export async function applyMemberPoints(id, userId, points) {
   const b = await pending(id, userId, session);
   const u = userId && await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session);
   if (!u) throw fail('Khách vãng lai không được dùng điểm.');
-  validatePoints(points, b.subtotal, u.memberPoints); b.pointsUsed = points; b.discount = points * POINT_VALUE; b.total = b.subtotal - b.discount; await b.save({ session });
+  b.pointsUsed = points; await reprice(b, u, session); await b.save({ session });
  }); return loadBooking(id);
 }
 export async function updateFoods(id, userId, items) {
  await transaction(async (session) => { const b = await pending(id, userId, session); const f = await foodSnapshot(items, session); if(!Number.isFinite(b.ticketPrice))throw fail('Đơn cũ thiếu snapshot giá vé. Vui lòng hủy và đặt lại.',409); const subtotal = b.ticketPrice * b.seats.length + f.total;
-  const u = b.user && await User.findById(b.user).session(session); validatePoints(b.pointsUsed, subtotal, u?.memberPoints || 0);
-  b.foodItems = f.items; b.subtotal = subtotal; b.total = subtotal - b.discount; await b.save({ session });
+  const u = b.user && await User.findById(b.user).session(session);
+  b.foodItems = f.items; b.subtotal = subtotal; await reprice(b, u, session); await b.save({ session });
+ }); return loadBooking(id);
+}
+export async function applyCounterPromotion(id, userId, code) {
+ await transaction(async session => {
+  const b = await pending(id, userId, session);
+  if (!b.counterEmployee) throw fail('Chỉ áp dụng khuyến mãi cho đơn tại quầy.', 403);
+  const member = b.user && await User.findById(b.user).session(session);
+  await reprice(b, member, session, code); await b.save({ session });
  }); return loadBooking(id);
 }
 export async function cancelBooking(id, userId) {
@@ -128,13 +145,14 @@ export async function settle(id, evidence) {
    if (!member || member.memberPoints < b.pointsUsed) throw fail('Số dư điểm đã thay đổi hoặc tài khoản bị khóa.', 409);
    if (b.pointsUsed) await User.updateOne({ _id: b.user, memberPoints: { $gte: b.pointsUsed } }, { $inc: { memberPoints: -b.pointsUsed }, $push: { redemptionEntries: { booking: b._id, delta: -b.pointsUsed, at: new Date() } } }, { session });
   } else if (b.pointsUsed) throw fail('Đơn vãng lai không được dùng điểm.');
-  for (const item of b.foodItems) { const stock = await Food.updateOne({ _id: item.food, available: true, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { session }); if (stock.modifiedCount !== 1) throw fail('Món đã hết hàng, chưa thể hoàn tất thanh toán.', 409); }
+  for (const item of b.foodItems) { const stock = await Food.updateOne({ _id: item.food, available: true, deletedAt: null, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { session }); if (stock.modifiedCount !== 1) throw fail('Món đã hết hàng, chưa thể hoàn tất thanh toán.', 409); }
   const sold = await Showtime.updateOne({ _id: b.showtime, $and: b.seats.map(number => ({ seats: { $elemMatch: { number, status: 'held', bookingId: b._id, holdUntil: { $gt: new Date() } } } })) }, { $set: { 'seats.$[s].status': 'booked', 'seats.$[s].holdUntil': null } }, { session, arrayFilters: [{ 's.bookingId': b._id, 's.status': 'held' }] });
   if (sold.modifiedCount !== 1) throw fail('Giữ ghế không còn hợp lệ.', 409);
   const issuedAt = new Date();
   b.ticketMode = evidence.kind === 'demo' ? 'demo' : 'verified';
   b.ticketContext = { startTime: show.startTime, cinema: show.cinema, room: show.room, movieTitle: finalMovie.title, classification: finalMovie.classification || '', ageLimit: finalMovie.ageLimit || 0 };
   b.tickets = []; for (const seat of b.seats) { const code = crypto.randomBytes(24).toString('hex'); b.tickets.push({ seat, code, reference: code, qr: await QRCode.toDataURL(JSON.stringify({ ticket: code, booking: String(b._id), seat }), { width: 220, margin: 1 }), status: 'valid', issuedAt }); }
+  await consumeCounterPromotion(b, session);
   if (!attempt) { const created = await PaymentAttempt.create([{ ref: crypto.randomUUID(), booking: b._id, amount: b.total, method: evidence.kind, status: 'succeeded', receivedAmount: evidence.receivedAmount, actor: evidence.actor }], { session }); attempt = created[0]; }
   else { attempt.status = 'succeeded'; attempt.providerRef = evidence.providerRef; await attempt.save({ session }); }
   b.status = 'paid'; b.paymentStatus = 'paid'; b.paymentMethod = evidence.kind; b.paymentRef = attempt.ref; b.activePayment = null; b.paidAt = new Date(); await b.save({ session }); return b._id;
@@ -142,7 +160,7 @@ export async function settle(id, evidence) {
 }
 export async function pay() { throw fail('Không chấp nhận xác nhận thanh toán từ trình duyệt.', 403); }
 export const listBookings = (userId) => Booking.find({ user: userId })
- .select('showtime seats ticketPrice foodItems subtotal pointsUsed discount total status paymentMethod paymentStatus paymentRef expiresAt tickets paidAt createdAt updatedAt')
+ .select('showtime seats ticketPrice foodItems subtotal pointsUsed discount promotion promotionDiscount total status paymentMethod paymentStatus paymentRef expiresAt tickets paidAt createdAt updatedAt')
  .populate([{path:'showtime',select:'movie cinema room startTime',populate:{path:'movie',select:'title'}},{path:'foodItems.food',select:'name'}])
  .sort({ createdAt: -1, _id: -1 });
 

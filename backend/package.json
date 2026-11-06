@@ -23,8 +23,10 @@
     "test:booking-history": "node --test test_booking_history.js",
     "test:member-search": "node --test test_member_search.js",
     "test:member-search:ui": "node scripts/test-member-search-ui.js",
+    "test:counter-promotions": "node --test test_counter_promotions.js",
+    "test:counter-promotions:ui": "node scripts/test-counter-promotions-ui.js",
     "test:revenue": "node --test test_revenue.js",
-    "test": "node --test test_booking_history.js test_catalogue.js test_complete_uc.js test_counter_points.js test_food_sales.js test_google_auth.js test_member_search.js test_movies.js test_password_reset.js test_profile.js test_regression.js test_revenue.js test_roles.js test_showtimes.js test_rooms.js test_tickets.js",
+    "test": "node --test test_booking_history.js test_catalogue.js test_complete_uc.js test_counter_points.js test_counter_promotions.js test_food_sales.js test_google_auth.js test_member_search.js test_movies.js test_password_reset.js test_profile.js test_regression.js test_revenue.js test_roles.js test_showtimes.js test_rooms.js test_tickets.js",
     "db:local": "node scripts/local-db.js",
     "test:e2e": "node scripts/test-e2e.js",
     "test:tickets": "node --test test_tickets.js"

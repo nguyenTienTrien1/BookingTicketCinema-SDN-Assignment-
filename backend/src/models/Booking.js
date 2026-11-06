@@ -5,6 +5,12 @@ const ticketSchema = new mongoose.Schema({
  issuedAt: Date, checkedInAt: Date,
  checkedInBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
+const appliedPromotionSchema = new mongoose.Schema({
+ promotion: { type: mongoose.Schema.Types.ObjectId, ref: 'Promotion', required: true },
+ code: String, name: String, scope: String, discountType: String,
+ value: Number, minOrder: Number, maxDiscount: Number, stackable: Boolean,
+ eligibleAmount: Number, discount: Number, ruleSignature: String, policy: String
+}, { _id: false });
 const bookingSchema = new mongoose.Schema({
  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, required: function () { return !this.counterEmployee; } },
  counterEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
@@ -12,6 +18,7 @@ const bookingSchema = new mongoose.Schema({
  seats: [String], ticketPrice: Number,
  foodItems: [{ food: { type: mongoose.Schema.Types.ObjectId, ref: 'Food' }, name: String, unitPrice: Number, quantity: Number }],
  subtotal: { type: Number, required: true }, pointsUsed: { type: Number, default: 0 }, discount: { type: Number, default: 0 }, total: { type: Number, required: true },
+ promotion: { type: appliedPromotionSchema, default: undefined }, promotionDiscount: { type: Number, default: 0, min: 0 },
  status: { type: String, enum: ['pending','paid','cancelled'], default: 'pending' },
  paymentStatus: { type: String, enum: ['unpaid','paid','failed'], default: 'unpaid' },
  paymentMethod: { type: String, enum: ['demo','cash','vnpay','points','mock','momo','credit-card'], default: 'cash' },

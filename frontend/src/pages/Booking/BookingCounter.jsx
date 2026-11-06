@@ -280,6 +280,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     return (
         <section className="page">
             <h2>Đặt vé tại quầy</h2>
+            <p className="helperText">Bạn có thể áp dụng mã khuyến mãi ở bước thanh toán, sau khi tạo đơn giữ ghế.</p>
             <div className="booking">
                 <div className="bookingFlow">
                     {flowSteps.map((label, index) => (

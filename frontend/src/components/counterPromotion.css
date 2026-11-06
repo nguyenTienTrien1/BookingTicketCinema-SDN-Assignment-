@@ -1,0 +1,15 @@
+.counterPromotion fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.counterPromotion form label { display: block; margin-bottom: 10px; color: #d7dbe6; font-size: .9rem; font-weight: 600; }
+.counterPromotionPolicy { flex-shrink: 0; padding: 5px 9px; border: 1px solid #41313b; border-radius: 6px; color: #f0bac1; font-size: .75rem; }
+.counterPromotionControl { display: flex; gap: 12px; align-items: stretch; }
+.counterPromotionControl input { min-width: 0; width: 100%; flex: 1; min-height: 44px; padding: 12px; background: #0d1017; color: #f4f5f8; border: 1px solid #434b5e; border-radius: 8px; font: inherit; }
+.counterPromotionControl > button { flex-shrink: 0; min-height: 44px; }
+.counterPromotionActions { display: flex; gap: 16px; flex-wrap: wrap; }
+.counterPromotionApplied { margin-top: 18px; padding: 16px; background: #261b24; border: 1px solid #56323e; border-radius: 10px; overflow-wrap: anywhere; }
+.counterPromotionApplied > div { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.counterPromotionApplied strong { color: #ffb3bd; letter-spacing: .04em; }
+.counterPromotionApplied > div > span { color: #ffd0d6; font-weight: 700; }
+.counterPromotionApplied p { margin: 8px 0 0; color: #c1c5d0; font-size: .84rem; line-height: 1.6; }
+.counterPromotion :is(input, button):focus-visible { outline: 3px solid #ff9aa2; outline-offset: 3px; }
+.counterPromotion :disabled { opacity: .6; }
+@media (max-width: 560px) { .counterPromotionControl { flex-direction: column; } .counterPromotionControl > button { width: 100%; } }
