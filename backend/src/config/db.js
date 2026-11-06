@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import User from '../models/User.js';
 
 export async function connectDatabase() {
   const uri = process.env.MONGODB_URI;
@@ -7,5 +8,7 @@ export async function connectDatabase() {
   }
 
   await mongoose.connect(uri);
+  // Do not accept authentication requests before uniqueness is enforced.
+  await User.init();
   console.log('MongoDB connected');
 }

@@ -1,7 +1,7 @@
 import * as loginService from '../../services/auth/loginService.js';
 
 // Cookie configuration
-const getCookieOptions = () => ({
+export const getCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { loginUser, logout as apiLogout, getMe } from '../services/auth/authService';
+import { loginUser, loginGoogle, logout as apiLogout, getMe } from '../services/auth/authService';
 
 const AuthContext = createContext(null);
 
@@ -60,6 +60,19 @@ export function AuthProvider({ children }) {
     setError('');
   }
 
+  async function googleLogin(credential) {
+    const revision = ++sessionRevision.current;
+    setError('');
+    // GoogleSignIn owns this flow's error and retry UI. Keep one error message.
+    const response = await loginGoogle(credential);
+    if (!response.user?._id) throw new Error('Phản hồi đăng nhập không hợp lệ.');
+    if (revision === sessionRevision.current) {
+      setUser(response.user);
+      setLoading(false);
+    }
+    return response.user;
+  }
+
   const value = {
     user,
     setUser,
@@ -67,6 +80,7 @@ export function AuthProvider({ children }) {
     error,
     setError,
     login,
+    googleLogin,
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',

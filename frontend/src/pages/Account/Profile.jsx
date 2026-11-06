@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getProfile, updateProfile, changePassword } from '../../services/profileService';
 import { translateAccountStatus, translateRole } from '../../utils/uiText';
 import './profile.css';
+import AccountSecurity from '../../components/auth/AccountSecurity';
 
 function profileForm(user) {
   return {
@@ -121,8 +122,9 @@ export function ProfilePanel() {
         </dl>
         <div className="profileActions">
           <button type="button" className="primary" onClick={() => switchMode('edit')}>Cập nhật hồ sơ</button>
-          <button type="button" className="ghost" onClick={() => switchMode('password')}>Đổi mật khẩu</button>
+          {profile.loginMethods?.local !== false && <button type="button" className="ghost" onClick={() => switchMode('password')}>Đổi mật khẩu</button>}
         </div>
+        {profile.role === 'member' && profile.loginMethods && <AccountSecurity methods={profile.loginMethods} />}
       </>}
 
       {mode === 'edit' && <form onSubmit={saveProfile}>

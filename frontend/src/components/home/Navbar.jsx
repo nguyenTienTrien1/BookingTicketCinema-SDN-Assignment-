@@ -196,7 +196,7 @@ export default function Navbar({ tab, setTab, user, onSearch }) {
           /* =========================================================
              CUSTOMER NAVIGATION (For members & guests)
              ========================================================= */
-          <ul className="cinematicNavLinks sidebarNav">
+          <ul className="cinematicNavLinks">
             <li>
               <button
                 type="button"

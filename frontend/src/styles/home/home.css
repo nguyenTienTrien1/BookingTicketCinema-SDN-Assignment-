@@ -108,6 +108,7 @@
   background: none;
   border: none;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .cinematicNavBrand .brandLogo {

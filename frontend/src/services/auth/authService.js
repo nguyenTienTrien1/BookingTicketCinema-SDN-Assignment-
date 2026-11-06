@@ -11,6 +11,34 @@ const authApi = axios.create({
   }
 });
 
+export async function getGoogleChallenge(purpose, signal) {
+  const path = purpose === 'login' ? '/auth/google/challenge' : '/auth/google/reauth-challenge';
+  const response = await authApi.post(path, { purpose }, { signal });
+  if (response.data.clientId !== import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()) {
+    throw new Error('Cấu hình đăng nhập Google chưa đồng bộ. Vui lòng tải lại trang hoặc liên hệ quản trị.');
+  }
+  return response.data.nonce;
+}
+
+export async function loginGoogle(credential) {
+  try {
+    const response = await authApi.post('/auth/google', { credential });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Không thể đăng nhập Google. Vui lòng thử lại.');
+  }
+}
+
+export async function setLocalPassword(data) {
+  const response = await authApi.post('/auth/set-password', data);
+  return response.data;
+}
+
+export async function linkGoogleAccount(data) {
+  const response = await authApi.post('/auth/link-google', data);
+  return response.data;
+}
+
 /**
  * Member registration (UC-1)
  * @param {{ fullName: string, email: string, password: string, phone?: string }} data
