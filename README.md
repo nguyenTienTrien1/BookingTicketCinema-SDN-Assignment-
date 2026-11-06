@@ -62,10 +62,11 @@ Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` mo
 - Run `npm run test:booking-history -w backend`. Tests use and remove their own temporary database, leaving `booking_cinema` unchanged.
 
 ## UC-8 Search Member Information (NhaNTK)
-- Employees open `/employee/members`; Admins open `/admin/members` from their dashboard. Both search by a complete email or phone number, then select a result for current Member information.
+- Employees open `/employee/members` from the grouped tasks on their profile. Admins use **Tra cứu thành viên** inside AdminPortal; `/admin/members` also opens that portal section at `/account?section=members`. Both search by a complete email or phone number, then select a result for current Member information.
 - `GET /api/members/search?q=...` matches email case-insensitively or phone formatting (`0901 234 567`, `+84 901 234 567`, `0084901234567`). It returns up to 20 matching Members with `hasMore` for ambiguous numbers. `GET /api/members/:id` rereads the selected Member.
 - Both endpoints require an active Employee or Admin session. Employees receive only `_id`, `fullName`, `email`, `phone`, `status`, `memberPoints`, and `isVIP`; Admins additionally receive `age`, `gender`, `role`, `createdAt`, `updatedAt`, and `lastLogin`. Permissions use the authenticated database role, never client-supplied roles or field lists. Staff accounts, password hashes, tokens and security counters are excluded for both roles. Lookups do not change accounts; audit messages contain actor IDs/roles and result counts, without search terms.
-- Run `npm run test:member-search -w backend`. Tests use and remove a dedicated temporary database.
+- Employee profiles keep the existing site header and profile forms. A responsive task panel groups counter ticket sales, Member lookup, check-in, online-order collection and food sales; tasks no longer appear as loose links beneath every page.
+- Run `npm run test:member-search -w backend` for API permissions and `npm run test:member-search:ui -w backend` for real-browser profile navigation, search/error states, role-specific fields and mobile layout. Tests use and remove dedicated temporary databases; UI screenshots are saved under `.local/qa/uc8/`.
 
 ## Run backend
 1. Install MongoDB Server and make sure `mongod` is on PATH.

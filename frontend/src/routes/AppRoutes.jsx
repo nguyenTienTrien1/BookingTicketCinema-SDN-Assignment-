@@ -43,6 +43,7 @@ export default function AppRoutes() {
       <Route path="/profile" element={<ProtectedRoute allowedRoles={['member', 'employee', 'admin']}><Navigate to="/account?section=profile" replace /></ProtectedRoute>} />
       <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueDashboard /></ProtectedRoute>} />
       <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
+      <Route path="/admin/members" element={<ProtectedRoute allowedRoles={['admin']}><Navigate to="/account?section=members" replace /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />

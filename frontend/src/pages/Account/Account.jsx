@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { getBookings } from '../../services/bookingService';
 import { translateFoodName } from '../../utils/uiText';
 import { ProfilePanel } from './Profile';
+import EmployeeActions from './EmployeeActions';
+import './employeeAccount.css';
 
 function formatDate(value) {
     if (!value) return 'Chưa có thông tin';
@@ -24,6 +26,7 @@ function bookingStatus(booking) {
 export default function Account({ user, setTab, setPending, initialSection }) {
     const { logout } = useAuth();
     const navigate = useNavigate();
+    const isEmployee = user?.role === 'employee';
     const [loggingOut, setLoggingOut] = useState(false);
     const [activeSection, setActiveSection] = useState(initialSection === 'profile' || user?.role !== 'member' ? 'profile' : 'tickets');
     useEffect(() => {
@@ -68,22 +71,24 @@ export default function Account({ user, setTab, setPending, initialSection }) {
     }
 
     return (
-        <section className="page accountPage">
+        <section className={`page accountPage${isEmployee ? ' employeeAccount' : ''}`}>
+            <div className={isEmployee ? 'employeeAccountHeader' : undefined}>
             <div className="accountPageHeading">
-                <p className="bookingEyebrow">TÀI KHOẢN CINEMA+</p>
-                <h2>Tài khoản của tôi</h2>
-                <p>Quản lý thông tin cá nhân và lịch sử đặt vé.</p>
+                <p className="bookingEyebrow">{isEmployee ? 'NHÂN VIÊN CINEMA+' : 'TÀI KHOẢN CINEMA+'}</p>
+                <h2>{isEmployee ? 'Hồ sơ nhân viên' : 'Tài khoản của tôi'}</h2>
+                <p>{isEmployee ? 'Quản lý hồ sơ cá nhân và truy cập các nghiệp vụ tại quầy.' : 'Quản lý thông tin cá nhân và lịch sử đặt vé.'}</p>
             </div>
 
-            <button type="button" className="ghost" disabled={loggingOut} onClick={async () => {
+            {!isEmployee && <button type="button" className="ghost" disabled={loggingOut} onClick={async () => {
                 if (loggingOut) return;
                 setLoggingOut(true);
                 try { await logout(); navigate('/login', { replace: true }); }
                 catch (err) { setError(err.message); }
                 finally { setLoggingOut(false); }
-            }}>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+            }}>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>}
+            </div>
             {error && activeSection === 'profile' && <p role="alert">{error}</p>}
-            <div className="accountTabs" role="tablist" aria-label="Mục tài khoản">
+            {!isEmployee && <div className="accountTabs" role="tablist" aria-label="Mục tài khoản">
                 {user.role === 'member' && (
                 <button
                     type="button"
@@ -104,9 +109,12 @@ export default function Account({ user, setTab, setPending, initialSection }) {
                 >
                     Hồ sơ
                 </button>
-            </div>
+            </div>}
             {activeSection === 'profile' ? (
-                <ProfilePanel />
+                <div className={isEmployee ? 'employeeAccountLayout' : undefined}>
+                    <ProfilePanel />
+                    {isEmployee && <EmployeeActions onBookTickets={() => setTab('booking')} />}
+                </div>
             ) : (
                 <div className="myTicketsSection">
                     {loading && <div className="ticketNotice">Đang tải danh sách vé…</div>}

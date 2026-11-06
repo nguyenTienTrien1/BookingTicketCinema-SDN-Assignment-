@@ -117,7 +117,7 @@ export function ProfilePanel() {
           <div><dt>Giới tính</dt><dd>{({ Male: 'Nam', Female: 'Nữ', Other: 'Khác' })[profile.gender]}</dd></div>
           <div><dt>Vai trò</dt><dd>{translateRole(profile.role)}</dd></div>
           {profile.role === 'member' && <div><dt>Điểm thành viên</dt><dd>{Number(profile.memberPoints || 0).toLocaleString('vi-VN')}</dd></div>}
-          <div><dt>Trạng thái</dt><dd>{translateAccountStatus(profile.status)}</dd></div>
+          <div className="profileAccountStatus" data-status={profile.status}><dt>Trạng thái</dt><dd>{translateAccountStatus(profile.status)}</dd></div>
           {profile.role === 'member' && <div><dt>Hạng thành viên</dt><dd>{profile.isVIP ? 'VIP' : 'Thành viên'}</dd></div>}
         </dl>
         <div className="profileActions">

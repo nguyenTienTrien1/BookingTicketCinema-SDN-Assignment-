@@ -199,7 +199,7 @@ export default function CinemaMain() {
         user?.role === "admin" ? (
           <AdminPortal
             {...props}
-            initialTab={tab === "account" ? (accountSection === "profile" ? "profile" : "movies") : tab}
+            initialTab={tab === "account" ? (["profile", "members"].includes(accountSection) ? accountSection : "movies") : tab}
           />
         ) : (
           <Account
@@ -250,14 +250,6 @@ export default function CinemaMain() {
           } ${isAdminDashboard ? 'adminMainContentWrapper' : ''}`}
         >
           {page}
-          {user?.role === 'employee' && (
-            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', margin: '24px 0' }}>
-              <a href="/staff/tools" className="moduleBtnSecondary">
-                Tiếp nhận đơn online / Thu tiền tại quầy
-              </a>
-              <a href="/employee/check-in" className="moduleBtnSecondary">Check-in vé</a>
-            </div>
-          )}
           {msg && <div className="toast">{msg}</div>}
         </main>
       </div>

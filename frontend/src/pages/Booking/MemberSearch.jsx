@@ -16,9 +16,10 @@ function formatDate(value) {
     return Number.isNaN(date.getTime()) ? 'Chưa có thông tin' : date.toLocaleString('vi-VN');
 }
 
-export default function MemberSearch() {
+export default function MemberSearch({ embedded = false }) {
     const { user } = useAuth();
-    const isAdmin = user.role === 'admin';
+    const isAdmin = user?.role === 'admin';
+    const Page = embedded ? 'section' : 'main';
     const [query, setQuery] = useState('');
     const [result, setResult] = useState(null);
     const [selected, setSelected] = useState(null);
@@ -85,11 +86,11 @@ export default function MemberSearch() {
         } finally { if (!controller.signal.aborted) setDetailLoading(false); }
     }
 
-    return <main className="movieAdmin memberSearch">
+    return <Page className="movieAdmin memberSearch">
         <div className="movieAdminShell">
-            <Link className="movieBack" to={isAdmin ? '/admin/dashboard' : '/employee/dashboard'}>
-                ← {isAdmin ? 'Bảng điều khiển quản trị' : 'Bảng điều khiển nhân viên'}
-            </Link>
+            {!embedded && <Link className="movieBack" to={isAdmin ? '/account?section=members' : '/account?section=profile'}>
+                ← {isAdmin ? 'Trung tâm quản trị' : 'Hồ sơ & tác vụ nhân viên'}
+            </Link>}
             <header className="movieAdminHeading">
                 <div><p className="movieEyebrow">{isAdmin ? 'QUẢN TRỊ CINEMA+' : 'QUẦY VÉ CINEMA+'}</p><h1>Tra cứu thành viên</h1>
                     <p>{isAdmin ? 'Tìm bằng email hoặc số điện thoại để xem thông tin hồ sơ và hoạt động tài khoản thành viên.'
@@ -149,5 +150,5 @@ export default function MemberSearch() {
                 </div>
             </section>
         </div>
-    </main>;
+    </Page>;
 }

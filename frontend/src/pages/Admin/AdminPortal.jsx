@@ -10,6 +10,7 @@ import CreateAccount from "./CreateAccount";
 import UpdateAccount from "./UpdateAccount";
 import AdjustPoints from "./AdjustPoints";
 import CounterTools from "./CounterTools";
+import MemberSearch from "../Booking/MemberSearch";
 import { ProfilePanel } from "../Account/Profile";
 import "./adminPortal.css";
 
@@ -24,6 +25,7 @@ const TAB_TITLES = {
   "update-status": "Trạng thái tài khoản",
   "adjust-points": "Điều chỉnh điểm thưởng",
   counter: "Bán vé & Thu tiền tại quầy",
+  members: "Tra cứu thành viên",
   profile: "Hồ sơ Quản trị viên",
 };
 
@@ -247,6 +249,17 @@ export default function AdminPortal({
 
           {/* GROUP 2: NHÂN SỰ & NGHIỆP VỤ */}
           <div className="adminSidebarGroupTitle">NHÂN SỰ &amp; NGHIỆP VỤ</div>
+
+          <button
+            type="button"
+            className={`adminSidebarItem ${activeTab === "members" ? "active" : ""}`}
+            onClick={() => switchTab("members")}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="6" /><path d="m15 15 5 5M7 10h6M10 7v6" />
+            </svg>
+            <span>Tra cứu thành viên</span>
+          </button>
 
           <button
             type="button"
@@ -507,6 +520,8 @@ export default function AdminPortal({
               <CounterTools />
             </div>
           )}
+
+          {activeTab === "members" && <MemberSearch embedded />}
 
           {/* TAB: HỒ SƠ ADMIN */}
           {activeTab === "profile" && (

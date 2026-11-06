@@ -39,6 +39,7 @@ export default function Navbar({ tab, setTab, user, onSearch }) {
     if (setTab) {
       setTab('account');
     }
+    if (user?.role === 'employee') navigate('/account?section=profile');
   }
 
   async function handleLogout() {
@@ -97,7 +98,7 @@ export default function Navbar({ tab, setTab, user, onSearch }) {
   }
 
   return (
-    <header className={`cinematicNavbar ${scrolled ? 'scrolled' : ''} ${isAdmin ? 'adminNavbar' : ''}`}>
+    <header className={`cinematicNavbar ${scrolled ? 'scrolled' : ''} ${isAdmin ? 'adminNavbar' : ''} ${user?.role === 'employee' ? 'employeeNavbar' : ''}`}>
       {/* 1. Brand Logo */}
       <button
         type="button"
@@ -432,6 +433,7 @@ export default function Navbar({ tab, setTab, user, onSearch }) {
                 <button
                   type="button"
                   className={`navUserBtn ${dropdownOpen ? 'open' : ''}`}
+                  aria-label={user.role === 'employee' ? `Tài khoản ${user.fullName || 'nhân viên'}` : undefined}
                   onClick={() => setDropdownOpen((prev) => !prev)}
                   aria-expanded={dropdownOpen}
                   aria-haspopup="true"
@@ -440,7 +442,7 @@ export default function Navbar({ tab, setTab, user, onSearch }) {
                   <span className="navUserAvatar">
                     {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                   </span>
-                  <span>{user.fullName || 'Tài khoản'}</span>
+                  <span className="navUserName">{user.fullName || 'Tài khoản'}</span>
                   <svg
                     className={`navUserChevron ${dropdownOpen ? 'open' : ''}`}
                     width="14"
@@ -479,7 +481,7 @@ export default function Navbar({ tab, setTab, user, onSearch }) {
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                         <circle cx="12" cy="7" r="4" />
                       </svg>
-                      <span>Hồ sơ &amp; lịch sử đặt vé</span>
+                      <span>{user.role === 'employee' ? 'Hồ sơ & tác vụ nhân viên' : 'Hồ sơ & lịch sử đặt vé'}</span>
                     </button>
 
                     <div className="navDropdownDivider" />
