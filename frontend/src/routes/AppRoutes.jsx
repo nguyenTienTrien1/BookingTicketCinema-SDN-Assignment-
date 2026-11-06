@@ -15,6 +15,8 @@ import ProtectedRoute from './ProtectedRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import ManageShowtimes from '../pages/Admin/ManageShowtimes';
+import ManageRooms from '../pages/Admin/ManageRooms';
+import ConfigureSeats from '../pages/Admin/ConfigureSeats';
 import RevenueDashboard from '../pages/Admin/RevenueDashboard';
 import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
@@ -101,6 +103,8 @@ export default function AppRoutes() {
       <Route path="/admin/showtimes" element={
         <ProtectedRoute allowedRoles={['admin']}><ManageShowtimes /></ProtectedRoute>
       } />
+      <Route path="/admin/rooms" element={<ProtectedRoute allowedRoles={['admin']}><ManageRooms /></ProtectedRoute>} />
+      <Route path="/admin/rooms/:id/seats" element={<ProtectedRoute allowedRoles={['admin']}><ConfigureSeats /></ProtectedRoute>} />
 
       <Route path="/admin/foods" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" /></ProtectedRoute>} />
       <Route path="/admin/foods/new" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="foods" creating /></ProtectedRoute>} />

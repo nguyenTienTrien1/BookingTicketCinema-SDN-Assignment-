@@ -1,0 +1,491 @@
+/* =========================================================================
+   CINEMA+ SHOWTIMES (LỊCH CHIẾU) STYLES
+   Netflix-inspired Dark Cinematic UI with Red Accent & Precision Layout
+   ========================================================================= */
+
+.showtimesPage {
+  padding: 36px 4% 80px;
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  color: #f1f2f6;
+  min-height: calc(100vh - 120px);
+  box-sizing: border-box;
+}
+
+.showtimesHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.showtimesEyebrow {
+  color: #e50914;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 6px 0;
+}
+
+.showtimesHeading h1 {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+}
+
+.showtimesHeading p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 15px;
+  max-width: 850px;
+}
+
+.showtimesSummaryCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(229, 9, 20, 0.12);
+  border: 1px solid rgba(229, 9, 20, 0.3);
+  color: #ff4d58;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 1. Date Selector Ribbon */
+.dateRibbonContainer {
+  margin-bottom: 24px;
+}
+
+.dateRibbonHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #d1d5db;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dateRibbonHeader svg {
+  color: #e50914;
+}
+
+.dateRibbonTrack {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #333a4d transparent;
+}
+
+.dateRibbonTrack::-webkit-scrollbar {
+  height: 6px;
+}
+
+.dateRibbonTrack::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dateRibbonTrack::-webkit-scrollbar-thumb {
+  background: #2b3040;
+  border-radius: 3px;
+}
+
+.datePill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 105px;
+  padding: 10px 14px;
+  background: #11141c;
+  border: 1px solid #232838;
+  border-radius: 12px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.datePill:hover {
+  background: #181c27;
+  border-color: #3b4259;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.datePill.active {
+  background: #e50914;
+  border-color: #e50914;
+  color: #ffffff;
+  box-shadow: 0 4px 18px rgba(229, 9, 20, 0.35);
+  transform: translateY(-2px);
+}
+
+.datePillDay {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+
+.datePillDate {
+  font-size: 17px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.datePill.active .datePillDay,
+.datePill.active .datePillDate {
+  color: #ffffff;
+  opacity: 1;
+}
+
+/* 2. Filter Bar */
+.showtimesFilterBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 2.5fr) repeat(2, minmax(180px, 1.2fr)) auto;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 30px;
+  padding: 18px 22px;
+  background: #10131b;
+  border: 1px solid #222634;
+  border-radius: 14px;
+}
+
+.showtimesFilterBar label {
+  display: grid;
+  gap: 6px;
+  color: #c5cad6;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.showtimesFilterBar input,
+.showtimesFilterBar select {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  color: #f3f4f6;
+  background: #181c26;
+  border: 1px solid #2e3447;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.showtimesFilterBar input:focus,
+.showtimesFilterBar select:focus {
+  outline: none;
+  border-color: #e50914;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+}
+
+.showtimesResetBtn {
+  height: 44px;
+  padding: 0 22px;
+  background: #252a3a;
+  color: #e5e7eb;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.showtimesResetBtn:hover {
+  background: #343a4e;
+  color: #ffffff;
+}
+
+/* 3. Movie Showtimes Rows */
+.movieShowtimesList {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.movieShowtimeCard {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  background: #11141c;
+  border: 1px solid #202433;
+  border-radius: 16px;
+  padding: 26px 30px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.movieShowtimeCard:hover {
+  border-color: #31384e;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.moviePosterCol {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.moviePosterCol img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #1b1e2a;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+.movieAgeBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(229, 9, 20, 0.92);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+}
+
+.movieDetailBtn {
+  width: 100%;
+  height: 36px;
+  background: transparent;
+  border: 1px solid #333a4d;
+  color: #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.movieDetailBtn:hover {
+  background: #1e2333;
+  color: #ffffff;
+  border-color: #4b5563;
+}
+
+.movieShowtimeInfoCol {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.movieTitleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid #1e2230;
+  padding-bottom: 14px;
+}
+
+.movieMainHeading {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+.movieMetaTags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13.5px;
+  color: #9ca3af;
+}
+
+.movieRatingStar {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.movieDuration {
+  color: #d1d5db;
+}
+
+.movieGenres {
+  color: #94a3b8;
+}
+
+/* Cinema & Showtime slots */
+.cinemaShowtimeClusters {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cinemaClusterItem {
+  background: #161922;
+  border: 1px solid #232838;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.cinemaClusterName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 14px 0;
+}
+
+.cinemaClusterName svg {
+  color: #e50914;
+}
+
+.cinemaTimeSlotsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.showtimeSlotBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 18px;
+  background: #1d212d;
+  border: 1px solid #2e3447;
+  border-radius: 10px;
+  color: #f3f4f6;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 110px;
+  text-align: center;
+}
+
+.showtimeSlotBtn:hover {
+  background: #252b3a;
+  border-color: #e50914;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(229, 9, 20, 0.25);
+}
+
+.slotTime {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.slotSubtitle {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.slotSeatsLeft {
+  font-size: 11px;
+  color: #10b981;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* 4. Empty State */
+.showtimesEmptyState {
+  padding: 60px 24px;
+  text-align: center;
+  background: #11141c;
+  border: 1px dashed #282f42;
+  border-radius: 16px;
+  margin-top: 10px;
+}
+
+.emptyIconWrapper {
+  width: 64px;
+  height: 64px;
+  background: rgba(229, 9, 20, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #e50914;
+}
+
+.showtimesEmptyState h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 8px 0;
+}
+
+.showtimesEmptyState p {
+  color: #94a3b8;
+  font-size: 14.5px;
+  max-width: 480px;
+  margin: 0 auto 20px;
+}
+
+.emptyResetBtn {
+  background: #e50914;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.emptyResetBtn:hover {
+  background: #ff2530;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .movieShowtimeCard {
+    grid-template-columns: 140px 1fr;
+    gap: 18px;
+    padding: 18px;
+  }
+  .showtimesFilterBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .showtimesPage {
+    padding: 24px 4% 60px;
+  }
+  .movieShowtimeCard {
+    grid-template-columns: 1fr;
+  }
+  .moviePosterCol {
+    max-width: 140px;
+    margin: 0 auto;
+  }
+  .showtimesFilterBar {
+    grid-template-columns: 1fr;
+  }
+  .movieMainHeading {
+    font-size: 20px;
+  }
+}
+

@@ -1,7 +1,6 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import UserLogin from './UserLogin';
 
-// Keep old links working while using the shared login page.
+// Reuse the shared login form while keeping /admin/login and its return state.
 export default function AdminLogin() {
-  const location = useLocation();
-  return <Navigate to="/login" state={location.state} replace />;
+  return <UserLogin />;
 }

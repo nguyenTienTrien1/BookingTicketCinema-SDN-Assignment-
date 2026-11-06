@@ -1565,6 +1565,123 @@ button,
   transform: scale(1.08);
 }
 
+/* =========================================================================
+   ADMIN NAVBAR STYLING & VIEW SWITCHER
+   ========================================================================= */
+.cinematicNavbar.adminNavbar {
+  background: rgba(10, 12, 17, 0.95);
+  border-bottom: 1px solid #1f2536;
+}
+
+.adminNavBadge {
+  display: inline-block;
+  margin-left: 10px;
+  background: #e50914;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+
+.adminNavLinks {
+  gap: 20px !important;
+}
+
+.adminNavLinks .cinematicNavLink {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.18s ease;
+}
+
+.adminNavLinks .cinematicNavLink:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.adminNavLinks .cinematicNavLink.active {
+  color: #ffffff;
+  background: rgba(229, 9, 20, 0.16);
+  border: 1px solid rgba(229, 9, 20, 0.4);
+}
+
+.adminNavLinks .cinematicNavLink.active::after {
+  display: none;
+}
+
+.navViewToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  background: #171b26;
+  border: 1px solid #283042;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navViewToggleBtn:hover {
+  background: #202636;
+  border-color: #3b4660;
+  color: #ffffff;
+}
+
+.navViewToggleBtn.active {
+  background: rgba(229, 9, 20, 0.12);
+  border-color: rgba(229, 9, 20, 0.35);
+  color: #ff4d58;
+}
+
+.adminUserBtn {
+  background: #161a24 !important;
+  border: 1px solid #283042 !important;
+  padding: 5px 12px 5px 6px !important;
+  border-radius: 10px !important;
+}
+
+.adminUserBtn:hover,
+.adminUserBtn.open {
+  border-color: #3f4a66 !important;
+  background: #1d2230 !important;
+}
+
+.adminAvatar {
+  background: linear-gradient(135deg, #e50914 0%, #990000 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.navAdminLabelWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.navAdminName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.navAdminRoleTag {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #ff4d58;
+  letter-spacing: 0.3px;
+}
+
 /* Responsive Footer */
 @media (max-width: 1023px) {
   .cinematicFooter {

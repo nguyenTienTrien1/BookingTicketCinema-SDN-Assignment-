@@ -16,10 +16,12 @@
     "test:profile": "node --test test_profile.js",
     "test:password-reset": "node --test test_password_reset.js",
     "test:showtimes": "node --test test_showtimes.js",
+    "test:rooms": "node --test test_rooms.js",
+    "test:rooms:e2e": "node scripts/test-rooms-e2e.js",
     "test:booking-history": "node --test test_booking_history.js",
     "test:member-search": "node --test test_member_search.js",
     "test:revenue": "node --test test_revenue.js",
-    "test": "node --test test_booking_history.js test_catalogue.js test_complete_uc.js test_counter_points.js test_food_sales.js test_member_search.js test_movies.js test_password_reset.js test_profile.js test_regression.js test_revenue.js test_roles.js test_showtimes.js test_tickets.js",
+    "test": "node --test test_booking_history.js test_catalogue.js test_complete_uc.js test_counter_points.js test_food_sales.js test_member_search.js test_movies.js test_password_reset.js test_profile.js test_regression.js test_revenue.js test_roles.js test_showtimes.js test_rooms.js test_tickets.js",
     "db:local": "node scripts/local-db.js",
     "test:e2e": "node scripts/test-e2e.js",
     "test:tickets": "node --test test_tickets.js"

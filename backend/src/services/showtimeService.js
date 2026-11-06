@@ -2,11 +2,19 @@ import mongoose from 'mongoose';
 import Showtime from '../models/Showtime.js';
 import Movie from '../models/Movie.js';
 import Booking from '../models/Booking.js';
-import CinemaRoom from '../models/CinemaRoom.js';
+import CinemaRoom, { seatConfiguration } from '../models/CinemaRoom.js';
 
 // The current app runs one Node process. Reject simultaneous schedule writes
 // so two Admin requests cannot both pass the same room-conflict check.
 let scheduleBusy = false;
+
+// Share the existing single-process guard with room writes and seat claims.
+export async function withScheduleWrite(work) {
+  if (scheduleBusy) throw showtimeError('Phòng hoặc lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
+  scheduleBusy = true;
+  try { return await work(); }
+  finally { scheduleBusy = false; }
+}
 
 function showtimeError(message, status = 400) {
   const error = new Error(message);
@@ -103,7 +111,8 @@ async function validateShowtime(body, excludedId) {
   }
   const seats = [];
   for (const number of layout) {
-    seats.push({ number, status: 'available' });
+    const config = seatConfiguration(configuredRoom, number);
+    seats.push({ number, status: 'available', type: config.type, condition: config.status });
   }
   return { movie: movie._id, cinema: configuredRoom.cinema, room: configuredRoom.name,
     roomId: configuredRoom._id, startTime, price: body.price,
@@ -112,16 +121,12 @@ async function validateShowtime(body, excludedId) {
 }
 
 export async function validateAndCreate(body, adminId) {
-  if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
-  scheduleBusy = true;
-  try {
+  return withScheduleWrite(async function () {
     const data = await validateShowtime(body);
     const showtime = await Showtime.create(data);
     console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'create', adminId, showtimeId: showtime._id }));
     return showtime;
-  } finally {
-    scheduleBusy = false;
-  }
+  });
 }
 
 async function editableShowtime(id, body) {
@@ -158,37 +163,33 @@ function unbookedFilter(showtime) {
 }
 
 export async function validateAndUpdate(id, body, adminId) {
-  if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
-  scheduleBusy = true;
-  try {
+  return withScheduleWrite(async function () {
     const current = await editableShowtime(id, body);
     const data = await validateShowtime(body, id);
     // Preserve seat identifiers when the configured layout is unchanged.
     if (current.seats.length === data.seats.length &&
         current.seats.every((seat, index) => seat.number === data.seats[index].number)) {
-      data.seats = current.seats;
+      if (current.cinema === data.cinema && current.room === data.room) data.seats = current.seats;
+      else {
+        // Keep stable identifiers while taking the destination room's metadata.
+        for (let index = 0; index < data.seats.length; index++) data.seats[index]._id = current.seats[index]._id;
+      }
     }
     const showtime = await Showtime.findOneAndUpdate(unbookedFilter(current), { $set: data },
       { new: true, runValidators: true });
     if (!showtime) throw showtimeError('Suất chiếu vừa thay đổi hoặc có ghế được giữ. Vui lòng tải lại.', 409);
     console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'update', adminId, showtimeId: id }));
     return showtime;
-  } finally {
-    scheduleBusy = false;
-  }
+  });
 }
 
 export async function validateAndRemove(id, body, adminId) {
-  if (scheduleBusy) throw showtimeError('Lịch chiếu đang được cập nhật. Vui lòng thử lại.', 409);
-  scheduleBusy = true;
-  try {
+  return withScheduleWrite(async function () {
     const current = await editableShowtime(id, body);
     const showtime = await Showtime.findOneAndDelete(unbookedFilter(current));
     if (!showtime) throw showtimeError('Suất chiếu vừa thay đổi hoặc có ghế được giữ. Vui lòng tải lại.', 409);
     console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'delete', adminId, showtimeId: id }));
-  } finally {
-    scheduleBusy = false;
-  }
+  });
 }
 
 export async function listRooms() {

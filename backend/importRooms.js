@@ -16,7 +16,7 @@ async function importRooms() {
     const rooms = [];
     const seen = new Set();
     for (const item of input) {
-      const room = new CinemaRoom({ cinema: item.cinema, name: item.name, status: item.status, seats: item.seats });
+      const room = new CinemaRoom({ cinema: item.cinema, name: item.name, status: item.status, seats: item.seats, seatConfigs: item.seatConfigs });
       await room.validate();
       const key = JSON.stringify([room.cinema.toLowerCase(), room.name.toLowerCase()]);
       if (seen.has(key)) throw new Error('Duplicate cinema and room name in the input file.');
@@ -29,7 +29,7 @@ async function importRooms() {
     for (const room of rooms) {
       const result = await CinemaRoom.updateOne(
         { cinema: room.cinema, name: room.name },
-        { $setOnInsert: { cinema: room.cinema, name: room.name, status: room.status, seats: room.seats } },
+        { $setOnInsert: { cinema: room.cinema, name: room.name, status: room.status, seats: room.seats, seatConfigs: room.seatConfigs } },
         { upsert: true, runValidators: true, collation: { locale: 'en', strength: 2 } }
       );
       inserted += result.upsertedCount;

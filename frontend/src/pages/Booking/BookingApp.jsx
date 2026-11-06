@@ -129,7 +129,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
     const foodSubtotal = food.reduce((sum, item) => sum + Number(item.price || 0) * (item.quantity || 1), 0);
     useEffect(() => {
         if (!currentShowtime) return;
-        setSeat(current => current.filter(number => currentShowtime.seats.some(item => item.number === number && item.status === 'available')));
+        setSeat(current => current.filter(number => currentShowtime.seats.some(item => item.number === number && item.status === 'available' && (!item.condition || item.condition === 'Active'))));
     }, [currentShowtime]);
 
     const subtotal = ticketSubtotal + foodSubtotal;
@@ -148,7 +148,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
     function isSeatInvalid(seatNumber) {
         const allSeats = currentShowtime?.seats || [];
         const usableSeats = allSeats
-            .filter((s) => s.status === 'available' || s.status === 'vip')
+            .filter((s) => s.status === 'available' && (!s.condition || s.condition === 'Active'))
             .map((s) => s.number)
             .sort((a, b) => a - b);
 
@@ -174,7 +174,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
     }
 
     function handleSeatClick(s) {
-        if (s.status !== 'available' && s.status !== 'vip') return;
+        if (s.status !== 'available' || (s.condition && s.condition !== 'Active')) return;
 
         if (seat.includes(s.number)) {
             setSeat((prev) => prev.filter((x) => x !== s.number));
@@ -428,8 +428,8 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                             {currentShowtime.seats?.map((s) => {
                                 let seatClass = 'seat';
                                 if (s.status === 'booked') seatClass += ' booked';
-                                else if (s.status === 'broken') seatClass += ' broken';
-                                else if (s.status === 'vip') seatClass += ' vip';
+                                else if (s.condition && s.condition !== 'Active') seatClass += ' broken';
+                                else if (s.type === 'VIP') seatClass += ' vip';
                                 else seatClass += ' available';
 
                                 if (seat.includes(s.number)) seatClass += ' chosen';
@@ -438,7 +438,8 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                                     <button
                                         key={s.number}
                                         type="button"
-                                        disabled={s.status !== 'available' && s.status !== 'vip'}
+                                        disabled={s.status !== 'available' || (s.condition && s.condition !== 'Active')}
+                                        aria-label={`${s.number}, ${s.type || 'Standard'}, ${s.condition || 'Active'}, ${s.status}`}
                                         className={seatClass}
                                         onClick={() => handleSeatClick(s)}
                                     >
