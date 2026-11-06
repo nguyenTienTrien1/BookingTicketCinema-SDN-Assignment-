@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser, resendVerification } from "../../services/auth/authService";
 import LoginInput from "./LoginInput";

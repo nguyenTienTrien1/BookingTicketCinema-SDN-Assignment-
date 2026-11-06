@@ -9,7 +9,7 @@ const DUMMY_HASH = '$2a$10$e8wM53zB6v0qG6/kF4g8/e6Q5dY8Z8t2b1a0.d9e8f7g6h5i4j3k2
  * Authenticates every supported account role through the shared login.
  * Follows UC-18, BR-1, BR-7, BR-8, BR-11
  */
-export async function authenticate(email, password) {
+export async function authenticate(email, password, options = {}) {
   const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
   if (!normalizedEmail || typeof password !== 'string' || !password || Buffer.byteLength(password, 'utf8') > 72) {
@@ -63,6 +63,7 @@ export async function authenticate(email, password) {
   }
 
   // 5. Password verification using bcrypt (BR-1)
+  if (!account.password) await bcrypt.compare(password, DUMMY_HASH);
   const isMatch = await account.comparePassword(password);
 
   if (!isMatch) {
@@ -87,6 +88,14 @@ export async function authenticate(email, password) {
   if (!authenticated) throw Object.assign(new Error(GENERIC_AUTH_ERROR), { status: 401 });
   account = authenticated;
 
+  // Internal security actions need the exact verified hash (including legacy
+  // migration) for a conditional write; controllers never request this mode.
+  if (options.reauthentication === true) return account;
+  return createSession(account);
+}
+
+// Shared by local and Google authentication; Google tokens never become app sessions.
+export function createSession(account) {
   // 7. Generate JWT
   const secret = getJwtSecret();
   const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
@@ -103,7 +112,7 @@ export async function authenticate(email, password) {
     { expiresIn }
   );
 
-  console.log(`[AUTH AUDIT] Success: login successful for email=${normalizedEmail}, role=${account.role}`);
+  console.log(`[AUTH AUDIT] Success: login successful for user=${account._id}, role=${account.role}`);
 
   // Safe user representation (never return password hash)
   const safeUser = {
@@ -159,7 +168,7 @@ export async function verifySessionToken(token) {
 }
 
 
-function getJwtSecret() {
+export function getJwtSecret() {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
   if (process.env.NODE_ENV === 'production') throw new Error('JWT_SECRET must be configured.');
   return 'supersecret_cinema_jwt_key_2026_sdn302';

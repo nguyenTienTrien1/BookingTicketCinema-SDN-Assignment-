@@ -19,4 +19,5 @@
 .profileError { padding: 12px; background: #401b23; color: #ffc1c7; border-radius: 8px; }
 .profileSuccess { padding: 12px; background: #133628; color: #a7f3d0; border-radius: 8px; }
 .profileLoginNotice { margin: 0; padding: 16px; text-align: center; background: #133628; color: #a7f3d0; }
+.profileSecurity { border-top: 1px solid #30343e; margin-top: 28px; padding-top: 24px; }
 @media (max-width: 560px) { .profileGrid, .profileFormGrid { grid-template-columns: 1fr; gap: 20px; } .profileHeading { align-items: flex-start; gap: 12px; } .profileActions > button { width: 100%; } }

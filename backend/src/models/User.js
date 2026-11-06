@@ -11,7 +11,18 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    password: { type: String, required: true, minlength: 6 },
+    password: {
+      type: String,
+      required: function () {
+        // Existing Google-only documents may be loaded without hidden googleId.
+        // Query validators run with a Query, rather than a User document.
+        if (typeof this.isModified !== 'function') return true;
+        return !this.googleId && (this.isNew || this.isModified('password'));
+      },
+      minlength: 6
+    },
+    googleId: { type: String, select: false },
+    googleEmail: { type: String, lowercase: true, trim: true },
     phone: { type: String, default: "" },
     age: { type: Number, min: 0 },
     verifiedAge: { type: Number, min: 0, default: null },
@@ -81,6 +92,11 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+userSchema.index({ googleId: 1 }, {
+  unique: true,
+  partialFilterExpression: { googleId: { $type: 'string' } }
+});
+
 userSchema.index({ passwordResetTokenHash: 1 }, {
   unique: true,
   partialFilterExpression: { passwordResetTokenHash: { $type: 'string' } }
@@ -88,7 +104,7 @@ userSchema.index({ passwordResetTokenHash: 1 }, {
 
 // Pre-save hook: Hash password with bcrypt before saving (BR-1)
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -100,6 +116,7 @@ userSchema.pre("save", async function (next) {
 
 // Helper method to compare passwords (BR-1)
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   // If stored password is a bcrypt hash
   if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$")) {
     return bcrypt.compare(candidatePassword, this.password);

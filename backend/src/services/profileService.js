@@ -13,12 +13,13 @@ function profileData(user) {
     _id: user._id, fullName: user.fullName, email: user.email,
     phone: user.phone, age: user.age, verifiedAge:user.verifiedAge, gender: user.gender, role: user.role,
     memberPoints: user.memberPoints, pointRedeemStep:Number(process.env.POINT_REDEEM_STEP||100), isVIP: user.isVIP,
-    status: user.status, createdAt: user.createdAt
+    status: user.status, createdAt: user.createdAt,
+    loginMethods: { google: !!user.googleId, local: !!user.password, googleEmail: user.googleEmail || null }
   };
 }
 
 async function findMember(id) {
-  const user = await User.findById(id);
+  const user = await User.findById(id).select('+googleId');
   if (!user) {
     const error = new Error('Không tìm thấy tài khoản.');
     error.status = 404;

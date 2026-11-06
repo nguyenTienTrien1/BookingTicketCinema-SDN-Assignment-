@@ -1,0 +1,15 @@
+.googleSignIn { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; min-width: 0; }
+/* Keep the GIS iframe's transparent page in the normal color scheme.
+   An inherited dark scheme makes Chromium paint white iframe gutters. */
+.googleSignInButton { width: 100%; max-width: 400px; margin-inline: auto; background: transparent; color-scheme: normal; }
+.cinemaFormCard:has(.googleSignIn) { max-width: 480px; padding: 32px 40px; }
+.googleSignInNote { margin: 0; color: #b5b8c3; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.googleSignInError { padding: 12px; border: 1px solid rgba(239, 68, 68, .35); border-radius: 8px; background: rgba(239, 68, 68, .12); color: #fca5a5; }
+.googleSignIn button { min-height: 44px; }
+.googleSignIn :focus-visible { outline: 3px solid #ff9aa2; outline-offset: 3px; }
+@media (max-width: 560px) {
+  .cinemaFormCard:has(.googleSignIn) { padding: 28px 24px; }
+}
+@media (max-height: 720px) and (min-width: 561px) {
+  .cinemaFormCard:has(.googleSignIn) { padding-block: 24px; }
+}

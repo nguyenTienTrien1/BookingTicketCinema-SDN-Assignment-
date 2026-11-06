@@ -20,7 +20,7 @@ function tokenHash(token) {
 }
 
 function activeMember() {
-  return { role: 'member', status: { $in: ['Active', 'active'] } };
+  return { role: 'member', status: { $in: ['Active', 'active'] }, password: { $type: 'string', $ne: '' } };
 }
 
 function usableToken(hash, now) {

@@ -5,8 +5,18 @@ import { register, verifyEmail, resendVerification } from '../../controllers/aut
 import { verifyToken } from '../../middleware/auth/verifyToken.js';
 import { forgotPassword, verifyPasswordReset, resetPassword } from '../../controllers/auth/passwordResetController.js';
 import { createPasswordResetLimiter } from '../../middleware/auth/passwordResetRateLimit.js';
+import * as google from '../../controllers/auth/googleAuthController.js';
+import { protectProfileWrite } from '../../controllers/profileController.js';
+import { requireRole } from '../../middleware/auth/requireRole.js';
 
 const router = Router();
+
+const googleLimit = createPasswordResetLimiter(60, 15 * 60 * 1000);
+router.post('/google/challenge', googleLimit, protectProfileWrite, google.challenge);
+router.post('/google/reauth-challenge', googleLimit, protectProfileWrite, verifyToken, requireRole('member'), google.challenge);
+router.post('/google', googleLimit, protectProfileWrite, google.login);
+router.post('/set-password', googleLimit, protectProfileWrite, verifyToken, requireRole('member'), google.setPassword);
+router.post('/link-google', googleLimit, protectProfileWrite, verifyToken, requireRole('member'), google.linkGoogle);
 
 // Public login routes
 router.post('/login', login);
