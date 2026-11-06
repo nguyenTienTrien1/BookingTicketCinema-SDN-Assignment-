@@ -27,16 +27,12 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // Not authenticated
   if (!user) {
-    const isTargetAdmin = allowedRoles.includes('admin') || allowedRoles.includes('employee');
-    const redirectPath = isTargetAdmin ? '/admin/login' : '/login';
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location, allowedRoles }} replace />;
   }
 
   // Role not authorized
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-    if (user.role === 'employee') return <Navigate to="/employee/dashboard" replace />;
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/account?section=profile" replace />;
   }
 
   return children;

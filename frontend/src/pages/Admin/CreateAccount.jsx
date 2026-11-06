@@ -1,61 +1,11 @@
-import { useState } from 'react';
-import { createAccount } from '../../services/userService';
-
-const initialForm = { fullName: '', email: '', phone: '', password: '', role: 'employee' };
-
-export default function CreateAccount({ setMsg }) {
-    const [form, setForm] = useState(initialForm);
-
-    async function submit(event) {
-        event.preventDefault();
-        try {
-            await createAccount(form);
-            setMsg('Tạo tài khoản thành công.');
-            setForm(initialForm);
-        } catch (error) {
-            setMsg(error.message);
-        }
-    }
-
-    return (
-        <section className="page adminPage">
-            <h2>Tạo tài khoản</h2>
-            <form className="adminForm" onSubmit={submit}>
-                <input
-                    type="text"
-                    placeholder="Họ và tên"
-                    value={form.fullName}
-                    onChange={(event) => setForm({ ...form, fullName: event.target.value })}
-                    required
-                />
-                <input
-                    type="email"
-                    placeholder="Địa chỉ email"
-                    value={form.email}
-                    onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    required
-                />
-                <input
-                    type="tel"
-                    placeholder="Số điện thoại"
-                    value={form.phone}
-                    onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Mật khẩu"
-                    value={form.password}
-                    onChange={(event) => setForm({ ...form, password: event.target.value })}
-                    required
-                />
-                <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>
-                    <option value="employee">Nhân viên</option>
-                    <option value="admin">Quản trị viên</option>
-                    <option value="member">Thành viên</option>
-                </select>
-                <button className="primary full" type="submit">TẠO TÀI KHOẢN</button>
-            </form>
-        </section>
-    );
+import {useState} from 'react';
+import {Link} from 'react-router-dom';
+import {createAccount} from '../../services/userService';
+export default function CreateAccount(){
+ const [form,setForm]=useState({fullName:'',email:'',phone:'',role:'employee'}),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState('');
+ return <section className="page"><h2>Tạo tài khoản nhân sự</h2><p>Nhân sự nhận lời mời có hạn 24 giờ và tự đặt mật khẩu. Admin không tạo mật khẩu dùng lại.</p>
+ <form className="adminForm" onSubmit={async event=>{event.preventDefault();if(busy)return;setBusy(true);setError('');try{setResult(await createAccount(form));}catch(e){setError(e.message);}finally{setBusy(false);}}}>
+ <fieldset disabled={busy}>{['fullName','email','phone'].map((key,index)=><label key={key}>{['Họ tên','Email','Điện thoại (tùy chọn)'][index]}<input type={key==='email'?'email':'text'} required={key!=='phone'} value={form[key]} onChange={event=>setForm({...form,[key]:event.target.value})}/></label>)}
+ <label>Vai trò<select value={form.role} onChange={event=>setForm({...form,role:event.target.value})}><option value="employee">Employee</option><option value="admin">Admin</option></select></label><button className="primary" type="submit">{busy?'Đang tạo…':'Tạo và gửi lời mời'}</button></fieldset></form>
+ {error&&<p role="alert">{error}</p>}{result&&<div role="status"><p>{result.message}</p>{result.activationLink&&<Link to={result.activationLink}>Mở lời mời kích hoạt (bản local)</Link>}</div>}</section>;
 }

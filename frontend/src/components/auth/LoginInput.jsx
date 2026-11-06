@@ -11,6 +11,8 @@ export default function LoginInput({
   value,
   onChange,
   required = true,
+  minLength,
+  maxLength,
   icon,
   rightElement,
   autoComplete,
@@ -47,6 +49,8 @@ export default function LoginInput({
           disabled={disabled}
           inputMode={inputMode}
           required={required}
+          minLength={minLength}
+          maxLength={maxLength}
           autoComplete={autoComplete}
           className="loginInputField"
           aria-label={label || placeholder}

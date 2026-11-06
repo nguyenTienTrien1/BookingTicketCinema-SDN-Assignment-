@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getProfile, updateProfile, changePassword } from '../../services/profileService';
-import { translateAccountStatus } from '../../utils/uiText';
+import { translateAccountStatus, translateRole } from '../../utils/uiText';
 import './profile.css';
 
 function profileForm(user) {
@@ -100,7 +100,7 @@ export function ProfilePanel() {
   if (!profile) return <div className="memberProfile"><p role="alert">{error}</p><button type="button" className="ghost" onClick={() => setRetry(retry + 1)}>Thử lại</button></div>;
 
   return (
-    <section className="memberProfile" aria-label="Hồ sơ thành viên">
+    <section className="memberProfile" aria-label="Hồ sơ cá nhân">
       <div className="profileHeading">
         <div className="accountAvatar" aria-hidden="true">{profile.fullName.trim().charAt(0).toUpperCase()}</div>
         <div><h2>{profile.fullName}</h2><p>{profile.email}</p></div>
@@ -111,11 +111,13 @@ export function ProfilePanel() {
       {mode === 'view' && <>
         <dl className="profileGrid">
           <div><dt>Số điện thoại</dt><dd>{profile.phone || 'Chưa cập nhật'}</dd></div>
+          {profile.role==='member'&&<div><dt>Tuổi đã xác minh</dt><dd>{profile.verifiedAge==null?'Chưa được nhân viên xác minh':profile.verifiedAge}</dd></div>}
           <div><dt>Tuổi</dt><dd>{profile.age == null ? 'Chưa cập nhật' : profile.age}</dd></div>
           <div><dt>Giới tính</dt><dd>{({ Male: 'Nam', Female: 'Nữ', Other: 'Khác' })[profile.gender]}</dd></div>
-          <div><dt>Điểm thành viên</dt><dd>{Number(profile.memberPoints || 0).toLocaleString('vi-VN')}</dd></div>
+          <div><dt>Vai trò</dt><dd>{translateRole(profile.role)}</dd></div>
+          {profile.role === 'member' && <div><dt>Điểm thành viên</dt><dd>{Number(profile.memberPoints || 0).toLocaleString('vi-VN')}</dd></div>}
           <div><dt>Trạng thái</dt><dd>{translateAccountStatus(profile.status)}</dd></div>
-          <div><dt>Hạng thành viên</dt><dd>{profile.isVIP ? 'VIP' : 'Thành viên'}</dd></div>
+          {profile.role === 'member' && <div><dt>Hạng thành viên</dt><dd>{profile.isVIP ? 'VIP' : 'Thành viên'}</dd></div>}
         </dl>
         <div className="profileActions">
           <button type="button" className="primary" onClick={() => switchMode('edit')}>Cập nhật hồ sơ</button>
@@ -139,7 +141,7 @@ export function ProfilePanel() {
 
       {mode === 'password' && <form onSubmit={savePassword}>
         <h3>Đổi mật khẩu</h3>
-        <p className="profileHint" id="password-help">Mật khẩu mới có ít nhất 6 ký tự, tối đa 72 byte UTF-8 và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p>
+        <p className="profileHint" id="password-help">Mật khẩu mới có ít nhất 6 ký tự và khác mật khẩu hiện tại. Sau khi đổi, bạn cần đăng nhập lại trên các thiết bị.</p>
         <fieldset disabled={saving} className="profileFields profilePasswordFields">
           <label htmlFor="password-current">Mật khẩu hiện tại<input id="password-current" type="password" autoComplete="current-password" required maxLength={72} value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} /></label>
           <label htmlFor="password-new">Mật khẩu mới<input id="password-new" type="password" autoComplete="new-password" aria-describedby="password-help" required minLength={6} maxLength={72} value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} /></label>
@@ -152,5 +154,32 @@ export function ProfilePanel() {
 }
 
 export default function Profile() {
-  return <main className="profilePage"><Link to="/dashboard">← Về tài khoản</Link><h1>Hồ sơ của tôi</h1><ProfilePanel /></main>;
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setError('');
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
+  return <main className="profilePage">
+    <div className="profileActions">
+      <Link to="/">← Về trang chủ</Link>
+      <button type="button" className="ghost" onClick={handleLogout} disabled={loggingOut}>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+    </div>
+    {error && <p role="alert" className="profileError">{error}</p>}
+    <h1>Profile — Hồ sơ của tôi</h1>
+    <ProfilePanel />
+  </main>;
 }

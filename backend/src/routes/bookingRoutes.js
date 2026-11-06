@@ -1,3 +1,4 @@
+import {start,result} from '../controllers/paymentController.js';
 import { Router } from 'express';
 import * as c from '../controllers/bookingController.js';
 import { verifyToken } from '../middleware/auth/verifyToken.js';
@@ -7,7 +8,11 @@ const r = Router();
 r.use(verifyToken, requireRole('member'));
 r.get('/', c.list);
 r.get('/:id/tickets', owned);
+r.get('/payment-result/:reference', result);
 r.post('/', c.create);
 r.patch('/:id/points', c.points);
-r.post('/:id/pay', c.payment);
+r.post('/:id/pay', start);
+r.get('/:id', c.view);
+r.patch('/:id/food', c.food);
+r.post('/:id/cancel', c.cancel);
 export default r;

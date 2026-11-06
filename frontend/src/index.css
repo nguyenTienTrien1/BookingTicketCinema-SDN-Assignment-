@@ -70,8 +70,12 @@ button {
     flex: 1
 }
 
-.sidebarNav button {
+.sidebarNav button,
+.sidebarNav a {
+    display: block;
     width: 100%;
+    font: inherit;
+    text-decoration: none;
     background: transparent;
     color: #aaa;
     border-radius: 10px;
@@ -80,7 +84,8 @@ button {
     transition: .2s ease
 }
 
-.sidebarNav button:hover {
+.sidebarNav button:hover,
+.sidebarNav a:hover {
     background: #17191f;
     color: #fff
 }
@@ -2985,3 +2990,85 @@ button {
     gap: 10px;
     margin-top: 18px;
 }
+
+.paymentPage > .payment:only-child { grid-column: 1 / -1; width: 100%; max-width: 1050px; }
+.paymentPage .payment > label, .paymentPage .payment input { display: block; margin: 10px 0; }
+.paymentPage input { max-width: 100%; min-height: 42px; background: #181b23; border: 1px solid #555a66; color: #fff; border-radius: 7px; padding: 10px; }
+.foodGrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; margin: 18px 0; }
+.foodGrid .foodItem { display: flex; flex-direction: column; gap: 9px; padding: 16px; border: 1px solid #343844; border-radius: 10px; background: #141720; color: #ddd; }
+.foodGrid input { width: 100%; min-height: 42px; background: #080b12; color: #fff; border: 1px solid #646977; border-radius: 6px; padding: 8px; }
+.ticketGrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 18px; margin: 22px 0; }
+.ticketGrid img { max-width: 100%; background: #fff; }
+.ticketGrid p, .ticketGrid small { overflow-wrap: anywhere; }
+/* Food selection and checkout */
+.foodGrid .foodItem { min-width: 0; overflow: hidden; height: auto; text-align: left; }
+.foodGrid .foodItem > img { width: 100%; height: 150px; object-fit: contain; background: #1c2029; border-radius: 9px; }
+.foodGrid .foodItem.chosen { border-color: #ed3646; background: #241820; }
+.foodGrid .foodItem .foodPrice { color: #ff7883; font-weight: 700; }
+.foodGrid .foodItem small { color: #aeb5c4; }
+.foodDescription { font-size: 13px; color: #aeb5c4; margin: 0; flex: 1; }
+.foodQuantity { display: flex; align-items: center; gap: 7px; margin-top: auto; }
+.foodQuantity button { min-width: 38px; min-height: 42px; background: #2b303d; border: 1px solid #454c5c; border-radius: 7px; color: white; font-size: 20px; }
+.foodQuantity input { min-width: 0; text-align: center; }
+.foodQuantity button:disabled { opacity: .4; cursor: not-allowed; }
+.paymentPage .checkoutPayment { max-width: 1180px; margin: 0 auto; padding: clamp(16px,3vw,32px); background: #0f1118; border: 1px solid #292e3b; border-radius: 20px; }
+.paymentHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
+.paymentHeading h2 { margin: 7px 0 10px; font-size: clamp(25px,3vw,34px); }
+.paymentHeading p { color: #adb6c8; }
+.simulationBadge { background: #29241a; border: 1px solid #65512b; color: #f1ce87; padding: 9px 12px; border-radius: 20px; font-size: 12px; line-height: 1.5; }
+.paymentLayout { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(300px,1fr); gap: 22px; align-items: start; }
+.paymentMain { display: grid; gap: 18px; min-width: 0; }
+.paymentPanel { background: #181c26; padding: 22px; border: 1px solid #303747; border-radius: 14px; min-width: 0; }
+.paymentPanel h3 { margin: 0 0 14px; font-size: 18px; }
+.panelHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+.panelHeading h3 { margin: 0; }
+.paymentPanel .paymentMovieTitle { font-size: 23px; line-height: 1.4; }
+.orderStatus { border-radius: 20px; padding: 6px 10px; background: #36301e; color: #f4ce78; font-size: 12px; }
+.orderStatus.paid { background: #163d33; color: #8fe0bf; }
+.orderStatus.cancelled { background: #43252e; color: #ff9ca6; }
+.ticketDetails { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.ticketDetails dt { font-size: 12px; color: #a5aec0; margin-bottom: 6px; }
+.ticketDetails dd { margin: 0; color: #f4f6fb; line-height: 1.5; }
+.paymentSeats { display: flex; flex-wrap: wrap; gap: 6px; }
+.paymentSeats span { background: #3c2330; border: 1px solid #8b3a50; color: #ffc5ce; border-radius: 5px; padding: 2px 9px; }
+.orderReference { font-size: 12px; color: #9ea8ba; overflow-wrap: anywhere; border-top: 1px dashed #3b4354; padding-top: 16px; }
+.paymentFoodRow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #2f3645; }
+.paymentFoodRow:last-child { border: 0; }
+.paymentFoodRow img { object-fit: contain; background: #232938; border-radius: 8px; flex-shrink: 0; }
+.paymentFoodRow > div { flex: 1; }
+.paymentFoodRow strong, .paymentFoodRow small { display: block; }
+.paymentFoodRow small { color: #aeb8c9; margin-top: 5px; }
+.paymentFoodRow b { white-space: nowrap; }
+.paymentReceipt { position: sticky; top: 20px; }
+.holdTimer { display: flex; justify-content: space-between; background: #242d3c; color: #c7dbfc; padding: 12px; border-radius: 8px; font-size: 14px; }
+.holdTimer.urgent { background: #42232c; color: #ffb6c0; }
+.receiptLines { margin: 22px 0; }
+.receiptLines p { display: flex; justify-content: space-between; gap: 15px; font-size: 14px; margin: 16px 0; color: #b5bfd0; }
+.receiptLines b { color: #f0f3f9; white-space: nowrap; }
+.receiptLines .receiptDiscount b { color: #8cdbb6; }
+.receiptTotal { border-top: 1px dashed #4a5365; padding: 18px 0; display: grid; gap: 9px; }
+.receiptTotal strong { color: #ff7382; font-size: 32px; }
+.paymentMethods { border: 0; padding: 0; margin: 12px 0 20px; }
+.paymentMethods legend { font-size: 14px; margin-bottom: 12px; }
+.paymentMethods label { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #454e61; border-radius: 9px; margin-bottom: 9px; cursor: pointer; }
+.paymentMethods label.selected { border-color: #f15a6c; background: #32212d; }
+.paymentPage .paymentMethods input { margin: 0; width: 18px; min-height: 18px; accent-color: #ed4057; }
+.paymentMethods small { display: block; color: #b2bbcc; font-size: 12px; margin-top: 5px; line-height: 1.5; }
+.paymentPage .paymentSubmit { width: 100%; min-height: 50px; border-radius: 9px; padding: 12px; line-height: 1.5; }
+.paymentPage button:disabled { opacity: .45; cursor: not-allowed; }
+.paymentPage button:focus-visible, .foodQuantity button:focus-visible { outline: 2px solid #ff8b99; outline-offset: 3px; }
+.paymentTextButton { display: block; color: #c1cada; background: transparent; border: none; padding: 12px 0; text-decoration: underline; text-underline-offset: 4px; }
+.cancelOrder { margin: 8px auto 0; font-size: 13px; color: #f0a6af; }
+.pointsControl { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.pointsControl input { width: 120px; }
+.pointsPayment small { color: #aab6c9; line-height: 1.6; }
+.simulationTools { margin-top: 16px; font-size: 12px; color: #aeb8ca; }
+.simulationTools summary { cursor: pointer; padding: 8px 0; }
+.simulationTools button { margin-top: 10px; }
+.paymentError, .paymentNotice { border-radius: 8px; padding: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.paymentError { background: #3c202b; color: #ffb1bd; }
+.paymentNotice { background: #19342f; color: #a6e5cb; }
+.paymentBack { margin-top: 24px; }
+.receivedLabel small { display: block; color: #aeb8ca; }
+@media(max-width:800px) { .paymentLayout { grid-template-columns: 1fr; } .paymentReceipt { position: static; } .paymentHeading { flex-direction: column; } .paymentPanel { padding: 16px; } .foodGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } .foodGrid .foodItem { padding: 10px; } .foodGrid .foodItem > img { height: 120px; } }
+@media(prefers-reduced-motion:reduce) { .foodGrid .foodItem { transition: none; } }

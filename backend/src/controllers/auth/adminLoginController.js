@@ -14,7 +14,7 @@ const getCookieOptions = () => ({
 export async function adminLogin(req, res, next) {
   try {
     const { email, password } = req.body;
-    const { user, token } = await loginService.authenticate(email, password, 'admin');
+    const { user, token } = await loginService.authenticate(email, password);
 
     res.cookie('token', token, getCookieOptions());
 

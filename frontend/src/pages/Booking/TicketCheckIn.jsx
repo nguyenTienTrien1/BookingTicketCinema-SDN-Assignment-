@@ -66,7 +66,7 @@ export default function TicketCheckIn() {
                         {showtimes.map((item) => <option key={item._id} value={item._id}>{ticketDate(item.startTime)} · {item.cinema} · {item.room} · {item.movie?.title || 'Phim'}</option>)}
                     </select></label>
                     {showtimes.length === 0 && <p className="checkInHint">Chưa có suất chiếu trong khoảng nhận khách hoặc 24 giờ tới.</p>}
-                    <label>Mã vé<input value={reference} maxLength={80} autoComplete="off" spellCheck={false} onChange={(event) => { clearPreview(); setReference(event.target.value); }} placeholder="CT-… hoặc CTD-…" required /></label>
+                    <label>Mã vé<input value={reference} maxLength={512} autoComplete="off" spellCheck={false} onChange={(event) => { clearPreview(); setReference(event.target.value); }} placeholder="Nhập mã vé hoặc quét QR" required /></label>
                     <button type="submit" className="moviePrimary" disabled={lookingUp || !showtimeId}>{lookingUp ? 'Đang tra cứu…' : 'Tra cứu vé'}</button>
                 </fieldset>
             </form>

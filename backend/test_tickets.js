@@ -11,6 +11,7 @@ import Movie from './src/models/Movie.js';
 import Showtime from './src/models/Showtime.js';
 import Booking from './src/models/Booking.js';
 import RevenueEntry from './src/models/RevenueEntry.js';
+import PaymentAttempt from './src/models/PaymentAttempt.js';
 
 test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
   const dbName = 'cinema_tickets_test_' + randomUUID().replaceAll('-', '');
@@ -29,8 +30,8 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
   const secondEmployee = await User.create({ fullName: 'Employee Two', email: 'employee2@tickets.test', password: randomUUID(), role: 'employee' });
   const admin = await User.create({ fullName: 'Admin', email: 'admin@tickets.test', password: randomUUID(), role: 'admin' });
   const inactive = await User.create({ fullName: 'Inactive', email: 'inactive@tickets.test', password: randomUUID(), role: 'employee', status: 'Inactive' });
-  await Promise.all([Booking.init(), RevenueEntry.init()]);
-  function token(user) { return jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302', { expiresIn: '5m' }); }
+  await Promise.all([Booking.init(), RevenueEntry.init(), PaymentAttempt.init()]);
+  function token(user) { return jwt.sign({ id: user._id, tokenVersion: user.tokenVersion || 0 }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302', { expiresIn: '5m' }); }
   async function request(path, user = member, method = 'GET', body, extraHeaders = {}) {
     const headers = { 'Content-Type': 'application/json', ...extraHeaders };
     if (user) headers.Cookie = 'token=' + token(user);
@@ -213,12 +214,15 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
 
   await t.test('simulated payments issue clearly marked demo QR without claiming real admission', async () => {
     const fix = await fixture({ paid: false, proof: false });
-    assert.equal((await request(`/bookings/${fix.booking._id}/pay`, member, 'POST', { method: 'mock' })).status, 200);
+    const previousSimulation = process.env.ENABLE_PAYMENT_SIMULATION;
+    process.env.ENABLE_PAYMENT_SIMULATION = 'true';
+    t.after(() => { if (previousSimulation === undefined) delete process.env.ENABLE_PAYMENT_SIMULATION; else process.env.ENABLE_PAYMENT_SIMULATION = previousSimulation; });
+    assert.equal((await request(`/bookings/${fix.booking._id}/pay`, member, 'POST', { method: 'demo' })).status, 200);
     const stored = await Booking.findById(fix.booking._id);
     assert.equal(stored.tickets.length, 2);
     const data = await issue(fix), ref = data.tickets[0].reference;
     assert.equal(data.mode, 'demo');
-    assert.match(ref, /^CTD-[A-F0-9]{32}$/);
+    assert.match(ref, /^[a-f0-9]{48}$/);
     const result = await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id });
     assert.equal(result.status, 200);
     assert.equal(result.data.admissionGranted, false);
@@ -233,6 +237,56 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
       if (previous.env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous.env;
       if (previous.secret === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = previous.secret;
     }
+  });
+
+  await t.test('transactional cash settlement keeps the same code and JSON QR through atomic check-in and payment retry', async () => {
+    const fix = await fixture({ paid: false, proof: false });
+    const path = `/payments/bookings/${fix.booking._id}/cash`;
+    const body = { method: 'cash', receivedAmount: fix.booking.total };
+    const paid = await request(path, employee, 'POST', body);
+    assert.equal(paid.status, 200, JSON.stringify(paid.data));
+    const original = paid.data.tickets[0];
+    assert.match(original.code, /^[a-f0-9]{48}$/);
+    assert.equal(original.reference, original.code);
+    assert.equal(original.status, 'valid');
+    assert.equal(await RevenueEntry.countDocuments({ booking: fix.booking._id }), 0);
+    const owned = await issue(fix);
+    assert.equal(owned.mode, 'verified');
+    assert.equal(owned.tickets[0].reference, original.code);
+    assert.equal(owned.tickets[0].qrDataUrl, original.qr);
+    assert.equal(owned.tickets[0].status, 'issued');
+    const payload = JSON.stringify({ ticket: original.code, booking: String(fix.booking._id), seat: original.seat });
+    assert.equal((await request(lookupPath(payload, fix.showtime), employee)).data.eligible, true);
+    const checked = await request(checkPath(payload), employee, 'POST', { showtimeId: fix.showtime._id });
+    assert.equal(checked.status, 200);
+    assert.equal(checked.data.admissionGranted, true);
+    const retry = await request(path, employee, 'POST', body);
+    assert.equal(retry.status, 200);
+    assert.equal(retry.data.tickets[0].code, original.code);
+    assert.equal(retry.data.tickets[0].qr, original.qr);
+    assert.equal(retry.data.tickets[0].status, 'checked-in');
+    assert.equal((await request(checkPath(original.code), secondEmployee, 'POST', { showtimeId: fix.showtime._id })).status, 409);
+    assert.equal(await PaymentAttempt.countDocuments({ booking: fix.booking._id, status: 'succeeded' }), 1);
+  });
+
+  await t.test('existing code-only tickets gain metadata without replacing codes, QR or used status', async () => {
+    const fix = await fixture({ paid: false, proof: false });
+    const paid = await request(`/payments/bookings/${fix.booking._id}/cash`, employee, 'POST', { method: 'cash', receivedAmount: fix.booking.total });
+    assert.equal(paid.status, 200);
+    const codes = paid.data.tickets.map(ticket => ticket.code);
+    await Booking.collection.updateOne({ _id: fix.booking._id }, { $unset: { ticketContext: '', ticketMode: '', 'tickets.0.reference': '', 'tickets.1.reference': '', 'tickets.0.issuedAt': '', 'tickets.1.issuedAt': '' }, $set: { 'tickets.1.status': 'checked-in' } });
+    const results = await Promise.all([request(ownedPath(fix.booking)), request(lookupPath(codes[0], fix.showtime), employee)]);
+    assert.deepEqual(results.map(result => result.status), [200, 200]);
+    assert.equal(results[1].data.eligible, true);
+    assert.deepEqual(results[0].data.tickets.map(ticket => ticket.reference), codes);
+    assert.equal(results[0].data.tickets[1].qrDataUrl, null);
+    const stored = await Booking.findById(fix.booking._id);
+    assert.deepEqual(stored.tickets.map(ticket => ticket.code), codes);
+    assert.equal(stored.tickets[1].status, 'checked-in');
+    assert.equal(stored.tickets[0].qr, paid.data.tickets[0].qr);
+    await PaymentAttempt.updateOne({ booking: fix.booking._id }, { $set: { amount: 1 } });
+    assert.deepEqual((await issue(fix)).tickets, []);
+    assert.equal((await request(lookupPath(codes[0], fix.showtime), employee)).data.eligible, false);
   });
 
   await t.test('cookie-authenticated check-in rejects cross-origin and non-JSON writes', async () => {

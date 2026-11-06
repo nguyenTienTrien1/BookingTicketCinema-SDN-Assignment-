@@ -1,4 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import CounterTools from '../pages/Admin/CounterTools';
+import PaymentResult from '../pages/Payment/PaymentResult';
+import ActivateStaff from '../pages/auth/ActivateStaff';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import UserLogin from '../pages/auth/UserLogin';
 import AdminLogin from '../pages/auth/AdminLogin';
 import Register from '../pages/auth/Register';
@@ -16,6 +19,7 @@ import RevenueDashboard from '../pages/Admin/RevenueDashboard';
 import AddMovie from '../pages/Admin/AddMovie';
 import MovieForm from '../pages/Admin/MovieForm';
 import FoodCounter from '../pages/Booking/FoodCounter';
+
 import ManageCatalogue from '../pages/Admin/ManageCatalogue';
 import Profile from '../pages/Account/Profile';
 import BookingHistoryPage from '../pages/Account/BookingHistory';
@@ -31,10 +35,13 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/bookings/:id/tickets" element={<ProtectedRoute allowedRoles={['member']}><BookingTickets /></ProtectedRoute>} />
       <Route path="/employee/check-in" element={<ProtectedRoute allowedRoles={['employee']}><TicketCheckIn /></ProtectedRoute>} />
+      <Route path="/payment-result" element={<ProtectedRoute allowedRoles={['member']}><PaymentResult /></ProtectedRoute>} />
+      <Route path="/staff/tools" element={<ProtectedRoute allowedRoles={['admin','employee']}><CounterTools /></ProtectedRoute>} />
+      <Route path="/activate-staff" element={<ActivateStaff />} />
+      <Route path="/profile" element={<ProtectedRoute allowedRoles={['member', 'employee', 'admin']}><Navigate to="/account?section=profile" replace /></ProtectedRoute>} />
       <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueDashboard /></ProtectedRoute>} />
       <Route path="/employee/members" element={<ProtectedRoute allowedRoles={['employee']}><MemberSearch /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute allowedRoles={['member']}><Profile /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
       <Route path="/login" element={<UserLogin />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -54,7 +61,7 @@ export default function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={['member']}>
-            <MemberDashboard />
+            <Navigate to="/account?section=profile" replace />
           </ProtectedRoute>
         }
       />
@@ -64,7 +71,7 @@ export default function AppRoutes() {
         path="/employee/dashboard"
         element={
           <ProtectedRoute allowedRoles={['employee']}>
-            <EmployeeDashboard />
+            <Navigate to="/profile" replace />
           </ProtectedRoute>
         }
       />
@@ -74,7 +81,7 @@ export default function AppRoutes() {
         path="/admin/dashboard"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
+            <Navigate to="/profile" replace />
           </ProtectedRoute>
         }
       />

@@ -14,6 +14,11 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 6 },
     phone: { type: String, default: "" },
     age: { type: Number, min: 0 },
+    verifiedAge: { type: Number, min: 0, default: null },
+    ageVerifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    staffActivationHash: { type: String, select: false }, staffActivationExpires: Date,
+    statusHistory: { type: [{ before: String, after: String, actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: Date }], select: false, default: [] },
+    redemptionEntries: { type: [{ booking: mongoose.Schema.Types.ObjectId, delta: Number, at: Date }], select: false, default: [] },
     gender: {
       type: String,
       enum: ["Male", "Female", "Other"],
@@ -26,12 +31,27 @@ const userSchema = new mongoose.Schema(
     },
     isVIP: { type: Boolean, default: false },
     memberPoints: { type: Number, default: 0, min: 0 },
+    pointAdjustments: {
+      type: [{
+        requestId: { type: String, required: true },
+        delta: { type: Number, required: true },
+        before: { type: Number, required: true },
+        after: { type: Number, required: true },
+        reason: { type: String, required: true },
+        admin: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        createdAt: { type: Date, default: Date.now }
+      }],
+      default: [],
+      select: false
+    },
     status: {
       type: String,
       enum: [
         "Active",
         "Pending Verification",
+        "Pending Activation",
         "Inactive",
+        "Deactivated",
         "Banned",
         "active",
         "inactive",
@@ -46,12 +66,25 @@ const userSchema = new mongoose.Schema(
     lockUntil: { type: Date, default: null },
     lastLogin: { type: Date, default: null },
     tokenVersion: { type: Number, default: 0 },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    statusUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     // Verification fields for BR-8 (Single-use token expiring after 24h)
     verificationToken: { type: String, default: null },
     verificationExpires: { type: Date, default: null },
+    // UC-19: only a SHA-256 digest is stored; never the emailed raw token.
+    passwordResetTokenHash: { type: String, default: null, select: false },
+    passwordResetExpiresAt: { type: Date, default: null, select: false },
+    passwordResetUsedAt: { type: Date, default: null, select: false },
+    passwordResetRequestedAt: { type: Date, default: null, select: false },
+    passwordResetTokenVersion: { type: Number, default: null, select: false },
   },
   { timestamps: true },
 );
+
+userSchema.index({ passwordResetTokenHash: 1 }, {
+  unique: true,
+  partialFilterExpression: { passwordResetTokenHash: { $type: 'string' } }
+});
 
 // Pre-save hook: Hash password with bcrypt before saving (BR-1)
 userSchema.pre("save", async function (next) {

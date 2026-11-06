@@ -1,0 +1,115 @@
+
+.cinemaHome { --home-red: #f23b4e; --home-muted: #a1a2ad; --home-line: #ffffff16; color: #f5f4f2; padding: 0 clamp(20px, 3.5vw, 64px); overflow: clip; }
+.cinemaHome button, .cinemaHome select, .cinemaHome input { font: inherit; }
+.cinemaHome button { cursor: pointer; }
+.cinemaHome :focus-visible { outline: 2px solid #ff8995; outline-offset: 5px; }
+.cinemaHome button:disabled { cursor: not-allowed; opacity: .42; }
+.homeMasthead { display: flex; align-items: center; justify-content: space-between; padding: 30px 0 25px; gap: 20px; }
+.homeKicker { font-size: 10px; font-weight: 700; letter-spacing: .18em; color: #a5a5af; }
+.homeMasthead p { font-size: 14px; margin: 9px 0 0; }
+.homeDate { font-size: 12px; color: var(--home-muted); text-transform: capitalize; }
+.homeFeature { min-height: 530px; position: relative; isolation: isolate; display: flex; align-items: center; border: 1px solid var(--home-line); border-radius: 18px; overflow: hidden; background: #15151e; }
+.homeFeatureArt { position: absolute; inset: 0 0 0 20%; z-index: -3; }
+.homeFeatureArt img { width: 100%; height: 100%; object-fit: cover; object-position: center 38%; opacity: .64; }
+.homeFeatureShade { position: absolute; inset: 0; z-index: -2; background: linear-gradient(90deg, #101017 0%, #101017ed 28%, #10101788 63%, #10101716 100%), linear-gradient(0deg, #101017b3, transparent 60%); }
+.homeFeatureCopy { padding: 46px clamp(24px, 3.7vw, 60px); width: 65%; position: relative; z-index: 2; }
+.homeFeatureLabel { color: #fbc1c7; font-size: 10px; font-weight: 700; letter-spacing: .17em; display: inline-flex; align-items: center; gap: 9px; }
+.homeFeatureLabel > span { width: 6px; height: 6px; background: var(--home-red); border-radius: 50%; }
+.homeFeature h1 { font-size: clamp(34px, 3.8vw, 60px); letter-spacing: -.055em; line-height: 1.06; margin: 23px 0; font-weight: 800; text-wrap: balance; overflow-wrap: anywhere; }
+.homeFilmMeta { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; color: #c7c5ce; font-size: 11px; }
+.homeAge { border: 1px solid #a5a2ad6b; border-radius: 3px; padding: 3px 6px; color: #fff; }
+.homeFeatureDescription { font-size: 13px; color: #b4b1bc; line-height: 1.8; max-width: 430px; margin: 18px 0 25px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.homeHeroActions { display: flex; gap: 10px; flex-wrap: wrap; }
+.homePrimary { background: var(--home-red); color: white; display: inline-flex; align-items: center; justify-content: center; gap: 20px; font-size: 12px !important; font-weight: 700 !important; padding: 15px 20px; border-radius: 7px; min-height: 46px; transition: background .15s; }
+.homePrimary:hover:not(:disabled) { background: #dc2035; }
+.homeSecondary { padding: 13px 17px; background: #ffffff0c; color: #e6e4eb; border: 1px solid #ffffff26; border-radius: 7px; font-size: 12px !important; min-height: 46px; }
+.homeNextSession { font-size: 10px; color: #9e9ba9; line-height: 1.7; margin: 20px 0 0; }
+.homeFeaturePoster { position: absolute; right: 7%; top: 50%; transform: translateY(-50%) rotate(5deg); width: 23%; max-width: 230px; background: #1c1b23; padding: 7px; border-radius: 10px; border: 1px solid #ffffff38; box-shadow: 0 25px 65px #0009; transition: transform .2s; }
+.homeFeaturePoster:hover { transform: translateY(-50%) rotate(0deg); }
+.homeFeaturePoster img { display: block; aspect-ratio: 2 / 3; width: 100%; object-fit: cover; border-radius: 5px; }
+.homeFeaturePoster > span { color: #e9e6ed; font-size: 8px; letter-spacing: .15em; padding: 12px 5px 5px; display: flex; align-items: center; justify-content: space-between; }
+.homeFeatureNumber { position: absolute; right: 25px; bottom: 22px; font-size: 9px; letter-spacing: .2em; color: #d6d1dd80; }
+.homeQuickBooking { margin: 18px 0 0; padding: 24px; background: #15151c; border: 1px solid var(--home-line); border-radius: 12px; }
+.homeQuickHeading { display: flex; align-items: baseline; gap: 17px; margin-bottom: 18px; }
+.homeQuickHeading h2 { font-size: 17px; margin: 0; letter-spacing: -.03em; }
+.homeQuickHeading .homeKicker { font-size: 8px; color: #fb8b97; }
+.homeQuickBooking form { display: grid; grid-template-columns: 1.15fr 1fr 1.25fr auto; gap: 12px; align-items: stretch; }
+.homeQuickBooking label { background: #0e0e14; border: 1px solid #ffffff10; border-radius: 7px; min-width: 0; padding: 10px 13px 6px; }
+.homeQuickBooking label > span { display: block; font-size: 9px; color: #85838f; margin-bottom: 5px; }
+.homeQuickBooking select { width: 100%; max-width: 100%; border: 0; background: transparent; color: #eeecf3; font-size: 11px; padding: 5px 10px 6px 0; text-overflow: ellipsis; cursor: pointer; }
+.homeQuickBooking select option { background: #17171e; color: #fff; }
+.homeQuickBooking select:disabled { color: #777480; cursor: not-allowed; }
+.homeQuickHint { margin: 13px 0 0; font-size: 11px; color: #aaa6b4; line-height: 1.7; }
+.homeCatalogue { padding: 55px 0 45px; scroll-margin-top: 20px; }
+.homeSectionHeading { display: flex; justify-content: space-between; align-items: flex-end; gap: 15px; margin-bottom: 24px; }
+.homeSectionHeading h2 { margin: 11px 0 0; font-size: clamp(26px, 2.7vw, 36px); font-weight: 700; letter-spacing: -.055em; }
+.homeTextButton { color: #ddd9e4; background: transparent; font-size: 11px !important; display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 0; }
+.homeTextButton:hover { color: var(--home-red); }
+.homeCatalogueTools { display: flex; justify-content: space-between; gap: 15px; padding-bottom: 21px; border-bottom: 1px solid var(--home-line); margin-bottom: 26px; }
+.homeTabs { display: flex; gap: 6px; }
+.homeTabs button { background: transparent; color: #9e9aa8; padding: 10px 14px; border: 1px solid transparent; border-radius: 6px; font-size: 11px; min-height: 44px; white-space: nowrap; }
+.homeTabs button.selected { background: #f23b4e14; color: #ff9ba5; border-color: #f23b4e44; }
+.homeCatalogueTools input { min-width: 0; width: 225px; padding: 10px 14px; color: #eee; background: #14141c; border: 1px solid var(--home-line); border-radius: 6px; font-size: 11px; }
+.homeMovieGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 30px 22px; }
+.homeMovieCard { min-width: 0; }
+.homeMovieImage { width: 100%; display: block; aspect-ratio: 2 / 3; background: #20202a; border-radius: 9px; overflow: hidden; padding: 0; position: relative; }
+.homeMovieImage img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+.homeMovieImage:hover img { transform: scale(1.04); }
+.homeCardIndex { position: absolute; left: 10px; bottom: 10px; color: #fff; font-size: 32px; font-weight: 800; letter-spacing: -.06em; text-shadow: 0 2px 10px #000; }
+.homeCardAge { position: absolute; top: 10px; right: 10px; font-size: 9px; background: #11121ad9; border: 1px solid #ffffff40; border-radius: 4px; padding: 5px 7px; color: white; }
+.homeMovieImageOverlay { position: absolute; inset: auto 0 0; padding: 42px 15px 16px; display: flex; justify-content: flex-end; gap: 10px; align-items: center; font-size: 10px; color: white; background: linear-gradient(transparent, #000b); }
+.homeMovieInfo > p { color: #a09ca9; font-size: 9px; line-height: 1.7; margin: 14px 0 5px; }
+.homeMovieInfo > p > span { white-space: nowrap; }
+.homeMovieInfo h3 { margin: 0; }
+.homeMovieInfo h3 button { padding: 0; background: transparent; font-size: 14px; font-weight: 700; text-align: left; color: #eceaf0; line-height: 1.5; min-height: 42px; }
+.homeCardBottom { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--home-line); }
+.homeCardBottom > span { font-size: 9px; color: #9993a3; }
+.homeCardBottom button { display: flex; align-items: center; gap: 6px; color: #ff8795; background: transparent; font-size: 10px; padding: 8px 0 8px 5px; min-height: 36px; white-space: nowrap; }
+.homeMore { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 32px auto 0; border: 1px solid #ffffff26; background: #ffffff06; color: #d6d2df; padding: 14px 23px; border-radius: 7px; font-size: 11px; }
+.homeEmpty { padding: 50px 20px; text-align: center; background: #13131b; border-radius: 10px; color: #b3adbd; }
+.homeEmpty h3 { font-size: 18px; color: #e7e2ed; }
+.homeEmpty p { font-size: 12px; }
+.homeEmpty button { background: transparent; color: #ff8997; padding: 12px; }
+.homeNotice { margin-bottom: 18px; padding: 18px; background: #38212a; border: 1px solid #9e5166; border-radius: 10px; display: flex; justify-content: space-between; gap: 15px; }
+.homeNotice strong { font-size: 13px; }
+.homeNotice p { font-size: 12px; margin-bottom: 0; }
+.homeNotice button { background: transparent; color: #fff; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.homeClosing { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding: 38px 0; border-top: 1px solid var(--home-line); border-bottom: 1px solid var(--home-line); }
+.homeClosing h2 { font-size: clamp(23px, 2.4vw, 32px); letter-spacing: -.04em; line-height: 1.25; margin: 14px 0 0; }
+.homeClosing > p { color: #96919f; font-size: 12px; line-height: 1.9; }
+.homeFooter { padding: 27px 0; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.homeFooter > strong { font-size: 17px; letter-spacing: .04em; }
+.homeFooter strong > span { color: var(--home-red); }
+.homeFooter > span { font-size: 9px; color: #898391; }
+@media(min-width: 901px) { .sidebarHeader { height: 100dvh; align-self: flex-start; flex-shrink: 0; overflow-y: auto; } }
+@media(max-width: 1150px) { .homeQuickBooking form { grid-template-columns: repeat(3, minmax(0, 1fr)); } .homeQuickBooking form > button { grid-column: 1 / -1; } .homeMovieGrid { gap: 25px 16px; } .homeFeature { min-height: 490px; } .homeFeatureCopy { width: 69%; } .homeFeaturePoster { right: 5%; width: 24%; } .homeClosing { flex-wrap: wrap; } }
+@media(max-width: 900px) { .homeMasthead { padding-top: 23px; } .homeFeature h1 { font-size: 46px; } .homeFeatureCopy { width: 65%; } .homeFeaturePoster { width: 23%; } .homeCatalogue { padding-top: 35px; } }
+@media(max-width: 600px) { .cinemaHome { padding: 0 18px; } .homeMasthead { padding: 20px 0; } .homeMasthead p { font-size: 12px; } .homeDate { display: none; } .homeFeature { min-height: 470px; border-radius: 12px; } .homeFeatureArt { inset: 0; } .homeFeatureShade { background: linear-gradient(90deg, #101017ee, #10101777), linear-gradient(0deg, #101017, transparent); } .homeFeatureCopy { width: 100%; padding: 30px 23px; } .homeFeature h1 { font-size: 42px; max-width: 300px; } .homeFeaturePoster { display: none; } .homeFeatureDescription { max-width: 310px; } .homeFeatureNumber { font-size: 8px; bottom: 14px; right: 14px; } .homeQuickBooking { padding: 19px; } .homeQuickHeading { flex-direction: column; gap: 9px; } .homeQuickBooking form { grid-template-columns: 1fr; } .homeQuickBooking form > button { grid-column: auto; } .homeQuickBooking label { padding: 12px; } .homeQuickBooking select { font-size: 13px; min-height: 30px; } .homeSectionHeading { align-items: center; } .homeCatalogueTools { flex-direction: column; } .homeCatalogueTools input { width: 100%; min-height: 44px; } .homeTabs { gap: 0; } .homeTabs button { font-size: 11px; padding: 10px 12px; } .homeMovieGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 14px; } .homeMovieInfo h3 button { font-size: 13px; } .homeCardBottom { flex-wrap: wrap; } .homeCardBottom button { min-height: 44px; } .homeMovieInfo > p { font-size: 10px; } .homeMovieImageOverlay { font-size: 9px; padding: 35px 10px 12px; } .homeClosing { flex-direction: column; align-items: flex-start; padding: 28px 0; gap: 13px; } .homeClosing > p { margin: 0; } .homeFooter { flex-wrap: wrap; } .homeFooter > span:last-child { width: 100%; } }
+@media(prefers-reduced-motion: reduce) { .cinemaHome *, .cinemaHome *::before, .cinemaHome *::after { transition: none !important; scroll-behavior: auto !important; } }
+
+.sidebarNav [aria-current="page"] { background: #f23b4e12; color: #ff8a97; box-shadow: inset 2px 0 #f23b4e; }
+.sidebarSearch { padding: 11px 14px; background: #14151b; color: #a4a1ae; border: 1px solid #ffffff14; border-radius: 7px; text-align: left; font-size: 12px; }
+.sidebarActions a.loginBtn { text-decoration: none; text-align: center; }
+@media(max-width: 900px) {
+    .sidebarHeader { display: grid; grid-template-columns: 1fr auto; padding: 16px 20px; gap: 12px; position: relative; }
+    .sidebarHeader > .logo { grid-column: 1; grid-row: 1; }
+    .sidebarNav { grid-column: 1 / -1; grid-row: 2; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 4px; padding-bottom: 3px; }
+    .sidebarNav > button, .sidebarNav > a, .sidebarNav button:nth-child(3), .sidebarNav button:nth-child(4) { display: block; width: auto; flex: 0 0 auto; padding: 10px 13px; font-size: 12px; white-space: nowrap; }
+    .sidebarActions { grid-column: 2; grid-row: 1; display: block; }
+    .sidebarActions .loginBtn { display: block; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; padding: 10px 14px; }
+    .sidebarSearch { display: none; }
+}
+
+/* Keep descriptions and controls readable at normal browser zoom. */
+.homeFilmMeta { font-size: 12px; }
+.homeFeatureDescription { font-size: 14px; }
+.homeQuickBooking label > span { font-size: 11px; }
+.homeQuickBooking select { font-size: 12px; }
+.homeQuickHint { font-size: 12px; }
+.homeCatalogueTools input, .homeTabs button, .homeTextButton { font-size: 12px !important; }
+.homeMovieInfo > p, .homeCardBottom > span { font-size: 11px; }
+.homeCardBottom button { font-size: 12px; min-height: 44px; }
+.homeClosing > p { font-size: 13px; }
+.homeFooter > span { font-size: 11px; }
+
+.homeAdminAddMovie { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: #ff9ba5; font-size: 13px; margin-right: 14px; text-underline-offset: 4px; }
