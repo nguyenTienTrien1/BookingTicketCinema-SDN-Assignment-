@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getMovies } from '../../services/movieService';
 import { getAdminShowtimes, addShowtime, updateShowtime, deleteShowtime, getShowtime, getShowtimeRooms } from '../../services/showtimeService';
 import './movies.css';
+import AutoShowtimes from './AutoShowtimes';
 
 const emptyForm = { movie: '', cinema: '', room: '', startTime: '', price: '80000' };
 
@@ -164,7 +165,14 @@ export default function ManageShowtimes() {
         {movieError && <p className="movieError" role="alert">Không tải được danh mục phim/phòng: {movieError}</p>}
         {!movieError && rooms.length === 0 && <p className="movieWarning" role="status">Chưa có phòng hoạt động. Cần cấu hình phòng và sơ đồ ghế trước khi thêm suất chiếu.</p>}
 
-        {mode && <section className="moviePanel" aria-labelledby="showtime-editor-title">
+        {['add', 'auto'].includes(mode) && <div className="showtimeAddModes" role="group" aria-label="Cách thêm suất chiếu">
+          <button type="button" className="movieSecondary" aria-pressed={mode === 'add'} disabled={saving} onClick={() => openEditor('add')}>Thêm thủ công</button>
+          <button type="button" className="movieSecondary" aria-pressed={mode === 'auto'} disabled={saving} onClick={() => openEditor('auto')}>Đề xuất tự động</button>
+        </div>}
+        {mode === 'auto' && <AutoShowtimes movies={movies} rooms={rooms} onCancel={closeEditor} onBusyChange={setSaving}
+          onSaved={(response) => { setMessage(response.message); closeEditor(); setPage(1); setReload(value => value + 1); }} />}
+
+        {mode && mode !== 'auto' && <section className="moviePanel" aria-labelledby="showtime-editor-title">
           <form className="movieForm" onSubmit={handleSubmit}>
             <h2 id="showtime-editor-title" tabIndex={-1} ref={editor}>
               {editorTitle}

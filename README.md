@@ -1,5 +1,14 @@
 # BookingTicketCinema-SDN-Assignment
 
+## Add showtimes: manual or automatic suggestions
+- Open **Quản lý suất chiếu → Thêm suất chiếu** (`/admin/showtimes`) and choose **Thêm thủ công** or **Đề xuất tự động**. Manual add/edit keeps the existing room selector and validation.
+- Automatic mode takes movie, cinema, start/end dates, opening/closing times and ticket price. It has no room selector. The server chooses valid Active rooms with usable seats in the selected cinema, finds the earliest available gaps and balances equal-time choices between rooms. Existing schedules and their 15-minute cleanup intervals are checked, including legacy name-only room references.
+- The preview is one chronological sequence for the selected movie, separated by movie duration plus 15 minutes; it does not fill all rooms with simultaneous screenings. Each film must finish by that day's closing time. Dates/times use Vietnam time (UTC+07:00); past times and dates before the movie's release are rejected/skipped as applicable. Limits: 31 inclusive days and 200 proposed showtimes.
+- Example: a 120-minute movie, 09:00–23:00, three free days produces 18 suggestions (6/day). The preview groups slots by date and shows start/end times and the automatically chosen room on every slot. No showtime is created until the Admin reviews and confirms the preview. Changing any input clears the old preview and confirmation.
+- `POST /api/showtimes/suggestions` accepts `{ movie, cinema, startDate, endDate, openingTime, closingTime, price }` and returns the preview plus a signed token valid for 15 minutes. `POST /api/showtimes/suggestions/confirm` accepts only `{ token }`. Both require an active Admin and the existing JSON/Origin write checks. The token belongs to the creating Admin and becomes invalid if the API server restarts.
+- Confirmation rechecks movie/room versions, current room layouts, future times, release/classification and conflicts under the shared schedule guard. It saves the entire reviewed batch in a MongoDB transaction or saves nothing; it never silently substitutes another plan after a conflict. MongoDB must support transactions (replica set), as with the existing payment workflow. On an expired/stale preview, generate and review another proposal.
+- Check with `npm run test:showtime-suggestions -w backend`, the existing showtime/room tests, and `npm run build`. The integration test writes only to a unique temporary database. For the complete backend suite, configure a test JWT secret and `NODE_ENV=test`, `ENABLE_PAYMENT_SIMULATION=true`, and a transaction-capable test MongoDB URI.
+
 ## UC-14 / UC-14.1: Cinema rooms and seat configuration
 
 - Creating a room permits only Active (**Hoạt động**) or Inactive (**Chưa hoạt động**), defaulting to Inactive; the API enforces the same restriction. Maintenance remains available when editing an existing room.
@@ -76,21 +85,26 @@ Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` mo
 - Run `npm run test:counter-promotions -w backend` and `npm run test:counter-promotions:ui -w backend` with a replica set. Tests use isolated temporary databases; browser screenshots are saved under `.local/qa/uc92/`.
 
 ## Run backend
-1. Install MongoDB Server and make sure `mongod` is on PATH.
-2. `cd backend`
-3. Copy `.env.example` to `.env`.
-4. `npm install`
-5. `npm run db:local` (starts the local replica set required for booking transactions).
-6. `npm run seed` (initial demo data only).
-7. `npm run dev`
+Run these commands from the repository root after installing Node.js and MongoDB Community Server:
+
+```sh
+npm ci
+npm run setup:local
+npm run dev:backend
+```
+
+`setup:local` starts the single-node `cinemaLocal` replica set on port 27019. It finds `mongod` on PATH or in the normal Windows MongoDB Server installation folder; use `MONGOD_BINARY` in your private `.env` for another installation location. No manual Windows service reconfiguration or extra npm package is required.
+
+If `backend/.env` already points to local MongoDB on port 27017, **stop the backend before setup**. Setup backs up `.env` and the original database to `.local/backups`, copies collections with their indexes and BSON types, verifies content checksums, and only then updates `.env`. The database on 27017 is not modified. Different existing target data is never overwritten. This importer supports ordinary collections, up to 50 MB total and 50,000 documents per collection; use MongoDB Database Tools for larger/other databases. Remote/Atlas URIs are not rewritten.
+
+For a fresh clone with no `.env`, setup creates it from `.env.example` with random local JWT/cookie secrets. **Only for a new empty demo database**, run `npm run seed -w backend` once. Do not seed a database you want to preserve: the existing seed script resets demo collections.
+
+On subsequent runs (including after reboot), run `npm run setup:local` before starting the backend; it reuses the replica set and existing configured data. `.env`, `.env.setup-tmp`, `.local` database files and private backups are ignored by Git. Commit source code, scripts and `.env.example`, never local data or credentials.
 
 Payment uses an explicitly labelled simulation; no real money is collected. See [completed use cases and local setup](docs/UC_COMPLETION.md) for test results, points rules, inventory and staff activation.
 
 ## Run frontend
-1. `cd frontend`
-2. `npm install`
-3. `npm run dev`
-4. Open the Vite URL.
+In a second terminal at the repository root, run `npm run dev:frontend` and open `http://localhost:5173`.
 
 ## Demo accounts
 Member: `member@cinema.com` / `123456`

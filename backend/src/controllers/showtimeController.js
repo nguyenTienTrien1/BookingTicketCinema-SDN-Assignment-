@@ -1,5 +1,19 @@
 import * as service from '../services/showtimeService.js';
 
+export async function suggest(req, res, next) {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json(await service.suggestShowtimes(req.body, req.user._id));
+  } catch (error) { next(error); }
+}
+
+export async function confirm(req, res, next) {
+  try {
+    const result = await service.confirmSuggestions(req.body, req.user._id);
+    res.status(201).json({ message: `Đã thêm ${result.count} suất chiếu từ lịch đề xuất.`, ...result });
+  } catch (error) { next(error); }
+}
+
 export function protectWrite(req, res, next) {
   const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
   if (req.get('Sec-Fetch-Site') === 'cross-site' || (req.get('Origin') && req.get('Origin') !== allowedOrigin)) {

@@ -1,5 +1,13 @@
 import { api } from './api';
 
+export function suggestShowtimes(data) {
+  return api('/showtimes/suggestions', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function confirmShowtimeSuggestions(token) {
+  return api('/showtimes/suggestions/confirm', { method: 'POST', body: JSON.stringify({ token }) });
+}
+
 export function getAdminShowtimes(movie = '', page = 1) {
   const params = new URLSearchParams({ movie, page: String(page), limit: '10' });
   return api(`/showtimes?${params}`, { credentials: 'include' });

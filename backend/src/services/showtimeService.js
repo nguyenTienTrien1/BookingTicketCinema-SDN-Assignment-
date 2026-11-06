@@ -1,8 +1,18 @@
 import mongoose from 'mongoose';
+import { randomBytes } from 'node:crypto';
+import jwt from 'jsonwebtoken';
+import { transaction } from './transaction.js';
 import Showtime from '../models/Showtime.js';
 import Movie from '../models/Movie.js';
 import Booking from '../models/Booking.js';
 import CinemaRoom, { seatConfiguration } from '../models/CinemaRoom.js';
+
+const MINUTE = 60000;
+const DAY = 24 * 60 * MINUTE;
+const CLEANING = 15 * MINUTE;
+const MAX_SLOTS = 200;
+// Short-lived previews are signed by this server, not trusted from client input.
+const previewSecret = randomBytes(32);
 
 // The current app runs one Node process. Reject simultaneous schedule writes
 // so two Admin requests cannot both pass the same room-conflict check.
@@ -48,7 +58,7 @@ export async function listShowtimes(query) {
   return { showtimes, total, page, totalPages: Math.ceil(total / limit) };
 }
 
-async function validateShowtime(body, excludedId) {
+async function validateShowtime(body, excludedId, session = null) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw showtimeError('Thông tin suất chiếu không hợp lệ.');
   }
@@ -74,7 +84,9 @@ async function validateShowtime(body, excludedId) {
   if (typeof body.price !== 'number' || !Number.isSafeInteger(body.price) || body.price <= 0) {
     throw showtimeError('Giá vé phải là số nguyên dương (VND).');
   }
-  const movie = await Movie.findById(body.movie);
+  const movieQuery = Movie.findById(body.movie);
+  if (session) movieQuery.session(session);
+  const movie = await movieQuery;
   if (!movie || movie.deletedAt) throw showtimeError('Không tìm thấy phim.', 404);
   if (movie.classification === 'C') throw showtimeError('Không thể tạo suất chiếu cho phim phân loại C.');
   if (!Number.isFinite(movie.duration) || movie.duration <= 0) {
@@ -86,8 +98,10 @@ async function validateShowtime(body, excludedId) {
   }
   const cinema = body.cinema.trim();
   const room = body.room.trim();
-  const configuredRoom = await CinemaRoom.findOne({ cinema, name: room })
+  const roomQuery = CinemaRoom.findOne({ cinema, name: room })
     .collation({ locale: 'en', strength: 2 });
+  if (session) roomQuery.session(session);
+  const configuredRoom = await roomQuery;
   if (!configuredRoom) throw showtimeError('Phòng chiếu chưa được cấu hình.', 400);
   if (configuredRoom.status !== 'Active') throw showtimeError('Phòng chiếu không hoạt động.', 409);
   const layout = configuredRoom.seats;
@@ -98,8 +112,10 @@ async function validateShowtime(body, excludedId) {
   const filter = { cinema, room, startTime: { $lt: endTime } };
   if (excludedId) filter._id = { $ne: excludedId };
   // Compare both ends: an earlier movie can still be playing when this one starts.
-  const neighbours = await Showtime.find(filter).collation({ locale: 'en', strength: 2 })
+  const neighbourQuery = Showtime.find(filter).collation({ locale: 'en', strength: 2 })
     .populate('movie', 'duration');
+  if (session) neighbourQuery.session(session);
+  const neighbours = await neighbourQuery;
   for (const neighbour of neighbours) {
     if (!neighbour.movie || !Number.isFinite(neighbour.movie.duration)) {
       throw showtimeError('Không thể kiểm tra lịch do suất cùng phòng thiếu thông tin phim.', 409);
@@ -202,4 +218,171 @@ export async function getShowtime(id) {
     .populate('movie', 'title duration classification ageLimit');
   if (!showtime) throw showtimeError('Không tìm thấy suất chiếu.', 404);
   return showtime;
+}
+
+// Automatic suggestions use the same validation and write guard as manual schedules.
+function localDate(value) {
+  return new Date(new Date(value).getTime() + 7 * 60 * MINUTE).toISOString().slice(0, 10);
+}
+
+function parseDate(value) {
+  if (typeof value !== 'string' || !/^20\d{2}-\d{2}-\d{2}$/.test(value)) throw showtimeError('Ngày phải theo định dạng YYYY-MM-DD.');
+  const date = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw showtimeError('Ngày không tồn tại.');
+  return new Date(`${value}T00:00:00+07:00`);
+}
+
+function validateInput(body, now) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw showtimeError('Thông tin đề xuất không hợp lệ.');
+  for (const field of Object.keys(body)) {
+    if (!['movie', 'cinema', 'startDate', 'endDate', 'openingTime', 'closingTime', 'price'].includes(field)) {
+      throw showtimeError('Chỉ chọn phim, rạp, khoảng ngày, giờ hoạt động và giá vé; phòng sẽ được tự chọn.');
+    }
+  }
+  if (typeof body.movie !== 'string' || !mongoose.isObjectIdOrHexString(body.movie)) throw showtimeError('Mã phim không hợp lệ.');
+  if (typeof body.cinema !== 'string' || !body.cinema.trim() || body.cinema.length > 100) throw showtimeError('Vui lòng chọn rạp hợp lệ.');
+  const start = parseDate(body.startDate);
+  const end = parseDate(body.endDate);
+  if (body.startDate < localDate(now) || end < start || end - start >= 31 * DAY) {
+    throw showtimeError('Chọn từ hôm nay trở đi, ngày kết thúc không trước ngày bắt đầu và tối đa 31 ngày.');
+  }
+  for (const time of [body.openingTime, body.closingTime]) {
+    if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw showtimeError('Giờ hoạt động phải theo định dạng HH:mm.');
+  }
+  if (body.openingTime >= body.closingTime) throw showtimeError('Giờ đóng cửa phải sau giờ mở cửa trong cùng ngày.');
+  if (!Number.isSafeInteger(body.price) || body.price <= 0) throw showtimeError('Giá vé phải là số nguyên dương (VND).');
+  return { movie: body.movie, cinema: body.cinema.trim(), startDate: body.startDate,
+    endDate: body.endDate, openingTime: body.openingTime, closingTime: body.closingTime, price: body.price };
+}
+
+// Find the first gap that fits the movie AND its cleanup before the next show.
+function firstGap(intervals, cursor, duration) {
+  let start = cursor;
+  for (const busy of intervals) {
+    if (busy.end <= start) continue;
+    if (start + duration + CLEANING <= busy.start) break;
+    start = busy.end;
+  }
+  return start;
+}
+
+export async function suggestShowtimes(body, adminId) {
+  const now = new Date();
+  const input = validateInput(body, now);
+  const movie = await Movie.findById(input.movie);
+  if (!movie || movie.deletedAt) throw showtimeError('Không tìm thấy phim.', 404);
+  if (movie.classification === 'C') throw showtimeError('Không thể đề xuất suất chiếu cho phim phân loại C.');
+  if (!Number.isFinite(movie.duration) || movie.duration <= 0) throw showtimeError('Phim chưa có thời lượng hợp lệ.');
+  if (movie.releaseDate && input.startDate < movie.releaseDate.toISOString().slice(0, 10)) {
+    throw showtimeError('Khoảng đề xuất không được trước ngày khởi chiếu của phim.');
+  }
+  const configuredRooms = await CinemaRoom.find({ cinema: input.cinema, status: 'Active' })
+    .collation({ locale: 'en', strength: 2 }).sort({ name: 1, _id: 1 });
+  const rooms = [];
+  for (const room of configuredRooms) {
+    // Auto-selection only considers valid rooms with at least one usable seat.
+    if (!room.validateSync() && room.seats.some(number => seatConfiguration(room, number).status === 'Active')) rooms.push(room);
+  }
+  if (rooms.length === 0) throw showtimeError('Rạp chưa có phòng đang hoạt động với sơ đồ ghế sử dụng được.', 409);
+  const windowEnd = new Date(`${input.endDate}T${input.closingTime}:00+07:00`);
+  const shows = await Showtime.find({
+    // Include neighbours just after closing: a final film's cleanup must not
+    // collide with them, even if that neighbour was added outside these hours.
+    cinema: input.cinema, startTime: { $lt: new Date(windowEnd.getTime() + CLEANING) },
+    $or: [{ roomId: { $in: rooms.map(room => room._id) } },
+      { roomId: null, room: { $in: rooms.map(room => room.name) } }]
+  }).collation({ locale: 'en', strength: 2 }).select('roomId room startTime movie').populate('movie', 'duration');
+  const timelines = new Map();
+  for (const room of rooms) timelines.set(String(room._id), []);
+  for (const show of shows) {
+    const room = rooms.find(item => show.roomId ? String(item._id) === String(show.roomId) : item.name.toLowerCase() === show.room.toLowerCase());
+    if (!room) continue;
+    if (!show.movie || !Number.isFinite(show.movie.duration) || show.movie.duration <= 0) {
+      throw showtimeError('Chưa thể kiểm tra lịch vì suất cùng rạp thiếu thời lượng phim. Vui lòng kiểm tra dữ liệu lịch chiếu.', 409);
+    }
+    timelines.get(String(room._id)).push({ start: show.startTime.getTime(), end: show.startTime.getTime() + show.movie.duration * MINUTE + CLEANING });
+  }
+  for (const timeline of timelines.values()) timeline.sort((a, b) => a.start - b.start);
+  const days = [];
+  const slots = [];
+  const duration = movie.duration * MINUTE;
+  for (let day = parseDate(input.startDate); day <= parseDate(input.endDate); day = new Date(day.getTime() + DAY)) {
+    const date = localDate(day);
+    const close = new Date(`${date}T${input.closingTime}:00+07:00`).getTime();
+    let cursor = Math.max(new Date(`${date}T${input.openingTime}:00+07:00`).getTime(), Math.ceil((now.getTime() + 1) / MINUTE) * MINUTE);
+    const daySlots = [];
+    const assigned = new Map();
+    for (const room of rooms) assigned.set(String(room._id), 0);
+    while (cursor + duration <= close) {
+      let best = null;
+      for (const room of rooms) {
+        const key = String(room._id);
+        const start = firstGap(timelines.get(key), cursor, duration);
+        if (start + duration > close) continue;
+        if (!best || start < best.start || (start === best.start && assigned.get(key) < assigned.get(String(best.room._id)))) {
+          best = { room, start };
+        }
+      }
+      if (!best) break;
+      const roomId = String(best.room._id);
+      const slot = { movie: String(movie._id), cinema: best.room.cinema, room: best.room.name, roomId,
+        startTime: new Date(best.start).toISOString(), endTime: new Date(best.start + duration).toISOString(), price: input.price };
+      slots.push(slot);
+      daySlots.push(slot);
+      if (slots.length > MAX_SLOTS) throw showtimeError('Lịch đề xuất vượt 200 suất. Vui lòng thu hẹp khoảng ngày hoặc giờ hoạt động.');
+      timelines.get(roomId).push({ start: best.start, end: best.start + duration + CLEANING });
+      timelines.get(roomId).sort((a, b) => a.start - b.start);
+      assigned.set(roomId, assigned.get(roomId) + 1);
+      // One chronological series for this movie, rather than flooding every room
+      // with simultaneous screenings. Prefer less-used rooms for equal gaps.
+      cursor = best.start + duration + CLEANING;
+    }
+    days.push({ date, slots: daySlots });
+  }
+  const roomVersions = [];
+  for (const room of rooms) {
+    if (slots.some(slot => slot.roomId === String(room._id))) {
+      roomVersions.push({ id: String(room._id), updatedAt: room.updatedAt.toISOString() });
+    }
+  }
+  const token = slots.length === 0 ? null : jwt.sign({ adminId: String(adminId),
+    input, slots, movieVersion: movie.updatedAt.toISOString(), roomVersions }, previewSecret, { expiresIn: '15m', algorithm: 'HS256' });
+  return { input, movie: { _id: movie._id, title: movie.title, duration: movie.duration },
+    timezone: 'Asia/Ho_Chi_Minh', cleaningMinutes: 15, days, total: slots.length, token,
+    generatedAt: now.toISOString(), expiresAt: token ? new Date(jwt.decode(token).exp * 1000).toISOString() : null };
+}
+
+export async function confirmSuggestions(body, adminId) {
+  if (!body || typeof body.token !== 'string' || body.token.length > 90000 || Object.keys(body).some(key => key !== 'token')) {
+    throw showtimeError('Vui lòng tạo và kiểm tra lịch đề xuất trước khi lưu.');
+  }
+  let preview;
+  try { preview = jwt.verify(body.token, previewSecret, { algorithms: ['HS256'] }); }
+  catch (error) {
+    if (error.name === 'TokenExpiredError') throw showtimeError('Đề xuất đã hết hạn sau 15 phút. Vui lòng tạo lại.', 410);
+    throw showtimeError('Đề xuất không còn hợp lệ. Vui lòng tạo lại.');
+  }
+  if (preview.adminId !== String(adminId)) throw showtimeError('Bạn không có quyền lưu đề xuất này.', 403);
+  return withScheduleWrite(async function () {
+    return transaction(async function (session) {
+      const movie = await Movie.findById(preview.input.movie).session(session);
+      if (!movie || movie.deletedAt || movie.updatedAt.toISOString() !== preview.movieVersion) {
+        throw showtimeError('Phim đã thay đổi. Vui lòng tạo lại lịch đề xuất.', 409);
+      }
+      for (const version of preview.roomVersions) {
+        const room = await CinemaRoom.findById(version.id).session(session);
+        if (!room || room.updatedAt.toISOString() !== version.updatedAt) throw showtimeError('Phòng đã thay đổi. Vui lòng tạo lại lịch đề xuất.', 409);
+      }
+      const documents = [];
+      for (const slot of preview.slots) {
+        // Reuse manual validation: current movie, room, release date, seats,
+        // price, future time and overlaps are all rechecked inside the write.
+        documents.push(await validateShowtime(slot, undefined, session));
+      }
+      // One transaction saves every reviewed slot or none, even on a DB failure.
+      const created = await Showtime.insertMany(documents, { session, ordered: true });
+      console.info('[SHOWTIME AUDIT]', JSON.stringify({ action: 'create-suggestions', adminId, count: created.length }));
+      return { count: created.length, showtimeIds: created.map(show => show._id) };
+    });
+  });
 }

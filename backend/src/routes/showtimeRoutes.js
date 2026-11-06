@@ -6,6 +6,8 @@ import { requireRole } from '../middleware/auth/requireRole.js';
 const router = Router();
 router.use(verifyToken, requireRole('admin'));
 router.get('/rooms', controller.rooms);
+router.post('/suggestions', controller.protectWrite, controller.suggest);
+router.post('/suggestions/confirm', controller.protectWrite, controller.confirm);
 router.get('/:id', controller.detail);
 router.get('/', controller.viewShowtimes);
 router.post('/', controller.protectWrite, controller.addShowtime);

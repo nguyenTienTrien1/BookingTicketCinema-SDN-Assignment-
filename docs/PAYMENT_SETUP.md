@@ -11,13 +11,24 @@ every 15 seconds and before new bookings/public schedule reads.
 From the repository root:
 
 ```sh
-npm run db:local --prefix backend
-npm run dev --prefix backend
-npm run dev --prefix frontend
+npm ci
+npm run setup:local
+npm run dev:backend
+# In a second terminal:
+npm run dev:frontend
 ```
 
 MongoDB must support transactions (replica set). The local database script creates
 the `cinemaLocal` replica set on port 27019.
+
+Stop the backend before `setup:local` if switching from standalone MongoDB on
+27017. Setup preserves the original database, saves private backups under
+`.local/backups`, copies and verifies local data, then changes only the database
+URI in `backend/.env`. An existing target with different data is not overwritten.
+On Windows, the normal MongoDB Server install is discovered automatically; set
+`MONGOD_BINARY` for a custom installation. A fresh clone gets a private `.env`
+from `.env.example`; seed demo data only when the database is empty. The same
+replica set also enables atomic saving of automatically suggested showtimes.
 
 ## VNPay Sandbox
 
