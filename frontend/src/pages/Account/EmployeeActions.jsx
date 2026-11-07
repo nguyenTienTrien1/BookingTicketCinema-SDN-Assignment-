@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const tasks = [
     { title: 'Tra cứu thành viên', description: 'Tìm thông tin liên hệ, điểm và hạng thành viên.', to: '/employee/members', icon: 'search' },
     { title: 'Check-in vé', description: 'Quét QR và xác nhận khách vào rạp.', to: '/employee/check-in', icon: 'qr' },
-    { title: 'Tiếp nhận & thu tiền', description: 'Xử lý đơn online và xác minh tuổi tại quầy.', to: '/staff/tools', icon: 'receipt' },
+    { title: 'Thu tiền & đối soát', description: 'Tiếp nhận đơn online, đơn tại quầy và xử lý khoản thu.', to: '/staff/tools', icon: 'receipt' },
     { title: 'Bán bắp nước', description: 'Tạo đơn đồ ăn, thức uống riêng.', to: '/employee/food-sales', icon: 'food' },
 ];
 

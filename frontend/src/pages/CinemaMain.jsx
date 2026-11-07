@@ -34,12 +34,17 @@ export default function CinemaMain() {
   const user = authUser;
   const [selected, setSelected] = useState(null);
   const [pending, setPending] = useState(null);
+  const isCounterStaff = ['employee', 'admin'].includes(user?.role);
+  const counterStorageKey = 'cinema-counter-booking-' + user?._id;
+  const [counterRecovery, setCounterRecovery] = useState(null);
+  const [recoveryRetry, setRecoveryRetry] = useState(0);
   const [tab, setTab] = useState(
     location.pathname === "/account" ? "account" : "home",
   );
   useEffect(() => {
     if (location.pathname === "/account") {
-      setTab("account");
+      const task = new URLSearchParams(location.search).get('task');
+      setTab(isCounterStaff && ['booking', 'payment'].includes(task) ? task : 'account');
     } else if (
       user?.role === "admin" &&
       location.pathname === "/" &&
@@ -47,11 +52,51 @@ export default function CinemaMain() {
     ) {
       setTab("account");
     }
-  }, [location.key, location.pathname, user?.role]);
+  }, [location.key, location.pathname, location.search, user?.role, isCounterStaff]);
   const [loginReturnTab, setLoginReturnTab] = useState("home");
   const [msg, setMsg] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCinemaFilter, setSelectedCinemaFilter] = useState("");
+
+  const rememberPending = useCallback((booking) => {
+    setPending(booking);
+    if (!isCounterStaff) return;
+    const needsFollowUp = booking?.status === 'pending' || booking?.activePayment;
+    setCounterRecovery(needsFollowUp ? { id: booking._id } : null);
+    try {
+      if (needsFollowUp) sessionStorage.setItem(counterStorageKey, booking._id);
+      else sessionStorage.removeItem(counterStorageKey);
+    } catch { /* Booking remains usable when browser storage is unavailable. */ }
+  }, [isCounterStaff, counterStorageKey]);
+
+  useEffect(() => {
+    let active = true;
+    setPending(null); setCounterRecovery(null);
+    if (!isCounterStaff) return;
+    let id;
+    try { id = sessionStorage.getItem(counterStorageKey); } catch { return; }
+    if (!id) return;
+    setCounterRecovery({ id, loading: true });
+    api('/payments/bookings/' + encodeURIComponent(id))
+      .then(booking => {
+        if (!active) return;
+        const liveHold = booking.status === 'pending' && new Date(booking.expiresAt) > new Date();
+        if (liveHold || booking.activePayment) {
+          setPending(booking); setCounterRecovery({ id });
+        } else {
+          setCounterRecovery(null);
+          try { sessionStorage.removeItem(counterStorageKey); } catch { /* No storage available. */ }
+        }
+      })
+      .catch(error => {
+        if (!active) return;
+        if ([400, 404].includes(error.status)) {
+          setCounterRecovery(null);
+          try { sessionStorage.removeItem(counterStorageKey); } catch { /* No storage available. */ }
+        } else setCounterRecovery({ id, error: error.message });
+      });
+    return () => { active = false; };
+  }, [user?._id, isCounterStaff, counterStorageKey, recoveryRetry]);
 
   const handleSetUser = useCallback(
     (newUser) => {
@@ -143,7 +188,7 @@ export default function CinemaMain() {
     setSelected,
     setTab,
     setMsg,
-    setPending,
+    setPending: rememberPending,
     pending,
     searchFilter: searchQuery,
     onRequireBookingLogin: requireBookingLogin,
@@ -255,6 +300,15 @@ export default function CinemaMain() {
             tab !== 'home' && tab !== 'login' ? 'subpage' : ''
           } ${isAdminDashboard ? 'adminMainContentWrapper' : ''}`}
         >
+          {isCounterStaff && counterRecovery && tab !== 'payment' && <aside className="paymentNotice counterResume" aria-label="Đơn đang xử lý">
+            <div>
+            <p><strong>Đơn đang xử lý: {counterRecovery.id}</strong></p>
+            <p>{counterRecovery.loading ? 'Đang kiểm tra trạng thái mới nhất…' : counterRecovery.error || 'Bạn có thể tiếp tục đơn này; thời hạn giữ ghế không được kéo dài.'}</p>
+            </div>
+            <button type="button" className="ghost" disabled={counterRecovery.loading} onClick={() => pending ? setTab('payment') : setRecoveryRetry(value => value + 1)}>
+              {pending ? 'Tiếp tục xử lý đơn' : 'Kiểm tra lại đơn'}
+            </button>
+          </aside>}
           {page}
           {msg && <div className="toast">{msg}</div>}
         </main>
