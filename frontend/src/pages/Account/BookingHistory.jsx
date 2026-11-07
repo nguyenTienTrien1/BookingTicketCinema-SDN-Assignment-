@@ -8,10 +8,12 @@ import './bookingHistory.css';
 function formatDate(value) {
     if (!value) return 'Chưa có thông tin';
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? 'Chưa có thông tin' : date.toLocaleString('vi-VN');
+    return Number.isNaN(date.getTime()) ? 'Chưa có thông tin' : date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 }
 
 function bookingStatus(booking, now) {
+    if (booking.status === 'refund-requested') return { label: 'Đang yêu cầu hoàn tiền', className: 'pending' };
+    if (booking.status === 'refunded') return { label: 'Đã hoàn tiền', className: 'cancelled' };
     if (booking.status === 'paid') return { label: 'Đã thanh toán', className: 'paid' };
     if (booking.status === 'cancelled') return { label: 'Đã hủy', className: 'cancelled' };
     if (booking.status !== 'pending') return { label: 'Chưa xác định', className: 'expired' };
@@ -20,10 +22,11 @@ function bookingStatus(booking, now) {
     return { label: 'Chờ thanh toán', className: 'pending' };
 }
 
-const paymentLabels = { unpaid: 'Chưa thanh toán', paid: 'Đã thanh toán', failed: 'Không thành công' };
+const paymentLabels = { unpaid: 'Chưa thanh toán', paid: 'Đã thanh toán', failed: 'Không thành công', 'refund-requested': 'Đang yêu cầu hoàn tiền', refunded: 'Đã hoàn tiền' };
+const refundLabels = { 'refund-requested': 'Đang xử lý', refunded: 'Đã hoàn tiền' };
 const methodLabels = { cash: 'Tiền mặt', vnpay: 'VNPay', momo: 'MoMo', 'credit-card': 'Thẻ ngân hàng', mock: 'Mô phỏng', demo: 'Mô phỏng', points: 'Không thu thêm tiền' };
 
-export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, onBookAgain }) {
+export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, onBookAgain, onCountChange }) {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -36,17 +39,21 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
         setLoading(true);
         setError('');
         setBookings([]);
+        onCountChange?.({ memberId, count: null });
         getBookings({ signal: controller.signal })
             .then((result) => {
                 if (!Array.isArray(result)) throw new Error('Không thể đọc lịch sử đặt vé. Vui lòng thử lại.');
-                if (active) setBookings(result);
+                if (active) {
+                    setBookings(result);
+                    onCountChange?.({ memberId, count: result.length });
+                }
             })
             .catch((requestError) => {
                 if (active) setError(requestError.message || 'Không thể tải lịch sử đặt vé.');
             })
             .finally(() => { if (active) setLoading(false); });
         return () => { active = false; controller.abort(); };
-    }, [memberId, retry]);
+    }, [memberId, retry, onCountChange]);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -74,22 +81,33 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                     const status = bookingStatus(booking, now);
                     const showtime = booking.showtime;
                     const movie = showtime?.movie;
+                    const saved = booking.ticketContext || {};
+                    const movieTitle = saved.movieTitle || movie?.title || 'Phim không còn trong danh mục';
+                    const startTime = saved.startTime || showtime?.startTime;
+                    const cinema = saved.cinema || showtime?.cinema;
+                    const room = saved.room || showtime?.room;
+                    const location = [cinema, room].filter(Boolean).join(' · ') || 'Suất chiếu không còn trong danh mục';
                     const foods = (booking.foodItems || []).map((item) =>
-                        `${translateFoodName(item.food?.name || 'Món không còn trong danh mục')} × ${item.quantity || 1}`).join(', ');
+                        `${translateFoodName(item.name || item.food?.name || 'Món không còn trong danh mục')} × ${item.quantity ?? 'Chưa có số lượng'}`).join(', ');
+                    const missingSnapshot = !saved.movieTitle || !saved.startTime || (booking.foodItems || []).some(item => !item.name);
+                    const canContinue = booking.status === 'pending' && status.className === 'pending' && showtime && new Date(showtime.startTime).getTime() > now;
                     return <article className="myTicketCard" key={booking._id}>
-                        <div className="myTicketPoster" aria-hidden="true"><span>{movie?.title || 'CINEMA+'}</span></div>
+                        <div className="myTicketPoster" aria-hidden="true"><span>{movieTitle}</span></div>
                         <div className="myTicketContent">
                             <div className="myTicketHeader">
-                                <div><span className="ticketReference">MÃ ĐẶT VÉ · {booking._id}</span><h3>{movie?.title || 'Phim không còn trong danh mục'}</h3></div>
+                                <div><span className="ticketReference">MÃ ĐẶT VÉ · {booking._id}</span><h3>{movieTitle}</h3></div>
                                 <span className={`ticketStatus ${status.className}`}>{status.label}</span>
                             </div>
+                            {missingSnapshot && <p className="helperText">Đơn cũ chưa lưu đầy đủ thông tin gốc; các chi tiết còn thiếu được hiển thị theo dữ liệu hiện có.</p>}
+                            {(booking.ticketMode === 'demo' || ['demo', 'mock'].includes(booking.paymentMethod)) && <p className="helperText">Đơn mô phỏng — không xác nhận vào rạp thật.</p>}
                             <div className="myTicketDetails">
                                 <p><span>Ngày đặt</span><strong>{formatDate(booking.createdAt)}</strong></p>
-                                <p><span>Suất chiếu</span><strong>{formatDate(showtime?.startTime)}</strong></p>
-                                <p><span>Rạp / phòng</span><strong>{showtime ? `${showtime.cinema} · ${showtime.room}` : 'Suất chiếu không còn trong danh mục'}</strong></p>
+                                <p><span>Suất chiếu</span><strong>{formatDate(startTime)}</strong></p>
+                                <p><span>Rạp / phòng</span><strong>{location}</strong></p>
                                 <p><span>Ghế</span><strong>{booking.seats?.join(', ') || 'Chưa có thông tin'}</strong></p>
                                 <p><span>Bắp nước</span><strong>{foods || 'Không gọi thêm'}</strong></p>
                                 <p><span>Trạng thái thanh toán</span><strong>{paymentLabels[booking.paymentStatus] || 'Chưa có thông tin'}</strong></p>
+                                {refundLabels[booking.status] && <p><span>Trạng thái hoàn tiền</span><strong>{refundLabels[booking.status]}</strong></p>}
                                 {booking.paymentStatus === 'paid' && <p><span>Phương thức thanh toán</span><strong>{methodLabels[booking.paymentMethod] || 'Chưa có thông tin'}</strong></p>}
                                 {booking.paymentRef && <p><span>Mã giao dịch</span><strong>{booking.paymentRef}</strong></p>}
                                 <p><span>Tạm tính</span><strong>{Number(booking.subtotal || 0).toLocaleString('vi-VN')}₫</strong></p>
@@ -98,8 +116,8 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                             </div>
                             <div className="myTicketFooter">
                                 <div><span>Tổng tiền đơn</span><strong>{Number(booking.total || 0).toLocaleString('vi-VN')}₫</strong></div>
-                                {booking.status === 'paid' && <Link className="historyLink" to={`/bookings/${booking._id}/tickets`}>Xem vé QR</Link>}
-                                {status.className === 'pending' && onContinuePayment && <button type="button" className="primary" onClick={() => onContinuePayment(booking)}>Thanh toán tiếp</button>}
+                                {booking.status === 'paid' && booking.paymentStatus === 'paid' && <Link className="historyLink" to={`/bookings/${booking._id}/tickets`}>Xem vé QR</Link>}
+                                {canContinue && onContinuePayment && <button type="button" className="primary" onClick={() => onContinuePayment(booking)}>Thanh toán tiếp</button>}
                                 {status.className === 'expired' && booking.status === 'pending' && onBookAgain && <button type="button" className="ghost" onClick={onBookAgain}>Đặt lại vé</button>}
                             </div>
                         </div>

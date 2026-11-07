@@ -73,6 +73,8 @@ async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [
   const subtotal = show.price * seats.length + food.total;
   validatePoints(points, subtotal, member?.memberPoints || 0);
   const b = new Booking({ user: userId || null, counterEmployee, showtime: show._id, seats: seats.map(String), ticketPrice: show.price, foodItems: food.items, subtotal, pointsUsed: points, discount: points * POINT_VALUE, total: subtotal - points * POINT_VALUE, expiresAt: new Date(Date.now() + 600000), ageCheckedBy: counterEmployee, guardianConfirmed });
+  // Keep history for pending/cancelled orders too, before tickets are issued.
+  b.ticketContext = { startTime: show.startTime, cinema: show.cinema, room: show.room, movieTitle: movie.title, classification: movie.classification || '', ageLimit: movie.ageLimit || 0 };
   await reprice(b, member, session, promotionCode);
   // Operational condition is independent of available/held/booked. Missing
   // condition on a legacy snapshot means Active, never a VIP price override.
@@ -160,7 +162,7 @@ export async function settle(id, evidence) {
 }
 export async function pay() { throw fail('Không chấp nhận xác nhận thanh toán từ trình duyệt.', 403); }
 export const listBookings = (userId) => Booking.find({ user: userId })
- .select('showtime seats ticketPrice foodItems subtotal pointsUsed discount promotion promotionDiscount total status paymentMethod paymentStatus paymentRef expiresAt tickets paidAt createdAt updatedAt')
+ .select('showtime ticketContext ticketMode seats ticketPrice foodItems subtotal pointsUsed discount promotion promotionDiscount total status paymentMethod paymentStatus paymentRef expiresAt tickets paidAt createdAt updatedAt')
  .populate([{path:'showtime',select:'movie cinema room startTime',populate:{path:'movie',select:'title'}},{path:'foodItems.food',select:'name'}])
  .sort({ createdAt: -1, _id: -1 });
 
