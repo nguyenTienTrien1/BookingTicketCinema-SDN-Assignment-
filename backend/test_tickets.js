@@ -243,6 +243,47 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
     assert.equal((await request(checkPath(refundRef), employee, 'POST', { showtimeId: refund.showtime._id })).status, 409);
   });
 
+  await t.test('payment, classification and selected seat must still match when check-in is saved', async () => {
+    for (const change of [{ paymentRef: 'CHANGED-PAYMENT' }, { total: 1 }, { 'ticketContext.classification': 'T18' },
+      { 'ticketContext.room': 'Another Room' }, { seats: ['A2'] }]) {
+      const fix = await fixture();
+      const ref = (await issue(fix)).tickets[0].reference;
+      const original = Booking.findOneAndUpdate;
+      const mocked = t.mock.method(Booking, 'findOneAndUpdate', async function (...args) {
+        await Booking.updateOne({ _id: fix.booking._id }, { $set: change });
+        return original.apply(this, args);
+      });
+      try { assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id })).status, 409); }
+      finally { mocked.mock.restore(); }
+      assert.equal((await Booking.findById(fix.booking._id)).tickets[0].status, 'issued');
+    }
+  });
+
+  await t.test('database admission deadline still applies when the write is delayed', async () => {
+    const fix = await fixture({ offset: -14.98 });
+    const ref = (await issue(fix)).tickets[0].reference;
+    const original = Booking.findOneAndUpdate;
+    const mocked = t.mock.method(Booking, 'findOneAndUpdate', async function (...args) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return original.apply(this, args);
+    });
+    try { assert.equal((await request(checkPath(ref), employee, 'POST', { showtimeId: fix.showtime._id })).status, 409); }
+    finally { mocked.mock.restore(); }
+    assert.equal((await Booking.findById(fix.booking._id)).tickets[0].status, 'issued');
+  });
+
+  await t.test('different seats in one booking may check in concurrently; duplicate references are rejected', async () => {
+    const fix = await fixture();
+    const data = await issue(fix);
+    const responses = await Promise.all(data.tickets.map(ticket => request(checkPath(ticket.reference), employee, 'POST', { showtimeId: fix.showtime._id })));
+    assert.deepEqual(responses.map(result => result.status), [200, 200]);
+    assert.ok((await Booking.findById(fix.booking._id)).tickets.every(ticket => ticket.status === 'checked-in'));
+    const duplicate = await fixture();
+    const reference = duplicate.booking.tickets[0].reference;
+    await Booking.updateOne({ _id: duplicate.booking._id }, { $set: { 'tickets.1.reference': reference } });
+    assert.equal((await request(checkPath(reference), employee, 'POST', { showtimeId: duplicate.showtime._id })).status, 409);
+  });
+
   await t.test('uncertain storage results never claim admission and retries cannot use the ticket again', async () => {
     const fix = await fixture();
     const ref = (await issue(fix)).tickets[0].reference;
@@ -329,10 +370,16 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
     const lookup = await request(lookupPath(codes[0], fix.showtime), employee);
     assert.equal(lookup.status, 200);
     assert.equal(lookup.data.eligible, true);
+    const checkIn = await request(checkPath(codes[0]), employee, 'POST', { showtimeId: fix.showtime._id });
+    assert.equal(checkIn.status, 200);
+    assert.equal(checkIn.data.admissionGranted, true);
     const stored = await Booking.findById(fix.booking._id);
     assert.deepEqual(stored.tickets.map(ticket => ticket.code), codes);
     assert.equal(stored.tickets[1].status, 'checked-in');
     assert.equal(stored.tickets[0].qr, paid.data.tickets[0].qr);
+    assert.equal(stored.tickets[0].reference, codes[0]);
+    assert.equal(stored.tickets[0].status, 'checked-in');
+    assert.equal(String(stored.tickets[0].checkedInBy), employee.id);
     await PaymentAttempt.updateOne({ booking: fix.booking._id }, { $set: { amount: 1 } });
     assert.deepEqual((await issue(fix)).tickets, []);
     assert.equal((await request(lookupPath(codes[0], fix.showtime), employee)).data.eligible, false);
