@@ -74,7 +74,7 @@ test('Role permissions from RDS: Guest, Member, Employee, Admin', async (t) => {
     assert.equal((await request('/counter/members?search=091%20234%205678', users.employee)).data.length, 1);
     assert.equal((await request('/counter/members?search=', users.employee)).status, 400);
   });
-  await t.test('counter sale belongs to the customer and is restricted to its employee', async () => {
+  await t.test('counter sale keeps its customer; editing stays owned and payment is shared by all staff', async () => {
     const movie = await Movie.create({ title: 'Role test', genre: ['Action'], duration: 100, description: 'Role test', releaseDate: new Date() });
     const showtime = await Showtime.create({ movie: movie._id, cinema: 'Test', room: '1', startTime: new Date(Date.now() + 3600000), price: 100000, seats: [{ number: 'A1' }, { number: 'A2' }] });
     const sale = await request('/counter/bookings', users.employee, 'POST', { memberId: users.member.id, counterEmployee: employee2.id, userId: users.admin.id, showtimeId: showtime.id, seats: ['A1'] });
@@ -84,7 +84,7 @@ test('Role permissions from RDS: Guest, Member, Employee, Admin', async (t) => {
     assert.equal(sale.data.user.password, undefined);
     for (const [suffix, method] of [['points', 'PATCH'], ['pay', 'POST']]) {
       const path = '/counter/bookings/' + sale.data._id + '/' + suffix;
-      assert.equal((await request(path, employee2, method, { points: 0, method: 'demo' })).status, 404);
+      assert.equal((await request(path, employee2, method, { points: 0, method: 'demo' })).status, suffix === 'pay' ? 200 : 404);
       assert.notEqual((await request(path, users.admin, method, { points: 0, method: 'demo' })).status, 403);
       assert.equal((await request(path, users.member, method, {})).status, 403);
       const employeeResult = await request(path, users.employee, method, { points: 0, method: 'demo' });
@@ -94,7 +94,7 @@ test('Role permissions from RDS: Guest, Member, Employee, Admin', async (t) => {
     const online = await request('/bookings', users.member, 'POST', { showtimeId: showtime.id, seats: ['A2'], counterEmployee: users.employee.id });
     assert.equal(online.status, 201);
     assert.equal(online.data.counterEmployee, null);
-    assert.equal((await request('/counter/bookings/' + online.data._id + '/pay', users.employee, 'POST', { method: 'demo' })).status, 404);
+    assert.equal((await request('/counter/bookings/' + online.data._id + '/pay', users.employee, 'POST', { method: 'demo' })).status, 200);
   });
   await t.test('admin cannot grant member-only points to staff or create members through staff provisioning', async () => {
     assert.equal((await request('/users/' + users.employee.id + '/points', users.admin, 'PATCH', { points: 10 })).status, 400);

@@ -61,10 +61,41 @@ https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
 ## Pay at the counter
 
 The member selects cash and presents the booking ID before the hold expires.
-An employee/admin opens `/staff/tools`, looks up the booking, checks the amount
-and confirms the exact cash amount collected. The server records method `cash`
-and issues QR tickets. Members cannot confirm their own cash receipt. Staff-created
-counter bookings use the same seat reservation and cash settlement mechanisms.
+An active Employee or Admin opens `/staff/tools` and can collect payment for any
+online or counter booking. Cash may exceed the accepted total: the Employee
+confirms the amount received and returns the displayed change. The server records
+the gross cash, change, net amount, collector and collection time. Members cannot
+confirm their own cash receipt. Staff may also create a VNPay request, including
+for Guest orders; zero-amount orders need no cash or gateway charge.
+
+The cash receipt is saved before finalizing the sale. A failed finalization keeps
+that receipt unresolved and prevents another collection or repricing. Both staff
+roles may retry the same receipt within its original hold deadline, record a
+reasoned note, or confirm return of the net cash for an unfinalized order. VNPay
+refunds require provider verification; a note does not mark money refunded.
+Successful verified settlement writes revenue, seats, stock, points, promotion
+usage and tickets in one transaction. Demo settlements create no revenue.
+
+### UC9.3 backlog review — 08/11/2026
+
+The original Product Backlog assigns **UC-9.3 — Process Payment**, under **Sell
+Ticket**, to **Nguyễn Thị Kim Nhã (CE190530)**, with **Employee** as the actor.
+This is separate from Member payment UC-6.3. Admin access, shared staff processing,
+VNPay and cash change follow the user's subsequent agreed requirements.
+
+| Requirement | Current result |
+| --- | --- |
+| Accepted total, deadline and payment method before collection | Implemented |
+| Trusted cash receipt or verified gateway confirmation | Implemented; gateway tests use signed test callbacks |
+| Recheck amount, holds, stock, promotion and points | Implemented |
+| Finalize once; payment, revenue, seats, stock and tickets stay consistent | Implemented and tested with transactional MongoDB |
+| Change method or cancel before collection; reject failed/late payment | Implemented; recorded collections stay locked for reconciliation |
+| Preserve collected funds when finalization fails; retry without collecting twice | Implemented with audited reconciliation |
+| Real VNPay Sandbox merchant transaction and reachable IPN | Pending environment configuration and provider acceptance test |
+
+Code and local integration checks are complete for this UC. Full provider
+acceptance remains pending the final row; it is not claimed as verified by local
+tests. Ticket refunds after successful payment belong to UC7.1.
 
 Simulation APIs remain available only when explicitly enabled for development.
 The regular checkout uses VNPay Sandbox or cash, not simulation.

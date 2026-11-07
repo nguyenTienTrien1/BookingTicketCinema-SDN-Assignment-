@@ -40,6 +40,8 @@ async function paymentMode(booking) {
         entry.method !== booking.paymentMethod || !amounts.every((value) => Number.isSafeInteger(value) && value >= 0) ||
         entry.gross - entry.discounts + entry.fees - entry.points !== entry.amount || entry.amount !== booking.total ||
         entry.confirmedAt > new Date() || entry.confirmedAt.getTime() > deadline) return null;
+    const attempt = await PaymentAttempt.findOne({ booking: booking._id, ref: entry.reference }).lean();
+    if (attempt && (attempt.status !== 'succeeded' || attempt.currency !== 'VND' || attempt.method !== entry.method || attempt.amount !== entry.amount)) return null;
     return 'verified';
   }
   // The transactional payment flow records trusted settlement in PaymentAttempt.

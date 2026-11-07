@@ -90,7 +90,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                     const foods = (booking.foodItems || []).map((item) =>
                         `${translateFoodName(item.name || item.food?.name || 'Món không còn trong danh mục')} × ${item.quantity ?? 'Chưa có số lượng'}`).join(', ');
                     const missingSnapshot = !saved.movieTitle || !saved.startTime || (booking.foodItems || []).some(item => !item.name);
-                    const canContinue = booking.status === 'pending' && status.className === 'pending' && showtime && new Date(showtime.startTime).getTime() > now;
+                    const canContinue = booking.status === 'pending' && status.className === 'pending' && !booking.cashReceived && showtime && new Date(showtime.startTime).getTime() > now;
                     return <article className="myTicketCard" key={booking._id}>
                         <div className="myTicketPoster" aria-hidden="true"><span>{movieTitle}</span></div>
                         <div className="myTicketContent">
@@ -100,6 +100,8 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                             </div>
                             {missingSnapshot && <p className="helperText">Đơn cũ chưa lưu đầy đủ thông tin gốc; các chi tiết còn thiếu được hiển thị theo dữ liệu hiện có.</p>}
                             {(booking.ticketMode === 'demo' || ['demo', 'mock'].includes(booking.paymentMethod)) && <p className="helperText">Đơn mô phỏng — không xác nhận vào rạp thật.</p>}
+                            {booking.paymentIssue && <p className="helperText">Khoản thu cần đối soát: {booking.paymentIssue}</p>}
+                            {booking.activePayment && booking.cashReceived > 0 && <p className="helperText">Đã ghi nhận tiền mặt, đang chờ hoàn tất. Không thanh toán lại.</p>}
                             <div className="myTicketDetails">
                                 <p><span>Ngày đặt</span><strong>{formatDate(booking.createdAt)}</strong></p>
                                 <p><span>Suất chiếu</span><strong>{formatDate(startTime)}</strong></p>
@@ -110,6 +112,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                                 {refundLabels[booking.status] && <p><span>Trạng thái hoàn tiền</span><strong>{refundLabels[booking.status]}</strong></p>}
                                 {booking.paymentStatus === 'paid' && <p><span>Phương thức thanh toán</span><strong>{methodLabels[booking.paymentMethod] || 'Chưa có thông tin'}</strong></p>}
                                 {booking.paymentRef && <p><span>Mã giao dịch</span><strong>{booking.paymentRef}</strong></p>}
+                                {booking.cashReceived != null && <><p><span>Tiền khách đưa</span><strong>{Number(booking.cashReceived).toLocaleString('vi-VN')}₫</strong></p><p><span>Tiền thừa đã trả</span><strong>{Number(booking.change || 0).toLocaleString('vi-VN')}₫</strong></p></>}
                                 <p><span>Tạm tính</span><strong>{Number(booking.subtotal || 0).toLocaleString('vi-VN')}₫</strong></p>
                                 <p><span>Giảm từ điểm ({booking.pointsUsed || 0} điểm)</span><strong>{Number(booking.discount || 0).toLocaleString('vi-VN')}₫</strong></p>
                                 {booking.promotion && <p><span>Khuyến mãi ({booking.promotion.code})</span><strong>−{Number(booking.promotionDiscount || 0).toLocaleString('vi-VN')}₫</strong></p>}

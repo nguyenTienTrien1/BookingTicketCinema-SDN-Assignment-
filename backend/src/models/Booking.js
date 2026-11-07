@@ -23,6 +23,7 @@ const bookingSchema = new mongoose.Schema({
  paymentStatus: { type: String, enum: ['unpaid','paid','failed'], default: 'unpaid' },
  paymentMethod: { type: String, enum: ['demo','cash','vnpay','points','mock','momo','credit-card'], default: 'cash' },
  paymentRef: String, activePayment: { type: String, default: null }, paymentProcessing: { type: Boolean, default: false }, expiresAt: Date,
+ cashReceived: Number, change: Number, paymentIssue: String,
  tickets: { type: [ticketSchema], default: [] }, paidAt: Date,
  ticketMode: { type: String, enum: ['verified','demo'] },
  ticketContext: { startTime: Date, cinema: String, room: String, movieTitle: String, classification: String, ageLimit: Number },

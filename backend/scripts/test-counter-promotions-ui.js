@@ -106,12 +106,6 @@ try {
   check((await Booking.findById(booking._id)).foodItems[0].quantity === 3, 'Failed edit preserves the accepted items');
   await page.getByRole('button', { name: 'Hủy chỉnh sửa', exact: true }).click();
   stage = 'settlement revalidation and mobile checkout';
-  await Promotion.updateOne({ _id: discount.id }, { $set: { endsAt: new Date(Date.now() - 1000) }, $inc: { __v: 1 } });
-  await received.fill('167500'); const failedPay = waitResponse('/pay', 'POST'); await page.locator('.paymentSubmit').click();
-  check((await failedPay).status() === 409, 'Expired code blocks final settlement');
-  check((await Food.findById(food.id)).stock === 20 && (await User.findById(member.id)).memberPoints === 1000, 'Rejected settlement preserves stock and points');
-  await Promotion.updateOne({ _id: discount.id }, { $set: { endsAt: new Date(Date.now() + 3600000) }, $inc: { __v: 1 } });
-  await apply(discount.code); await total(167500);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: path.join(artifacts, 'counter-promotion-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 375, height: 812 });
@@ -119,8 +113,20 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: path.join(artifacts, 'counter-promotion-mobile.png'), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await received.fill('167500'); const paidResponse = waitResponse('/pay', 'POST'); await page.locator('.paymentSubmit').click();
-  check((await paidResponse).status() === 200, 'Confirmed cash sale succeeds');
+  const originalEnd = (await Promotion.findById(discount.id)).endsAt;
+  await Promotion.updateOne({ _id: discount.id }, { $set: { endsAt: new Date(Date.now() - 1000) }, $inc: { __v: 1 } });
+  await received.fill('167500'); const failedPay = waitResponse('/pay', 'POST'); await page.locator('.paymentSubmit').click();
+  check((await failedPay).status() === 202, 'Expired code retains a cash receipt for reconciliation without finalizing');
+  check((await Food.findById(food.id)).stock === 20 && (await User.findById(member.id)).memberPoints === 1000, 'Unresolved settlement preserves stock and points');
+  const unresolved = await Booking.findById(booking._id);
+  check(!!unresolved.activePayment, 'Collected cash remains traceable');
+  await Promotion.updateOne({ _id: discount.id }, { $set: { endsAt: originalEnd }, $inc: { __v: 1 } });
+  const resolved = await page.evaluate(async reference => {
+    const response = await fetch('/api/payments/reconciliation/' + reference, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'retry', reason: 'Original promotion rules restored; finalize existing cash receipt' }) });
+    return { status: response.status, data: await response.json() };
+  }, unresolved.activePayment);
+  check(resolved.status === 200 && resolved.data.booking.status === 'paid', 'Staff finalizes the existing receipt without collecting again');
+  await page.getByRole('button', { name: 'Kiểm tra kết quả', exact: true }).click();
   await page.getByRole('heading', { name: 'Đã hoàn tất đơn', exact: true }).waitFor();
   check(await page.locator('.ticketGrid img').count() === 1, 'Paid counter sale displays its QR');
   check((await Promotion.findById(discount.id)).usedCount === 1 && (await Food.findById(food.id)).stock === 17, 'Settlement consumes promotion and food exactly once');

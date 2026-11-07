@@ -37,7 +37,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/bookings/:id/tickets" element={<ProtectedRoute allowedRoles={['member']}><BookingTickets /></ProtectedRoute>} />
       <Route path="/employee/check-in" element={<ProtectedRoute allowedRoles={['employee']}><TicketCheckIn /></ProtectedRoute>} />
-      <Route path="/payment-result" element={<ProtectedRoute allowedRoles={['member']}><PaymentResult /></ProtectedRoute>} />
+      <Route path="/payment-result" element={<ProtectedRoute allowedRoles={['member', 'employee', 'admin']}><PaymentResult /></ProtectedRoute>} />
       <Route path="/staff/tools" element={<ProtectedRoute allowedRoles={['admin','employee']}><CounterTools /></ProtectedRoute>} />
       <Route path="/activate-staff" element={<ActivateStaff />} />
       <Route path="/profile" element={<ProtectedRoute allowedRoles={['member', 'employee', 'admin']}><Navigate to="/account?section=profile" replace /></ProtectedRoute>} />

@@ -249,7 +249,7 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
     assert.match(original.code, /^[a-f0-9]{48}$/);
     assert.equal(original.reference, original.code);
     assert.equal(original.status, 'valid');
-    assert.equal(await RevenueEntry.countDocuments({ booking: fix.booking._id }), 0);
+    assert.equal(await RevenueEntry.countDocuments({ booking: fix.booking._id }), 1);
     const owned = await issue(fix);
     assert.equal(owned.mode, 'verified');
     assert.equal(owned.tickets[0].reference, original.code);

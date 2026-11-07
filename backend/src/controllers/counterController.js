@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Booking from '../models/Booking.js';
 import * as bookings from '../services/bookingService.js';
+import { payStaffBooking } from '../services/counterPaymentService.js';
 
 export async function searchMembers(req, res, next) {
   try {
@@ -59,11 +60,8 @@ export async function points(req, res, next) {
 
 export async function payment(req, res, next) {
   try {
-    const sale = await ownedSale(req);
-    if (!sale) return res.status(404).json({ message: 'Không tìm thấy đơn bán tại quầy của bạn.' });
-    if(req.body.method==='demo'&&req.body.result==='failed')return res.json(await bookings.simulationFailure(sale._id));
-    if (req.body.method === 'demo' && Number(req.body.receivedAmount) !== sale.total) return res.status(400).json({message:'Số tiền nhận chưa khớp tổng đơn.'});
-    res.json(await bookings.settle(sale._id, { kind: sale.total === 0 ? 'points' : req.body.method === 'demo' ? 'demo' : 'cash', actor: req.user._id, receivedAmount: req.body.receivedAmount }));
+    const result = await payStaffBooking(req.params.id, req.body, req.user._id, req.ip);
+    res.status(result.status === 'pending' && result.cashReceived > 0 ? 202 : 200).json(result);
   } catch (error) { next(error); }
 }
 

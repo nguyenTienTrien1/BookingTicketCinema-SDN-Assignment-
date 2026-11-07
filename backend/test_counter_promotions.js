@@ -138,23 +138,24 @@ test('UC9.2 counter food and promotion snapshots with atomic redemption', async 
     assert.equal(oldForm.status, 409, 'Redemption invalidates stale promotion-admin forms');
   });
 
-  await t.test('expiry, deletion, limits or edited rules at settlement leave points, stock, seats and booking unchanged', async () => {
+  await t.test('invalid promotion at cash finalization retains a receipt but leaves points, stock and tickets unchanged', async () => {
     for (const update of [{ active: false }, { deletedAt: new Date() }, { endsAt: new Date(Date.now() - 1000) }, { usedCount: 10 }, { value: 20 }]) {
       const fix = await fixture(), p = await promo(); await apply(fix, p.code); await points(fix, 100);
       const balance = (await User.findById(actors.member.id)).memberPoints;
       await Promotion.updateOne({ _id: p.id }, { $set: update });
-      const response = await pay(fix); assert.equal(response.status, 409, JSON.stringify(response));
+      const response = await pay(fix); assert.equal(response.status, 202, JSON.stringify(response));
       const stored = await Booking.findById(fix.booking._id); assert.equal(stored.status, 'pending'); assert.equal(stored.tickets.length, 0);
       assert.equal((await Food.findById(fix.food.id)).stock, 100); assert.equal((await User.findById(actors.member.id)).memberPoints, balance);
       assert.equal((await Showtime.findById(fix.show.id)).seats[0].status, 'held');
-      assert.equal(await PaymentAttempt.countDocuments({ booking: fix.booking._id }), 0);
+      assert.equal(await PaymentAttempt.countDocuments({ booking: fix.booking._id, status: 'unresolved', method: 'cash' }), 1);
+      assert.ok(stored.activePayment);
+      assert.equal(stored.cashReceived, stored.total);
     }
   });
 
   await t.test('edited promotion can be explicitly reapplied to accept the new total', async () => {
     const fix = await fixture(), p = await promo(); await apply(fix, p.code);
     await Promotion.updateOne({ _id: p.id }, { $set: { value: 20 }, $inc: { __v: 1 } });
-    assert.equal((await pay(fix)).status, 409);
     const requoted = await apply(fix, p.code); assert.equal(requoted.data.total, 240000);
     assert.equal((await pay(fix)).status, 200); assert.equal((await Promotion.findById(p.id)).usedCount, 1);
   });
@@ -162,7 +163,8 @@ test('UC9.2 counter food and promotion snapshots with atomic redemption', async 
   await t.test('two orders competing for the last promotion usage have exactly one winner', async () => {
     const first = await fixture(), second = await fixture(), p = await promo({ usageLimit: 1 });
     assert.equal((await apply(first, p.code)).status, 200); assert.equal((await apply(second, p.code)).status, 200);
-    const result = await Promise.all([pay(first), pay(second)]); assert.deepEqual(result.map(r => r.status).sort(), [200, 409]);
+    const result = await Promise.all([pay(first), pay(second)]); assert.deepEqual(result.map(r => r.status).sort(), [200, 202]);
+    assert.equal(await PaymentAttempt.countDocuments({ booking: { $in: [first.booking._id, second.booking._id] }, status: 'unresolved' }), 1);
     assert.equal((await Promotion.findById(p.id)).usedCount, 1);
     assert.equal(await Booking.countDocuments({ _id: { $in: [first.booking._id, second.booking._id] }, status: 'paid' }), 1);
   });

@@ -86,7 +86,7 @@ test('Counter sales and justified member point adjustments', async (t) => {
     assert.equal(await User.countDocuments(), userCount);
     assert.equal((await User.findById(member.id)).memberPoints, 100);
   });
-  await t.test('guest sale cannot redeem points and stays protected from Members and other employees', async () => {
+  await t.test('guest sale cannot redeem points; all staff may collect payment but Members cannot', async () => {
     const show = await showtime();
     const invalid = await request('/counter/bookings', employee, 'POST', { customerType: 'guest', showtimeId: show.id, seats: ['A1'], points: 1 });
     assert.equal(invalid.status, 400);
@@ -96,7 +96,7 @@ test('Counter sales and justified member point adjustments', async (t) => {
     const path = '/counter/bookings/' + created.data._id;
     assert.equal((await request(path + '/points', employee, 'PATCH', { points: 1 })).status, 400);
     const otherEmployee = await account('employee');
-    assert.equal((await request(path + '/pay', otherEmployee, 'POST', { method: 'demo' })).status, 404);
+    assert.equal((await request(path + '/pay', otherEmployee, 'POST', { method: 'demo' })).status, 200);
     assert.equal((await request(path + '/pay', member, 'POST', { method: 'demo' })).status, 403);
     assert.equal((await request('/bookings/' + created.data._id + '/pay', member, 'POST', { method: 'demo' })).status, 404);
     assert.equal((await request(path + '/pay', admin, 'POST', { method: 'demo' })).status, 200);
