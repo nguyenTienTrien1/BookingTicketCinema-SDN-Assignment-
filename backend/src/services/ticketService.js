@@ -110,31 +110,42 @@ async function synchronizeTicketMetadata(booking, mode) {
 
 export async function ownedTickets(bookingId, memberId) {
   if (!mongoose.isObjectIdOrHexString(bookingId)) throw ticketError('Mã đặt vé không hợp lệ.');
-  let booking = await Booking.findOne({ _id: bookingId, user: memberId });
+  const booking = await Booking.findOne({ _id: bookingId, user: memberId });
   if (!booking) throw ticketError('Không tìm thấy đơn đặt vé của bạn.', 404);
+  const result = { bookingId: booking._id, bookingStatus: booking.status, tickets: [] };
   const mode = await paymentMode(booking);
-  if (!mode) return { bookingId: booking._id, bookingStatus: booking.status, tickets: [], message: 'Đơn chưa có thanh toán hợp lệ hoặc đã bị hủy/hoàn tiền; không có QR khả dụng.' };
+  if (!mode) {
+    const messages = {
+      pending: 'Đơn chưa hoàn tất thanh toán; chưa có vé QR khả dụng.',
+      cancelled: 'Đơn đã hủy; vé không còn sử dụng được.',
+      'refund-requested': 'Đơn đang yêu cầu hoàn tiền; vé tạm thời không sử dụng được.',
+      refunded: 'Đơn đã hoàn tiền; vé không còn sử dụng được.'
+    };
+    if (booking.status === 'paid' && await RevenueEntry.exists({ booking: booking._id, kind: 'refund' })) result.bookingStatus = 'refunded';
+    return { ...result, message: messages[result.bookingStatus] || 'Chưa xác minh được thanh toán của đơn; không có QR khả dụng. Vui lòng liên hệ nhân viên.' };
+  }
   if (!booking.tickets.length) {
-    const issue = await prepareIssue(booking, mode);
-    // Legacy paid orders are issued once; parallel viewers reuse the same references.
-    booking = await Booking.findOneAndUpdate({ _id: booking._id, user: memberId, status: 'paid', paymentStatus: 'paid', showtime: booking.showtime, seats: booking.seats,
-      $or: [{ tickets: { $exists: false } }, { tickets: { $size: 0 } }] }, { $set: issue }, { new: true }) ||
-      await Booking.findOne({ _id: bookingId, user: memberId });
+    return { ...result, mode, message: 'Đơn đã ghi nhận thanh toán nhưng chưa có vé được phát hành. Vui lòng liên hệ nhân viên.' };
   }
-  booking = await synchronizeTicketMetadata(booking, mode);
-  if (!booking || booking.status !== 'paid' || booking.paymentStatus !== 'paid' || booking.ticketMode !== mode ||
-      booking.tickets.length !== booking.seats.length || !booking.ticketContext?.startTime) {
-    throw ticketError('Dữ liệu vé đã thay đổi hoặc chưa đồng bộ. Vui lòng tải lại.', 409);
+  const references = booking.tickets.map(ticket => ticket.reference || ticket.code);
+  const seats = booking.tickets.map(ticket => ticket.seat);
+  if ((booking.ticketMode && booking.ticketMode !== mode) || booking.tickets.length !== booking.seats.length ||
+      references.some(reference => !reference) || new Set(references).size !== references.length ||
+      new Set(seats).size !== seats.length || seats.some(seat => !booking.seats.includes(seat))) {
+    throw ticketError('Dữ liệu vé chưa đồng bộ. Vui lòng liên hệ nhân viên.', 409);
   }
-  const window = admissionWindow(booking.ticketContext);
+  // Older issued tickets may lack metadata. Derive the response without writing.
+  const context = booking.ticketContext?.startTime ? booking.ticketContext : await issueContext(booking);
+  const window = admissionWindow(context);
   const tickets = [];
   for (const ticket of booking.tickets) {
+    const reference = ticket.reference || ticket.code;
     const currentStatus = ticketStatus(ticket);
     const status = currentStatus === 'issued' && new Date() > window.closesAt ? 'expired' : currentStatus;
-    tickets.push({ reference: ticket.reference, seat: ticket.seat, status, checkedInAt: ticket.checkedInAt,
-      qrDataUrl: status === 'issued' ? ticket.qr || await QRCode.toDataURL(ticket.reference, { width: 264, margin: 4, errorCorrectionLevel: 'M' }) : null });
+    tickets.push({ reference, seat: ticket.seat, status, checkedInAt: ticket.checkedInAt,
+      qrDataUrl: status === 'issued' ? ticket.qr || await QRCode.toDataURL(reference, { width: 264, margin: 4, errorCorrectionLevel: 'M' }) : null });
   }
-  return { bookingId: booking._id, bookingStatus: booking.status, mode, showtime: booking.ticketContext, window, tickets };
+  return { ...result, mode, showtime: context, window, tickets };
 }
 
 function referenceValue(value) {

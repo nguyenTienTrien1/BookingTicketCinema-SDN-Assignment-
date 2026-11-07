@@ -46,7 +46,10 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
         holdUntil: paid ? null : new Date(Date.now() + 600000) })) });
     const booking = await Booking.create({ _id: bookingId, user: member._id, showtime: showtime._id, seats: ['A1', 'A2'], subtotal: 160000, total: 160000,
       status: paid ? 'paid' : 'pending', paymentStatus: paid ? 'paid' : 'unpaid', paymentMethod: proof ? 'vnpay' : 'mock',
-      paymentRef: proof ? 'PROVIDER-' + randomUUID() : 'PAY-' + Date.now(), expiresAt: new Date(Date.now() + 600000) });
+      paymentRef: proof ? 'PROVIDER-' + randomUUID() : 'PAY-' + Date.now(), expiresAt: new Date(Date.now() + 600000),
+      ...(paid ? { ticketMode: proof ? 'verified' : 'demo',
+        ticketContext: { startTime: showtime.startTime, movieTitle: movie.title, cinema: showtime.cinema, room: showtime.room, classification, ageLimit },
+        tickets: ['A1', 'A2'].map(seat => ({ seat, reference: 'CT-' + randomUUID().replaceAll('-', '').toUpperCase(), status: 'issued', issuedAt: new Date() })) } : {}) });
     if (proof && paid) await RevenueEntry.create({ booking: booking._id, kind: 'payment', reference: booking.paymentRef, method: 'vnpay',
       evidence: 'provider-confirmation', confirmedAt: new Date(), gross: 160000, amount: 160000 });
     return { booking, showtime, movie };
@@ -74,7 +77,8 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
   });
 
   let mainTickets;
-  await t.test('parallel QR views issue one persistent unguessable reference per seat', async () => {
+  await t.test('parallel QR views return existing references without writing the booking', async () => {
+    const before = await Booking.findById(main.booking._id).lean();
     const responses = await Promise.all([request(ownedPath(main.booking)), request(ownedPath(main.booking))]);
     assert.ok(responses.every((result) => result.status === 200));
     mainTickets = responses[0].data;
@@ -90,7 +94,48 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
       assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
     }
     assert.equal((await Booking.findById(main.booking._id)).tickets.length, 2);
+    assert.deepEqual(await Booking.findById(main.booking._id).lean(), before);
     assert.equal(JSON.stringify(mainTickets).includes(member.email), false);
+  });
+
+  await t.test('viewing a paid booking without issued tickets never creates them or changes sale data', async () => {
+    const fix = await fixture();
+    await Booking.updateOne({ _id: fix.booking._id }, { $set: { tickets: [] }, $unset: { ticketContext: '', ticketMode: '' } });
+    const before = await Booking.findById(fix.booking._id).lean();
+    const seats = await Showtime.findById(fix.showtime._id).lean();
+    const responses = await Promise.all([request(ownedPath(fix.booking)), request(ownedPath(fix.booking))]);
+    for (const response of responses) {
+      assert.equal(response.status, 200);
+      assert.equal(response.data.bookingStatus, 'paid');
+      assert.deepEqual(response.data.tickets, []);
+      assert.ok(response.data.message);
+    }
+    assert.deepEqual(await Booking.findById(fix.booking._id).lean(), before);
+    assert.deepEqual(await Showtime.findById(fix.showtime._id).lean(), seats);
+    assert.equal(await PaymentAttempt.countDocuments({ booking: fix.booking._id }), 0);
+    assert.equal(await RevenueEntry.countDocuments({ booking: fix.booking._id }), 1);
+  });
+
+  await t.test('pending and completed refunds show their current status without usable tickets or writes', async () => {
+    for (const status of ['refund-requested', 'refunded']) {
+      const fix = await fixture();
+      // UC7.1 will produce these states; simulate its persisted result here.
+      await Booking.collection.updateOne({ _id: fix.booking._id }, { $set: { status } });
+      const before = await Booking.findById(fix.booking._id).lean();
+      const data = await issue(fix);
+      assert.equal(data.bookingStatus, status);
+      assert.deepEqual(data.tickets, []);
+      assert.ok(data.message);
+      assert.deepEqual(await Booking.findById(fix.booking._id).lean(), before);
+    }
+  });
+
+  await t.test('inconsistent issued references or seats do not expose usable QR', async () => {
+    for (const change of [{ 'tickets.1.reference': null }, { 'tickets.1.seat': 'A1' }]) {
+      const fix = await fixture();
+      await Booking.updateOne({ _id: fix.booking._id }, { $set: change });
+      assert.equal((await request(ownedPath(fix.booking))).status, 409);
+    }
   });
 
   await t.test('unpaid, cancelled, unverified and refunded orders never expose usable QR', async () => {
@@ -269,17 +314,21 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
     assert.equal(await PaymentAttempt.countDocuments({ booking: fix.booking._id, status: 'succeeded' }), 1);
   });
 
-  await t.test('existing code-only tickets gain metadata without replacing codes, QR or used status', async () => {
+  await t.test('viewing existing code-only tickets derives metadata without writing; check-in stays compatible', async () => {
     const fix = await fixture({ paid: false, proof: false });
     const paid = await request(`/payments/bookings/${fix.booking._id}/cash`, employee, 'POST', { method: 'cash', receivedAmount: fix.booking.total });
     assert.equal(paid.status, 200);
     const codes = paid.data.tickets.map(ticket => ticket.code);
     await Booking.collection.updateOne({ _id: fix.booking._id }, { $unset: { ticketContext: '', ticketMode: '', 'tickets.0.reference': '', 'tickets.1.reference': '', 'tickets.0.issuedAt': '', 'tickets.1.issuedAt': '' }, $set: { 'tickets.1.status': 'checked-in' } });
-    const results = await Promise.all([request(ownedPath(fix.booking)), request(lookupPath(codes[0], fix.showtime), employee)]);
-    assert.deepEqual(results.map(result => result.status), [200, 200]);
-    assert.equal(results[1].data.eligible, true);
-    assert.deepEqual(results[0].data.tickets.map(ticket => ticket.reference), codes);
-    assert.equal(results[0].data.tickets[1].qrDataUrl, null);
+    const before = await Booking.findById(fix.booking._id).lean();
+    const viewed = await request(ownedPath(fix.booking));
+    assert.equal(viewed.status, 200);
+    assert.deepEqual(viewed.data.tickets.map(ticket => ticket.reference), codes);
+    assert.equal(viewed.data.tickets[1].qrDataUrl, null);
+    assert.deepEqual(await Booking.findById(fix.booking._id).lean(), before);
+    const lookup = await request(lookupPath(codes[0], fix.showtime), employee);
+    assert.equal(lookup.status, 200);
+    assert.equal(lookup.data.eligible, true);
     const stored = await Booking.findById(fix.booking._id);
     assert.deepEqual(stored.tickets.map(ticket => ticket.code), codes);
     assert.equal(stored.tickets[1].status, 'checked-in');
