@@ -18,20 +18,29 @@ export default function TicketCheckIn() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [retry, setRetry] = useState(0);
+    const [needsLookup, setNeedsLookup] = useState(false);
+    const [now, setNow] = useState(Date.now());
     const request = useRef(null);
 
     useEffect(() => {
         const controller = new AbortController();
-        setLoading(true); setError(''); setPreview(null); setSuccess(''); setShowtimeId('');
+        request.current?.abort();
+        setLoading(true); setError(''); setPreview(null); setSuccess(''); setShowtimeId(''); setNeedsLookup(false);
         getCheckInShowtimes(controller.signal).then((data) => { if (!controller.signal.aborted) setShowtimes(data.showtimes); })
             .catch((err) => { if (!controller.signal.aborted) setError(err.message); })
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
     }, [retry]);
     useEffect(() => () => request.current?.abort(), []);
+    useEffect(() => {
+        if (!preview?.eligible) return;
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, [preview]);
+    const inWindow = preview && now >= new Date(preview.window.opensAt).getTime() && now <= new Date(preview.window.closesAt).getTime();
 
     function clearPreview() {
-        request.current?.abort(); setLookingUp(false); setPreview(null); setSuccess(''); setError(''); setAgeVerified(false);
+        request.current?.abort(); setLookingUp(false); setPreview(null); setSuccess(''); setError(''); setAgeVerified(false); setNeedsLookup(false);
     }
     async function lookup(value = reference) {
         clearPreview();
@@ -39,18 +48,29 @@ export default function TicketCheckIn() {
         if (!value.trim()) { setError('Vui lòng nhập hoặc quét mã vé.'); return; }
         const controller = new AbortController(); request.current = controller;
         setLookingUp(true);
-        try { const data = await lookupTicket(value.trim(), showtimeId, controller.signal); if (!controller.signal.aborted) setPreview(data); }
+        try { const data = await lookupTicket(value.trim(), showtimeId, controller.signal); if (!controller.signal.aborted) { setPreview(data); setNow(Date.now()); } }
         catch (err) { if (!controller.signal.aborted) setError(err.message); }
         finally { if (!controller.signal.aborted) setLookingUp(false); }
     }
     async function confirm() {
-        if (!preview?.eligible || saving) return;
+        if (!preview?.eligible || !inWindow || needsLookup || saving || (preview.requiresAgeCheck && !ageVerified)) return;
+        const controller = new AbortController(); request.current = controller;
         setSaving(true); setError(''); setSuccess('');
         try {
             const result = await checkInTicket(preview.reference, { showtimeId, ageVerified });
+            if (controller.signal.aborted) return;
             setPreview(result); setSuccess(result.message);
-        } catch (err) { setError(err.message); setPreview(null); }
-        finally { setSaving(false); }
+        } catch (err) {
+            if (controller.signal.aborted) return;
+            setError(err.message); setPreview(null); setAgeVerified(false);
+            if (!err.status || err.status >= 500) {
+                setNeedsLookup(true);
+                try {
+                    const current = await lookupTicket(preview.reference, showtimeId, controller.signal);
+                    if (!controller.signal.aborted) setPreview(current);
+                } catch { /* Keep the uncertain result visible until a new lookup succeeds. */ }
+            }
+        } finally { if (!controller.signal.aborted) setSaving(false); }
     }
     return <main className="movieAdmin ticketPage"><div className="movieAdminShell">
         <Link className="movieBack" to="/employee/dashboard">← Bảng điều khiển nhân viên</Link>
@@ -58,6 +78,10 @@ export default function TicketCheckIn() {
             <p>Chọn đúng suất chiếu, tra cứu vé rồi xác nhận vào rạp sau khi trạng thái đã được lưu.</p></div></header>
         {loading && <p role="status">Đang tải suất chiếu…</p>}
         {error && <p className="movieError" role="alert">{error}</p>}
+        {needsLookup && <div className="ticketNoticeBanner" role="status">
+            <p>Kết quả lưu chưa rõ. Trạng thái tra cứu lại không phải xác nhận thành công của thao tác vừa rồi. Chưa cho khách vào rạp; kiểm tra trạng thái trước khi xử lý tiếp.</p>
+            <button type="button" className="movieSecondary" disabled={saving || lookingUp} onClick={() => lookup()}>Tra cứu lại trạng thái</button>
+        </div>}
         {!loading && <section className="moviePanel checkInPanel">
             <form onSubmit={(event) => { event.preventDefault(); lookup(); }}>
                 <fieldset className="checkInFields" disabled={saving || loading}>
@@ -88,10 +112,11 @@ export default function TicketCheckIn() {
             </dl>
             {preview.checkedInAt && <p className="checkInHint">Thời điểm check-in: {ticketDate(preview.checkedInAt)}</p>}
             {!preview.eligible && preview.reason && <p className="movieError" role="alert">{preview.reason}</p>}
-            {preview.eligible && <>
+            {preview.eligible && !inWindow && <p className="movieError" role="alert">Đã ngoài giờ nhận khách. Tra cứu lại vé trước khi xử lý tiếp.</p>}
+            {preview.eligible && !needsLookup && <>
                 {preview.requiresAgeCheck && <label className="checkInAge"><input type="checkbox" checked={ageVerified} disabled={saving} onChange={(event) => setAgeVerified(event.target.checked)} />
                     Đã kiểm tra độ tuổi và điều kiện người giám hộ phù hợp phân loại phim (K/T13/T16/T18).</label>}
-                <button type="button" className="moviePrimary" disabled={saving || (preview.requiresAgeCheck && !ageVerified)} onClick={confirm}>
+                <button type="button" className="moviePrimary" disabled={saving || !inWindow || (preview.requiresAgeCheck && !ageVerified)} onClick={confirm}>
                     {saving ? 'Đang lưu check-in…' : preview.mode === 'demo' ? 'Lưu check-in mô phỏng' : 'Xác nhận check-in'}
                 </button>
             </>}

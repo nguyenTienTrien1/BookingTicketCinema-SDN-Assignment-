@@ -370,6 +370,7 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
     const lookup = await request(lookupPath(codes[0], fix.showtime), employee);
     assert.equal(lookup.status, 200);
     assert.equal(lookup.data.eligible, true);
+    assert.deepEqual(await Booking.findById(fix.booking._id).lean(), before);
     const checkIn = await request(checkPath(codes[0]), employee, 'POST', { showtimeId: fix.showtime._id });
     assert.equal(checkIn.status, 200);
     assert.equal(checkIn.data.admissionGranted, true);

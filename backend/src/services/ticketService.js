@@ -91,23 +91,6 @@ export async function prepareDemoTickets(booking) {
 
 function ticketStatus(ticket) { return ticket.status === 'valid' ? 'issued' : ticket.status; }
 
-async function synchronizeTicketMetadata(booking, mode) {
-  if (!booking || !booking.tickets.length || !mode) return booking;
-  const fields = {};
-  if (!booking.ticketContext?.startTime || !booking.ticketMode) {
-    if (!booking.ticketContext?.startTime) fields.ticketContext = await issueContext(booking);
-    if (!booking.ticketMode) fields.ticketMode = mode;
-  }
-  booking.tickets.forEach((ticket, index) => {
-    if (!ticket.reference && ticket.code) fields[`tickets.${index}.reference`] = ticket.code;
-    if (!ticket.issuedAt) fields[`tickets.${index}.issuedAt`] = booking.paidAt || booking.createdAt;
-  });
-  if (!Object.keys(fields).length) return booking;
-  // Add metadata only; never replace codes, QR images or a concurrent check-in status.
-  await Booking.updateOne({ _id: booking._id, status: 'paid', paymentStatus: 'paid', updatedAt: booking.updatedAt }, { $set: fields });
-  return Booking.findById(booking._id);
-}
-
 export async function ownedTickets(bookingId, memberId) {
   if (!mongoose.isObjectIdOrHexString(bookingId)) throw ticketError('Mã đặt vé không hợp lệ.');
   const booking = await Booking.findOne({ _id: bookingId, user: memberId });
@@ -169,33 +152,30 @@ export async function checkInShowtimes() {
 
 async function inspectTicket(reference, showtimeId) {
   if (!mongoose.isObjectIdOrHexString(showtimeId)) throw ticketError('Vui lòng chọn suất chiếu đang soát vé.');
-  let booking = await Booking.findOne({ $or: [{ 'tickets.reference': reference }, { 'tickets.code': reference }] });
+  const booking = await Booking.findOne({ $or: [{ 'tickets.reference': reference }, { 'tickets.code': reference }] });
   if (!booking) throw ticketError('Không tìm thấy vé.', 404);
   const mode = await paymentMode(booking);
-  booking = await synchronizeTicketMetadata(booking, mode);
-  if (!booking) throw ticketError('Không tìm thấy vé.', 404);
   const matches = booking.tickets.filter(item => (item.reference || item.code) === reference);
   if (matches.length !== 1 || !booking.seats.includes(matches[0].seat)) throw ticketError('Dữ liệu vé chưa đồng bộ. Vui lòng liên hệ quản lý.', 409);
   const ticket = matches[0];
-  const context = booking.ticketContext;
-  if (!context?.startTime) throw ticketError('Vé chưa có thông tin suất chiếu hợp lệ.', 409);
+  const context = booking.ticketContext?.startTime ? booking.ticketContext : await issueContext(booking);
   const window = admissionWindow(context), now = new Date();
   const requiresAgeCheck = ['K', 'T13', 'T16', 'T18'].includes(context.classification) || Number(context.ageLimit) > 0;
   let reason = '';
-  if (!mode || mode !== booking.ticketMode) reason = 'Đơn chưa thanh toán hợp lệ, đã hủy hoặc đang/đã hoàn tiền.';
+  if (!mode || (booking.ticketMode && mode !== booking.ticketMode)) reason = 'Đơn chưa thanh toán hợp lệ, đã hủy hoặc đang/đã hoàn tiền.';
   else if (String(booking.showtime) !== String(showtimeId)) reason = 'Vé không thuộc suất chiếu đang soát.';
   else if (ticketStatus(ticket) !== 'issued') reason = ticket.status === 'checked-in' ? 'Vé đã được check-in; không được sử dụng lại.' : 'Vé không còn sử dụng được.';
   else if (now < window.opensAt) reason = 'Chưa đến giờ nhận khách cho suất chiếu này.';
   else if (now > window.closesAt) reason = 'Đã hết giờ nhận khách cho suất chiếu này.';
   else {
     const showtime = await Showtime.findById(booking.showtime);
-    if (!showtime || showtime.startTime.getTime() !== context.startTime.getTime() ||
+    if (!showtime || showtime.startTime.getTime() !== context.startTime.getTime() || showtime.cinema !== context.cinema || showtime.room !== context.room ||
         !showtime.seats.some((seat) => seat.number === ticket.seat && seat.status === 'booked' && String(seat.bookingId) === String(booking._id))) {
       reason = 'Suất chiếu hoặc quyền sở hữu ghế đã thay đổi; cần kiểm tra lại.';
     }
   }
   return { booking, ticket, data: { reference, seat: ticket.seat, status: ticketStatus(ticket), checkedInAt: ticket.checkedInAt,
-    mode: booking.ticketMode, showtime: context, window, requiresAgeCheck, eligible: !reason, reason } };
+    mode: mode || booking.ticketMode, showtime: context, window, requiresAgeCheck, eligible: !reason, reason } };
 }
 
 export async function lookupTicket(reference, showtimeId) {

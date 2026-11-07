@@ -5,9 +5,13 @@ export default function QrScanner({ onDecoded, disabled }) {
     const [reading, setReading] = useState(false);
     const [error, setError] = useState('');
     const video = useRef(null);
-    const alive = useRef(true);
-    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-    useEffect(() => { if (disabled) setActive(false); }, [disabled]);
+    const imageRequest = useRef(0);
+    const callback = useRef(onDecoded);
+    callback.current = onDecoded;
+    useEffect(() => () => { imageRequest.current++; }, []);
+    useEffect(() => {
+        if (disabled) { imageRequest.current++; setActive(false); setReading(false); }
+    }, [disabled]);
     useEffect(() => {
         if (!active || disabled) return;
         let cancelled = false, controls;
@@ -17,7 +21,8 @@ export default function QrScanner({ onDecoded, disabled }) {
                 if (cancelled) return;
                 controls = await new BrowserQRCodeReader().decodeFromVideoDevice(undefined, video.current, (result, _error, scanner) => {
                     if (!result || cancelled) return;
-                    scanner.stop(); setActive(false); onDecoded(result.getText());
+                    cancelled = true;
+                    scanner.stop(); setActive(false); callback.current(result.getText());
                 });
                 if (cancelled) controls.stop();
             } catch {
@@ -32,6 +37,7 @@ export default function QrScanner({ onDecoded, disabled }) {
         const file = event.target.files[0];
         event.target.value = '';
         if (!file) return;
+        const request = ++imageRequest.current;
         setError(''); setActive(false);
         if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) {
             setError('Chọn ảnh PNG/JPEG/WebP không quá 8 MB.'); return;
@@ -40,10 +46,15 @@ export default function QrScanner({ onDecoded, disabled }) {
         setReading(true);
         try {
             const { BrowserQRCodeReader } = await import('@zxing/browser');
-            const result = await new BrowserQRCodeReader().decodeFromImageUrl(url);
-            if (alive.current) onDecoded(result.getText());
-        } catch { if (alive.current) setError('Không đọc được QR trong ảnh. Hãy chọn ảnh rõ hơn hoặc nhập mã vé.'); }
-        finally { URL.revokeObjectURL(url); if (alive.current) setReading(false); }
+            if (request !== imageRequest.current) return;
+            const image = new Image();
+            image.src = url;
+            await image.decode();
+            if (request !== imageRequest.current) return;
+            const result = await new BrowserQRCodeReader().decodeFromImageElement(image);
+            if (request === imageRequest.current) callback.current(result.getText());
+        } catch { if (request === imageRequest.current) setError('Không đọc được QR trong ảnh. Hãy chọn ảnh rõ hơn hoặc nhập mã vé.'); }
+        finally { URL.revokeObjectURL(url); if (request === imageRequest.current) setReading(false); }
     }
 
     return <section className="qrScanner" aria-label="Đọc mã QR">
