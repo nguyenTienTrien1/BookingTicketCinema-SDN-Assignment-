@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getCheckInShowtimes, lookupTicket, checkInTicket } from '../../services/ticketService';
 import QrScanner from '../../components/QrScanner';
 import { ticketDate } from '../Account/BookingTickets';
@@ -7,6 +7,7 @@ import '../Admin/movies.css';
 import '../Account/tickets.css';
 
 export default function TicketCheckIn() {
+    const navigate = useNavigate();
     const [showtimes, setShowtimes] = useState([]);
     const [showtimeId, setShowtimeId] = useState('');
     const [reference, setReference] = useState('');
@@ -73,7 +74,7 @@ export default function TicketCheckIn() {
         } finally { if (!controller.signal.aborted) setSaving(false); }
     }
     return <main className="movieAdmin ticketPage"><div className="movieAdminShell">
-        <Link className="movieBack" to="/employee/dashboard">← Bảng điều khiển nhân viên</Link>
+        <button type="button" className="ghost staffBackButton" disabled={saving} onClick={() => navigate('/account?section=profile')}>← Về hồ sơ & tác vụ</button>
         <header className="movieAdminHeading"><div><p className="movieEyebrow">SOÁT VÉ CINEMA+</p><h1>Check-in vé</h1>
             <p>Chọn đúng suất chiếu, tra cứu vé rồi xác nhận vào rạp sau khi trạng thái đã được lưu.</p></div></header>
         {loading && <p role="status">Đang tải suất chiếu…</p>}

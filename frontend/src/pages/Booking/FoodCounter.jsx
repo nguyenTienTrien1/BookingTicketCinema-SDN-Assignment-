@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getCounterFoods, createFoodSale, getFoodSale, cancelFoodSale, payFoodSale } from '../../services/foodSaleService';
 import '../Admin/movies.css';
@@ -8,6 +8,7 @@ import './foodCounter.css';
 const money = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
 export default function FoodCounter() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const storageKey = `cinema-food-sale-${user._id}`;
   const [catalogue, setCatalogue] = useState({ foods: [], paymentsEnabled: false });
@@ -103,7 +104,7 @@ export default function FoodCounter() {
   const cashAmount = Number(cash);
 
   return <main className="movieAdmin"><div className="movieAdminShell">
-    <Link className="movieBack" to="/employee/dashboard">← Trang nhân viên</Link>
+    <button type="button" className="ghost staffBackButton" disabled={busy} onClick={() => navigate('/account?section=profile')}>← Về hồ sơ & tác vụ</button>
     <header className="movieAdminHeading"><div><p className="movieEyebrow">CINEMA+ / QUẦY F&B</p>
       <h1>Bán đồ ăn & thức uống</h1><p>Chọn sản phẩm, xác nhận đơn và thanh toán tiền mặt tại quầy.</p></div></header>
     {error && <div role="alert" className="movieError">{error}</div>}
