@@ -129,6 +129,12 @@ export default function CinemaMain() {
     dataError,
     onRetryData: () => setDataRetry((value) => value + 1),
     showtimes,
+    onRefreshShowtimes: async () => {
+      const latest = await getShowtimes();
+      if (!Array.isArray(latest)) throw new Error('Không thể đọc danh sách suất chiếu.');
+      setShowtimes(latest);
+      return latest;
+    },
     foods,
     pointsPolicy,
     user,

@@ -88,7 +88,25 @@ function getPoster(movie) {
     return source || '';
 }
 
-export default function BookingCounter({ user, selected, showtimes, foods, movies, pointsPolicy, setTab, setMsg, setPending }) {
+function isAvailableSeat(seat) {
+    return seat.status === 'available' && (!seat.condition || seat.condition === 'Active');
+}
+
+function classificationLabel(movie) {
+    if (movie?.classification) return movie.classification;
+    if (Number(movie?.ageLimit) > 0) return `${movie.ageLimit}+`;
+    return 'Chưa có phân loại';
+}
+
+function isSaleableShowtime(showtime, movie, now) {
+    const publishedMovie = typeof showtime.movie === 'object' ? showtime.movie : null;
+    return movie && !movie.deletedAt && movie.classification !== 'C' &&
+        !publishedMovie?.deletedAt && publishedMovie?.classification !== 'C' &&
+        new Date(showtime.startTime).getTime() > now &&
+        Number.isSafeInteger(showtime.price) && showtime.price > 0;
+}
+
+export default function BookingCounter({ user, selected, showtimes, foods, movies, pointsPolicy, setTab, setMsg, setPending, onRefreshShowtimes }) {
     const normalizedRole = String(user?.role || '').toLowerCase();
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
@@ -99,6 +117,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     const [showtimeId, setShowtimeId] = useState(selected?._id || '');
     const [pointsToUse, setPointsToUse] = useState(0);
     const [bookingBusy, setBookingBusy] = useState(false);
+    const [clock, setClock] = useState(Date.now());
+    const [availabilityError, setAvailabilityError] = useState('');
     const [memberSearch, setMemberSearch] = useState('');
     const [selectedMember, setSelectedMember] = useState(null);
     const [customerType, setCustomerType] = useState('guest');
@@ -109,33 +129,45 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     });
 
     const pointsBalance = Number(selectedMember?.memberPoints || 0);
-    const cinemaOptions = useMemo(() => [...new Set(showtimes.map((s) => s.cinema).filter(Boolean))], [showtimes]);
+    useEffect(() => {
+        const timer = window.setInterval(() => setClock(Date.now()), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const saleableShowtimes = useMemo(() => showtimes.filter(showtime => {
+        const movieId = String(showtime.movie?._id || showtime.movie);
+        const movie = movies.find(item => String(item._id) === movieId);
+        return isSaleableShowtime(showtime, movie, clock);
+    }).sort((left, right) => new Date(left.startTime) - new Date(right.startTime)), [showtimes, movies, clock]);
+    const cinemaOptions = useMemo(() => [...new Set(saleableShowtimes.map(s => s.cinema).filter(Boolean))], [saleableShowtimes]);
 
     const moviesForCinema = useMemo(() => {
         if (!cinema) return [];
         const ids = new Set(
-            showtimes
+            saleableShowtimes
                 .filter((s) => s.cinema === cinema)
                 .map((s) => String(s.movie?._id || s.movie))
                 .filter(Boolean)
         );
 
         return movies.filter((movie) => ids.has(String(movie._id)));
-    }, [cinema, movies, showtimes]);
-
-    const currentMovie = useMemo(() => {
-        if (!movieId) return null;
-        return movies.find((movie) => String(movie._id) === String(movieId)) || null;
-    }, [movieId, movies]);
+    }, [cinema, movies, saleableShowtimes]);
 
     const currentShowtime = useMemo(() => {
         if (!showtimeId) return null;
-        return showtimes.find((s) => s._id === showtimeId) || null;
+        return showtimes.find((s) => String(s._id) === String(showtimeId)) || null;
     }, [showtimeId, showtimes]);
 
+    const currentMovie = useMemo(() => {
+        const movie = movies.find(item => String(item._id) === String(movieId));
+        if (!movie) return null;
+        const latestMovie = currentShowtime?.movie;
+        return latestMovie && typeof latestMovie === 'object' && String(latestMovie._id) === String(movieId)
+            ? { ...movie, ...latestMovie } : movie;
+    }, [movieId, movies, currentShowtime]);
+
     useEffect(() => {
-        if (!currentShowtime) return;
-        setSeat(current => current.filter(number => currentShowtime.seats.some(item => item.number === number && item.status === 'available' && (!item.condition || item.condition === 'Active'))));
+        setSeat(current => current.filter(number => currentShowtime?.seats?.some(item => item.number === number && isAvailableSeat(item))));
     }, [currentShowtime]);
 
     const subtotal = (currentShowtime?.price || 0) * seat.length + food.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
@@ -158,103 +190,95 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
-        return showtimes.filter((s) => {
+        return saleableShowtimes.filter((s) => {
             const movieIdValue = s.movie?._id || s.movie;
             return s.cinema === cinema && String(movieIdValue) === String(movie._id);
         });
     }
 
-    function isSeatInvalid(seatNumber) {
-        const allSeats = currentShowtime?.seats || [];
-        const usableSeats = allSeats
-            .filter((s) => s.status === 'available' && (!s.condition || s.condition === 'Active'))
-            .map((s) => s.number)
-            .sort((a, b) => a - b);
-
-        const selectedSeats = [...seat, seatNumber].sort((a, b) => a - b);
-        const remainingSeats = usableSeats.filter((number) => !selectedSeats.includes(number));
-
-        for (const number of remainingSeats) {
-            const index = usableSeats.indexOf(number);
-            const left = usableSeats[index - 1];
-            const right = usableSeats[index + 1];
-
-            if (index === 0 || index === usableSeats.length - 1) {
-                const hasOtherSeat = index === 0 ? selectedSeats.includes(right) : selectedSeats.includes(left);
-                if (hasOtherSeat) return true;
-            }
-
-            if (left !== undefined && right !== undefined && selectedSeats.includes(left) && selectedSeats.includes(right)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     function handleSeatClick(s) {
+        if (bookingBusy || availabilityError || !currentShowtime || !isSaleableShowtime(currentShowtime, currentMovie, Date.now())) return;
         if (s.status !== 'available' || (s.condition && s.condition !== 'Active')) return;
-
-        if (seat.includes(s.number)) {
-            setSeat((prev) => prev.filter((x) => x !== s.number));
-            return;
-        }
-
-        if (isSeatInvalid(s.number)) {
-            setMsg('Không thể chừa một ghế ở giữa hoặc ở đầu hàng.');
-            return;
-        }
-
-        setSeat((prev) => [...prev, s.number]);
+        setSeat(current => current.includes(s.number)
+            ? current.filter(number => number !== s.number)
+            : [...current, s.number]);
     }
 
-    function goNext() {
-        if (step === 0 && !cinema) {
+    function validateBefore(targetStep) {
+        if (targetStep > 0 && !cinema) {
             setMsg('Vui lòng chọn rạp chiếu.');
-            return;
+            setStep(0);
+            return false;
         }
-        if (step === 1 && !showtimeId) {
-            setMsg('Vui lòng chọn suất chiếu.');
-            return;
+        if (targetStep > 1 && (!currentShowtime || !currentMovie ||
+            currentShowtime.cinema !== cinema || String(currentShowtime.movie?._id || currentShowtime.movie) !== String(movieId) ||
+            !isSaleableShowtime(currentShowtime, currentMovie, Date.now()))) {
+            setMsg('Vui lòng chọn phim và suất chiếu còn mở bán.');
+            setStep(1);
+            return false;
         }
-        if (step === 2 && !seat.length) {
-            setMsg('Vui lòng chọn ít nhất một ghế.');
-            return;
+        if (targetStep > 2 && (availabilityError || !seat.length ||
+            !seat.every(number => currentShowtime.seats?.some(item => item.number === number && isAvailableSeat(item))))) {
+            setMsg(availabilityError || 'Vui lòng chọn ít nhất một ghế còn khả dụng.');
+            setStep(2);
+            return false;
         }
-        if (step === 3) {
+        if (targetStep > 3) {
             if (customerType === 'member' && !selectedMember) {
-                setMsg('Vui lòng nhập tên và số điện thoại khách hàng.');
-                return;
+                setMsg('Vui lòng tìm và chọn thành viên đang hoạt động.');
+                setStep(3);
+                return false;
             }
             if (!Number.isSafeInteger(Number(pointsToUse)) || Number(pointsToUse) < 0 || Number(pointsToUse) % pointStep !== 0 || Number(pointsToUse) > maxPoints) {
                 setMsg('Số điểm thưởng không được vượt quá điểm hiện có của khách hàng.');
-                return;
+                setStep(3);
+                return false;
             }
         }
-
-        setStep((prev) => Math.min(prev + 1, flowSteps.length - 1));
+        return true;
     }
 
-    function goBack() {
-        setStep((prev) => Math.max(prev - 1, 0));
+    function goToStep(targetStep) {
+        if (bookingBusy) return;
+        if (targetStep > step && !validateBefore(targetStep)) return;
+        setStep(targetStep);
+    }
+
+    async function refreshAvailability(message) {
+        try {
+            const latest = await onRefreshShowtimes();
+            if (!Array.isArray(latest)) throw new Error('Invalid showtime response');
+            const updated = latest.find(item => String(item._id) === String(showtimeId));
+            if (!updated || updated.cinema !== cinema ||
+                String(updated.movie?._id || updated.movie) !== String(movieId) ||
+                !isSaleableShowtime(updated, currentMovie, Date.now())) {
+                setSeat([]);
+                setShowtimeId('');
+                setStep(1);
+                setMsg(`${message} Vui lòng chọn suất chiếu khác.`);
+            } else {
+                setSeat(current => current.filter(number => updated.seats?.some(item => item.number === number && isAvailableSeat(item))));
+                setStep(2);
+                setMsg(`${message} Đã tải lại ghế và giá mới nhất; vui lòng kiểm tra lựa chọn.`);
+            }
+            setAvailabilityError('');
+        } catch {
+            setStep(2);
+            setAvailabilityError('Chưa tải lại được sơ đồ ghế. Vui lòng thử lại trước khi tiếp tục.');
+            setMsg(message);
+        }
+    }
+
+    async function retryAvailability() {
+        if (bookingBusy) return;
+        setBookingBusy(true);
+        try { await refreshAvailability('Đang kiểm tra lại ghế.'); }
+        finally { setBookingBusy(false); }
     }
 
     async function book() {
         if (bookingBusy) return;
-        if (!currentShowtime || !seat.length) {
-            setMsg('Vui lòng chọn suất chiếu và ít nhất một ghế.');
-            return;
-        }
-
-        if (customerType === 'member' && !selectedMember) {
-            setMsg('Vui lòng nhập đầy đủ thông tin khách hàng khi đặt vé tại quầy.');
-            return;
-        }
-
-        if (!Number.isSafeInteger(Number(pointsToUse)) || Number(pointsToUse) < 0 || Number(pointsToUse) > maxPoints) {
-            setMsg('Điểm sử dụng phải là số nguyên không âm, không vượt số dư khách hàng hoặc giá trị đơn.');
-            return;
-        }
+        if (!validateBefore(4)) return;
         setBookingBusy(true);
         try {
             const booking = await createCounterBooking({
@@ -271,16 +295,18 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
             setMsg(`Đặt vé tại quầy thành công: ${booking._id}.`);
             setTab('payment');
         } catch (error) {
-            setMsg(error.message);
+            if ([404, 409, 410].includes(error.status)) await refreshAvailability(error.message);
+            else setMsg(error.message);
         } finally {
             setBookingBusy(false);
         }
     }
 
     return (
-        <section className="page">
+        <section className="page counterBooking">
             <h2>Đặt vé tại quầy</h2>
             <p className="helperText">Bạn có thể áp dụng mã khuyến mãi ở bước thanh toán, sau khi tạo đơn giữ ghế.</p>
+            {availabilityError && <div role="alert"><p>{availabilityError}</p><button type="button" className="ghost" disabled={bookingBusy} onClick={retryAvailability}>Tải lại sơ đồ ghế</button></div>}
             <div className="booking">
                 <div className="bookingFlow">
                     {flowSteps.map((label, index) => (
@@ -288,7 +314,9 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             key={label}
                             type="button"
                             className={step === index ? 'activeStep' : index < step ? 'doneStep' : ''}
-                            onClick={() => setStep(index)}
+                            disabled={bookingBusy}
+                            aria-current={step === index ? 'step' : undefined}
+                            onClick={() => goToStep(index)}
                         >
                             {index + 1}. {label}
                         </button>
@@ -309,6 +337,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                         setMovieId('');
                                         setShowtimeId('');
                                         setSeat([]);
+                                        setAvailabilityError('');
                                         setStep(1);
                                     }}
                                 >
@@ -316,6 +345,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                 </button>
                             ))}
                         </div>
+                        {cinemaOptions.length === 0 && <p role="status">Chưa có suất chiếu còn mở bán.</p>}
                     </div>
                 )}
 
@@ -332,7 +362,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                             <div className="movieScheduleInfo">
                                                 <h4>{movie.title}</h4>
                                                 <p className="movieMeta">
-                                                    {movie.ageLimit || 18}+ • {movie.genre?.map(translateGenre).join(', ') || 'Phim'} • {movie.duration || 120} phút
+                                                    <strong className="counterClassification" aria-label={`Phân loại ${classificationLabel(movie)}`}>{classificationLabel(movie)}</strong> • {movie.genre?.map(translateGenre).join(', ') || 'Phim'} • {movie.duration || 120} phút
                                                 </p>
                                                 <button
                                                     type="button"
@@ -348,32 +378,44 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                         </div>
 
                                         <div className="showtimeGrid">
-                                            {movieShowtimes.map((showtime) => (
+                                            {movieShowtimes.map((showtime) => {
+                                                const freeSeats = (showtime.seats || []).filter(isAvailableSeat).length;
+                                                return (
                                                 <button
                                                     key={showtime._id}
                                                     type="button"
                                                     className={showtimeId === showtime._id ? 'showtimeBtn selected' : 'showtimeBtn'}
+                                                    disabled={bookingBusy || freeSeats === 0}
                                                     onClick={() => {
                                                         setMovieId(movie._id);
                                                         setShowtimeId(showtime._id);
+                                                        setSeat([]);
+                                                        setGuardianConfirmed(false);
+                                                        setAvailabilityError('');
                                                         setStep(2);
                                                     }}
                                                 >
-                                                    <span>{new Date(showtime.startTime).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span>{new Date(showtime.startTime).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' })}</span>
                                                     <small>{showtime.room}</small>
+                                                    <small>{freeSeats ? `Còn ${freeSeats} ghế` : 'Hết ghế'}</small>
+                                                    <small>{showtime.price.toLocaleString('vi-VN')}₫ / vé</small>
                                                 </button>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
+                        {moviesForCinema.length === 0 && <p role="status">Rạp này chưa có suất chiếu còn mở bán. Vui lòng chọn rạp khác.</p>}
                     </div>
                 )}
 
                 {step === 2 && currentShowtime && (
                     <div className="checkoutSection">
                         <h3>3. Chọn ghế ngồi</h3>
+                        <p className="helperText"><strong className="counterClassification">{classificationLabel(currentMovie)}</strong> {currentMovie?.title} · {currentShowtime.room} · {new Date(currentShowtime.startTime).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · {Number(currentShowtime.price || 0).toLocaleString('vi-VN')}₫ / vé</p>
+                        {!isSaleableShowtime(currentShowtime, currentMovie, clock) && <p role="alert">Suất chiếu không còn mở bán. Vui lòng quay lại chọn suất khác.</p>}
                         <div className="seatLegend">
                             <div><span className="legendSeat available"></span>Ghế trống</div>
                             <div><span className="legendSeat booked"></span>Ghế đã đặt</div>
@@ -396,7 +438,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                     <button
                                         key={s.number}
                                         type="button"
-                                        disabled={s.status !== 'available' || (s.condition && s.condition !== 'Active')}
+                                        disabled={bookingBusy || !!availabilityError || !isSaleableShowtime(currentShowtime, currentMovie, clock) || !isAvailableSeat(s)}
                                         aria-label={`${s.number}, ${s.type || 'Standard'}, ${s.condition || 'Active'}, ${s.status}`}
                                         className={seatClass}
                                         onClick={() => handleSeatClick(s)}
@@ -408,6 +450,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                         </div>
                     </div>
                 )}
+
+                {step === 2 && !currentShowtime && <p role="alert">Suất chiếu không còn trong danh sách. Vui lòng quay lại chọn suất khác.</p>}
 
                 {step === 3 && (
                     <div className="checkoutSection">
@@ -502,10 +546,10 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
                 <div className="bookingActions">
                     {step > 0 && (
-                        <button type="button" className="ghost" onClick={goBack}>Quay lại</button>
+                        <button type="button" className="ghost" disabled={bookingBusy} onClick={() => goToStep(Math.max(0, step - 1))}>Quay lại</button>
                     )}
                     {step < flowSteps.length - 1 && (
-                        <button type="button" className="primary" onClick={goNext}>Tiếp tục</button>
+                        <button type="button" className="primary" disabled={bookingBusy} onClick={() => goToStep(step + 1)}>Tiếp tục</button>
                     )}
                 </div>
             </div>

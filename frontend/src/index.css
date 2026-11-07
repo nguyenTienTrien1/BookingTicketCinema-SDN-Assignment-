@@ -2931,6 +2931,17 @@ button {
     color: #555;
 }
 
+.counterBooking .counterClassification {
+    color: #ffb3b8;
+    font-weight: 800;
+}
+
+.counterBooking .showtimeBtn:disabled,
+.counterBooking .bookingFlow button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
 .checkoutForm,
 .couponBox,
 .summaryCard,
