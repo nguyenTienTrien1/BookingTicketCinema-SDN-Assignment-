@@ -25,8 +25,6 @@
 .employeeTaskNav { display: grid; grid-auto-rows: 1fr; gap: 10px; margin-top: 22px; }
 .employeeTask { display: flex; width: 100%; min-height: 78px; align-items: center; gap: 12px; padding: 14px; border: 1px solid #30343e; border-radius: 10px; color: #f2f3f7; background: #1a1c24; text-align: left; text-decoration: none; font: inherit; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
 .employeeTask:hover { border-color: #8d3e47; background: #24212a; }
-.employeeTaskPrimary { border-color: #693039; background: #2b1920; }
-.employeeTaskPrimary:hover { border-color: #ed4d5a; background: #381c25; }
 .employeeTaskIcon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 8px; background: #30212a; color: #ff9aa2; }
 .employeeTaskText { display: grid; min-width: 0; gap: 5px; }
 .employeeTaskText strong { font-size: .9rem; font-weight: 650; }

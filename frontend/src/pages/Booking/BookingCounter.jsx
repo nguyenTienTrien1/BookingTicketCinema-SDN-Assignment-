@@ -57,7 +57,7 @@ const foodImages = {
     'Sprite': sprite
 };
 
-const flowSteps = ['Chọn rạp', 'Chọn suất chiếu', 'Chọn ghế', 'Thông tin', 'Thanh toán'];
+const flowSteps = ['Chọn rạp', 'Chọn suất chiếu', 'Chọn ghế', 'Thông tin', 'Xác nhận đơn'];
 
 const posterMap = {
     'if wishes could kill': wishes,
@@ -106,7 +106,7 @@ function isSaleableShowtime(showtime, movie, now) {
         Number.isSafeInteger(showtime.price) && showtime.price > 0;
 }
 
-export default function BookingCounter({ user, selected, showtimes, foods, movies, pointsPolicy, setTab, setMsg, setPending, onRefreshShowtimes }) {
+export default function BookingCounter({ user, selected, showtimes, foods, movies, pointsPolicy, setSelected, setTab, setMsg, setPending, onRefreshShowtimes }) {
     const normalizedRole = String(user?.role || '').toLowerCase();
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
@@ -330,6 +330,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
     return (
         <section className="page counterBooking">
+            <button type="button" className="ghost staffBackButton" disabled={bookingBusy} onClick={() => setTab('account')}>← Về hồ sơ & tác vụ</button>
             <h2>Đặt vé tại quầy</h2>
             <p className="helperText">Bạn có thể áp dụng mã khuyến mãi ở bước thanh toán, sau khi tạo đơn giữ ghế.</p>
             {availabilityError && <div role="alert"><p>{availabilityError}</p><button type="button" className="ghost" disabled={bookingBusy} onClick={retryAvailability}>Tải lại sơ đồ ghế</button></div>}
@@ -395,6 +396,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                                     className="detailBtn"
                                                     onClick={() => {
                                                         setMovieId(movie._id);
+                                                        setSelected(movie);
                                                         setTab('movie-detail');
                                                     }}
                                                 >
@@ -551,7 +553,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
                 {step === 4 && (
                     <div className="checkoutSection">
-                        <h3>5. Thanh toán</h3>
+                        <h3>5. Xác nhận đơn trước khi giữ ghế</h3>
                         <div className="summaryCard">
                             <p><strong>Khách hàng:</strong> {customerType === 'guest' ? 'Khách vãng lai' : customerInfo.fullName || 'Chưa chọn Member'}</p>
                             {customerType === 'member' && <p><strong>Số điện thoại:</strong> {customerInfo.phone || 'Không có'}</p>}
@@ -567,8 +569,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
                         <FoodPicker foods={foods} items={food} onChange={setFood} />
 
-                        <label style={{display:'block',margin:'18px 0'}}><input type="checkbox" checked={guardianConfirmed} onChange={event=>setGuardianConfirmed(event.target.checked)} /> Tôi đã kiểm tra tuổi khách và điều kiện người giám hộ theo phân loại phim.</label>
-                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy}>Thanh toán ngay</button>
+                        {(['K', 'T13', 'T16', 'T18'].includes(currentMovie?.classification) || currentMovie?.ageLimit > 0) && <label style={{display:'block',margin:'18px 0'}}><input type="checkbox" checked={guardianConfirmed} onChange={event=>setGuardianConfirmed(event.target.checked)} /> Tôi đã kiểm tra tuổi khách và điều kiện người giám hộ theo phân loại phim.</label>}
+                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy}>{bookingBusy ? 'Đang giữ ghế…' : 'Giữ ghế & tiếp tục thanh toán'}</button>
                     </div>
                 )}
 

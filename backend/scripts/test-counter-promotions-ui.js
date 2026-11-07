@@ -70,7 +70,7 @@ try {
     await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
     if (quantity) await page.locator('.foodQuantity input').fill(String(quantity));
     const response = waitResponse('/counter/bookings', 'POST');
-    await page.getByRole('button', { name: 'Thanh toán ngay', exact: true }).click();
+    await page.getByRole('button', { name: 'Giữ ghế & tiếp tục thanh toán', exact: true }).click();
     const r = await response; check(r.status() === 201, 'Counter order created through the real UI');
     const booking = await r.json(); await page.getByRole('heading', { name: 'Xác nhận đơn vé', exact: true }).waitFor(); return booking;
   }
