@@ -63,6 +63,7 @@ try {
       await page.locator('input[name=counterCustomerType][value=member]').check();
       await page.getByLabel('Email hoặc số điện thoại thành viên', { exact: true }).fill('member@uc92.test');
       await page.getByRole('button', { name: 'Tìm thành viên', exact: true }).click();
+      await page.getByRole('button', { name: /UC92 Member · member@uc92.test/ }).click();
       await page.locator('input[placeholder="Họ tên khách hàng"]').waitFor();
       await page.waitForFunction(() => document.querySelector('input[placeholder="Họ tên khách hàng"]')?.value === 'UC92 Member');
     }

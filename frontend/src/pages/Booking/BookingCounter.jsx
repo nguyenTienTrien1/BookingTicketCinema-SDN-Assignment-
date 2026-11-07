@@ -1,5 +1,5 @@
 import FoodPicker from '../../components/FoodPicker';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCounterBooking, searchMembers } from '../../services/counterService';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
 
@@ -121,6 +121,10 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     const [availabilityError, setAvailabilityError] = useState('');
     const [memberSearch, setMemberSearch] = useState('');
     const [selectedMember, setSelectedMember] = useState(null);
+    const [memberResults, setMemberResults] = useState(null);
+    const [memberSearchBusy, setMemberSearchBusy] = useState(false);
+    const [memberError, setMemberError] = useState('');
+    const memberRequest = useRef(null);
     const [customerType, setCustomerType] = useState('guest');
     const [customerInfo, setCustomerInfo] = useState({
         fullName: '',
@@ -129,6 +133,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     });
 
     const pointsBalance = Number(selectedMember?.memberPoints || 0);
+    useEffect(() => () => memberRequest.current?.abort(), []);
     useEffect(() => {
         const timer = window.setInterval(() => setClock(Date.now()), 1000);
         return () => window.clearInterval(timer);
@@ -175,6 +180,27 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     const maxPoints = Math.floor(Math.min(pointsBalance, Math.floor(subtotal / 1000)) / pointStep) * pointStep;
     const pointsDiscount = Number(pointsToUse || 0) * 1000;
     const finalTotal = Math.max(0, subtotal - pointsDiscount);
+
+    function clearMemberSelection(query = '') {
+        memberRequest.current?.abort();
+        setMemberSearch(query); setSelectedMember(null); setMemberResults(null);
+        setMemberError(''); setMemberSearchBusy(false); setPointsToUse(0);
+        setCustomerInfo({ fullName: '', email: '', phone: '' });
+    }
+
+    async function findMember() {
+        memberRequest.current?.abort();
+        const controller = new AbortController(); memberRequest.current = controller;
+        setMemberSearchBusy(true); setMemberError(''); setMemberResults(null);
+        setSelectedMember(null); setPointsToUse(0); setCustomerInfo({ fullName: '', email: '', phone: '' });
+        try {
+            const results = await searchMembers(memberSearch.trim(), controller.signal);
+            if (!Array.isArray(results)) throw new Error('Không thể đọc kết quả tra cứu. Vui lòng thử lại.');
+            if (!controller.signal.aborted) setMemberResults(results);
+        } catch (error) {
+            if (!controller.signal.aborted) setMemberError(error.message);
+        } finally { if (!controller.signal.aborted) setMemberSearchBusy(false); }
+    }
 
     if (!user || !['admin', 'employee'].includes(normalizedRole)) {
         return (
@@ -460,7 +486,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <legend>Thông tin Member là tùy chọn</legend>
                             {['guest', 'member'].map((type) => <label key={type} style={{ marginRight: '20px' }}>
                                 <input type="radio" name="counterCustomerType" value={type} checked={customerType === type}
-                                    onChange={() => { setCustomerType(type); setSelectedMember(null); setMemberSearch(''); setCustomerInfo({ fullName: '', email: '', phone: '' }); setPointsToUse(0); }} />
+                                    onChange={() => { setCustomerType(type); clearMemberSelection(); }} />
                                 {type === 'guest' ? 'Khách vãng lai — không cung cấp thông tin' : 'Member — có sử dụng điểm'}
                             </label>)}
                         </fieldset>
@@ -470,34 +496,35 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <input
                                 aria-label="Email hoặc số điện thoại thành viên"
                                 value={memberSearch}
-                                onChange={(event) => { setMemberSearch(event.target.value); setSelectedMember(null); setCustomerInfo({ fullName: '', email: '', phone: '' }); setPointsToUse(0); }}
+                                onChange={(event) => clearMemberSelection(event.target.value)}
                                 placeholder="Email hoặc số điện thoại thành viên"
                             />
-                            <button type="button" onClick={async () => {
-                                try {
-                                    const results = await searchMembers(memberSearch);
-                                    const member = results.find((item) => item.status === 'Active' || item.status === 'active');
-                                    if (!member) { setMsg('Không tìm thấy thành viên đang hoạt động.'); return; }
-                                    setSelectedMember(member);
-                                    setCustomerInfo(member);
-                                } catch (error) { setMsg(error.message); }
-                            }}>Tìm thành viên</button>
+                            <button type="button" className="ghost" disabled={memberSearchBusy || !memberSearch.trim()} onClick={findMember}>{memberSearchBusy ? 'Đang tìm…' : 'Tìm thành viên'}</button>
+                            {memberError && <p className="paymentError" role="alert">{memberError}</p>}
+                            {memberResults && <div aria-label="Chọn thành viên">
+                                <p className="helperText" role="status">{memberResults.length ? 'Chọn đúng tài khoản của khách. Nếu trùng số điện thoại, đối chiếu email trước khi dùng điểm.' : 'Không tìm thấy thành viên phù hợp.'}</p>
+                                <div className="selectorGrid">{memberResults.map(member => <button key={member._id} type="button"
+                                    className={selectedMember?._id === member._id ? 'selector selected' : 'selector'}
+                                    aria-pressed={selectedMember?._id === member._id}
+                                    disabled={!['Active', 'active'].includes(member.status)}
+                                    onClick={() => { setSelectedMember(member); setCustomerInfo(member); setPointsToUse(0); }}>
+                                    {member.fullName} · {member.email} · {member.phone || 'Chưa có số điện thoại'}
+                                    {!['Active', 'active'].includes(member.status) && ' · Tài khoản không hoạt động'}
+                                </button>)}</div>
+                            </div>}
                             <input
-                                value={customerInfo.fullName}
+                                value={customerInfo.fullName || ''}
                                 readOnly
-                                onChange={(e) => setCustomerInfo((prev) => ({ ...prev, fullName: e.target.value }))}
                                 placeholder="Họ tên khách hàng"
                             />
                             <input
-                                value={customerInfo.phone}
+                                value={customerInfo.phone || ''}
                                 readOnly
-                                onChange={(e) => setCustomerInfo((prev) => ({ ...prev, phone: e.target.value }))}
                                 placeholder="Số điện thoại"
                             />
                             <input
-                                value={customerInfo.email}
+                                value={customerInfo.email || ''}
                                 readOnly
-                                onChange={(e) => setCustomerInfo((prev) => ({ ...prev, email: e.target.value }))}
                                 placeholder="Địa chỉ email"
                             />
                             <div className="pointBox">
@@ -506,11 +533,12 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                     min="0"
                                     max={maxPoints}
                                     step={pointStep}
+                                    disabled={!selectedMember}
                                     value={pointsToUse}
                                     onChange={(e) => setPointsToUse(Math.max(0, Number(e.target.value) || 0))}
                                     placeholder="Điểm thưởng"
                                 />
-                                <button type="button" onClick={() => setPointsToUse(maxPoints)}>
+                                <button type="button" disabled={!selectedMember} onClick={() => setPointsToUse(maxPoints)}>
                                     Dùng tối đa ({maxPoints})
                                 </button>
                             </div>

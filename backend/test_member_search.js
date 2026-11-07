@@ -83,6 +83,23 @@ test('UC-8 Search Member Information', async (t) => {
             assertPermittedFields(downgraded.data.member);
         } finally { await User.updateOne({ _id: admin._id }, { $set: { role: 'admin' } }); }
     });
+    await t.test('counter lookup shares phone normalization and always keeps its limited response fields', async () => {
+        for (const session of [token(employee), token(admin)]) {
+            for (const query of ['0901 234 567', '+84 (901) 234-567', '0084901234567']) {
+                const result = await request('/counter/members?search=' + encodeURIComponent(query), session);
+                assert.equal(result.status, 200);
+                assert.equal(result.data.length, 1);
+                assert.equal(result.data[0]._id, member.id);
+                assert.deepEqual(Object.keys(result.data[0]).sort(), ['_id', 'fullName', 'email', 'phone', 'memberPoints', 'status'].sort());
+            }
+        }
+        const duplicate = await User.create({ fullName: 'Same phone', email: 'same-phone@lookup.test', password: randomUUID(), phone: '0901234567', status: 'Active' });
+        try {
+            const result = await request('/counter/members?search=' + encodeURIComponent('+84901234567'));
+            assert.equal(result.data.length, 2);
+            assert.deepEqual(new Set(result.data.map(row => row._id)), new Set([member.id, duplicate.id]));
+        } finally { await User.deleteOne({ _id: duplicate._id }); }
+    });
     await t.test('email search ignores case and ordinary outside whitespace and treats symbols literally', async () => {
         const result = await request(searchPath('  MEMBER+ONE@LOOKUP.TEST  '));
         assert.equal(result.status, 200);

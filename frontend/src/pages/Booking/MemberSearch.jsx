@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { searchMembers, getMember } from '../../services/memberService';
 import { translateAccountStatus } from '../../utils/uiText';
@@ -17,6 +17,7 @@ function formatDate(value) {
 }
 
 export default function MemberSearch({ embedded = false }) {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
     const Page = embedded ? 'section' : 'main';
@@ -88,9 +89,9 @@ export default function MemberSearch({ embedded = false }) {
 
     return <Page className="movieAdmin memberSearch">
         <div className="movieAdminShell">
-            {!embedded && <Link className="movieBack" to={isAdmin ? '/account?section=members' : '/account?section=profile'}>
-                ← {isAdmin ? 'Trung tâm quản trị' : 'Hồ sơ & tác vụ nhân viên'}
-            </Link>}
+            {!embedded && <button type="button" className="ghost staffBackButton" onClick={() => navigate(isAdmin ? '/account?section=members' : '/account?section=profile')}>
+                ← {isAdmin ? 'Về trung tâm quản trị' : 'Về hồ sơ & tác vụ'}
+            </button>}
             <header className="movieAdminHeading">
                 <div><p className="movieEyebrow">{isAdmin ? 'QUẢN TRỊ CINEMA+' : 'QUẦY VÉ CINEMA+'}</p><h1>Tra cứu thành viên</h1>
                     <p>{isAdmin ? 'Tìm bằng email hoặc số điện thoại để xem thông tin hồ sơ và hoạt động tài khoản thành viên.'

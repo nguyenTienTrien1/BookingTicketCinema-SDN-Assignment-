@@ -1,5 +1,6 @@
 .employeeAccountHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
 .employeeAccountHeader .accountPageHeading { margin-bottom: 0; }
+.staffBackButton { min-height: 44px; margin-bottom: 24px; }
 .employeeAccountLayout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, 1fr); gap: 24px; align-items: stretch; }
 .employeeAccountLayout > * { min-width: 0; }
 .employeeAccount .memberProfile { display: flex; flex-direction: column; }

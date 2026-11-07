@@ -3,24 +3,14 @@ import User from '../models/User.js';
 import Booking from '../models/Booking.js';
 import * as bookings from '../services/bookingService.js';
 import { payStaffBooking } from '../services/counterPaymentService.js';
+import { searchMembers as findMembers } from '../services/memberService.js';
 
 export async function searchMembers(req, res, next) {
   try {
-    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    if (search.length < 3 || search.length > 100) {
-      return res.status(400).json({ message: 'Nhập email hoặc số điện thoại từ 3 đến 100 ký tự.' });
-    }
-    const alternatives = [{ email: search.toLowerCase() }];
-    if (/^[+\d\s().-]+$/.test(search)) {
-      const digits = search.replace(/\D/g, '');
-      if (digits.length >= 3 && digits.length <= 15) {
-        const phonePattern = '^\\+?' + digits.split('').join('[\\s().-]*') + '$';
-        alternatives.push({ phone: { $regex: phonePattern } });
-      }
-    }
-    const members = await User.find({ role: 'member', $or: alternatives })
-      .select('fullName email phone memberPoints status').limit(10);
-    res.json(members);
+    const { members } = await findMembers(req.query.search, 'employee');
+    // Keep the existing counter response and restricted fields for every staff role.
+    res.json(members.map(({ _id, fullName, email, phone, memberPoints, status }) =>
+      ({ _id, fullName, email, phone, memberPoints, status })));
   } catch (error) { next(error); }
 }
 
