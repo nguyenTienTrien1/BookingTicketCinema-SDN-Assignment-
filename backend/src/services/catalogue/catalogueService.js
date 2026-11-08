@@ -62,6 +62,28 @@ async function list(Model, query, fields) {
   integer(page, 'Trang', 1, 1000000);
   integer(limit, 'Số bản ghi mỗi trang', 1, 50);
   const filter = { deletedAt: null };
+  if (Model === Food) {
+    if (query.availability !== undefined && !['available', 'paused'].includes(query.availability)) throw invalid('Trạng thái bán không hợp lệ.');
+    if (query.stockState !== undefined && !['in-stock', 'low', 'out-of-stock'].includes(query.stockState)) throw invalid('Bộ lọc tồn kho không hợp lệ.');
+    if (query.availability) filter.available = query.availability === 'available';
+    if (query.stockState === 'in-stock') filter.stock = { $gt: 0 };
+    if (query.stockState === 'low') filter.stock = { $gt: 0, $lte: 5 };
+    if (query.stockState === 'out-of-stock') filter.$expr = { $lte: [{ $ifNull: ['$stock', 0] }, 0] };
+  } else {
+    if (query.scope !== undefined && !['food', 'ticket', 'all'].includes(query.scope)) throw invalid('Phạm vi áp dụng không hợp lệ.');
+    if (query.status !== undefined && !['current', 'future', 'expired', 'exhausted', 'paused'].includes(query.status)) throw invalid('Trạng thái khuyến mãi không hợp lệ.');
+    if (query.scope) filter.scope = query.scope;
+    if (query.status) {
+      const now = new Date(); filter.active = query.status !== 'paused';
+      if (query.status === 'future') filter.startsAt = { $gt: now };
+      if (query.status === 'expired') filter.endsAt = { $lte: now };
+      if (['current', 'exhausted'].includes(query.status)) {
+        filter.startsAt = { $lte: now }; filter.endsAt = { $gt: now };
+        if (query.status === 'current') filter.$and = [{ $or: [{ usageLimit: null }, { $expr: { $lt: [{ $ifNull: ['$usedCount', 0] }, '$usageLimit'] } }] }];
+        else { filter.usageLimit = { $ne: null }; filter.$expr = { $gte: [{ $ifNull: ['$usedCount', 0] }, '$usageLimit'] }; }
+      }
+    }
+  }
   if (query.search !== undefined) {
     const search = text(query.search, 'Từ khóa', 100, false);
     if (search) filter.$or = fields.map((field) => ({ [field]: { $regex: escaped(search), $options: 'i' } }));

@@ -1,7 +1,8 @@
 import { api, API } from './api';
 
-export function listCatalogue(kind, search, page) {
+export function listCatalogue(kind, search, page, filters = {}) {
   const query = new URLSearchParams({ search, page: String(page), limit: '10' });
+  for (const key of ['availability', 'stockState', 'status', 'scope']) if (filters[key]) query.set(key, filters[key]);
   return api(`/${kind}/admin?${query}`);
 }
 export const getCatalogueItem = (kind, id) => api(`/${kind}/admin/${id}`);

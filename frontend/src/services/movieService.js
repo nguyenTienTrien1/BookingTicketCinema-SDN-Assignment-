@@ -10,8 +10,9 @@ const resolveMovieImages = movie => ({ ...movie, poster: movieImageUrl(movie.pos
 export const getMovies=async()=>(await api('/movies')).map(resolveMovieImages);
 export const getShowtimes=async()=>(await api('/movies/showtimes')).map(show => ({ ...show, movie: show.movie && typeof show.movie === 'object' ? resolveMovieImages(show.movie) : show.movie }));
 
-export function getAdminMovies(search = '', page = 1) {
+export function getAdminMovies(search = '', page = 1, classification = '') {
   const params = new URLSearchParams({ search, page: String(page), limit: '10' });
+  if (classification) params.set('classification', classification);
   return api(`/movies/admin?${params}`, { credentials: 'include' });
 }
 

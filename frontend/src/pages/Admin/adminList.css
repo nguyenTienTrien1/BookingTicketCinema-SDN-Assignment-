@@ -1,0 +1,56 @@
+.adminListPage .movieAdminShell { max-width: 1280px; }
+.adminListPage .movieToolbar { gap: 12px; padding: 20px; }
+.adminListFilters { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 20px 20px; }
+.adminListFilters label { display: flex; align-items: center; gap: 10px; color: #aab6cd; font-size: .8rem; }
+.adminListPage .adminListFilters select { min-height: 38px; width: auto; max-width: 230px; font-size: .8rem; }
+.adminListFilters button { margin-left: auto; min-height: 38px; padding: 8px 12px; font-size: .8rem; }
+.adminListPage .movieCount { padding: 14px 20px; border-top: 1px solid #2b303d; background: #141720; }
+.adminListPage .movieTable { min-width: 850px; }
+.adminListPage .movieTable th { padding: 14px 16px; white-space: nowrap; font-size: 11px; }
+.movieAdmin.adminListPage .movieTable td { padding: 14px 16px; vertical-align: middle; font-size: 13px; }
+.adminListPage .movieTable td:first-child { width: 38%; }
+.adminListPage .catalogueTable td:first-child { width: 35%; }
+.adminListPage .movieTable tbody tr:hover { background: #ffffff05; }
+.adminListIdentity { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.adminListIdentity > img { display: block; width: 56px; height: 76px; object-fit: contain; flex-shrink: 0; border-radius: 8px; background: #20232d; }
+.adminListIdentity.food > img { width: 64px; height: 64px; }
+.adminListIdentity > div { min-width: 0; }
+.adminListPage .movieTable strong { display: inline; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.adminListPage .movieGenres { font-size: 11px; color: #94a3bc; line-height: 1.6; margin: 4px 0; }
+.adminListDescription { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 5px 0; color: #8e9ab2; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.adminListPage .adminListDetailButton { min-height: 28px; background: transparent; border: 0; padding: 4px 0; color: #eaa6bb; font: inherit; font-size: 11px; text-align: left; }
+.adminListPage .catalogueCode { margin: 0 0 5px; font-size: 14px; }
+.adminListScope { display: block; margin-top: 5px; font-size: 11px; color: #9da9c0; }
+.adminNumeric { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.adminNoWrap { white-space: nowrap; }
+.adminDateCell { color: #b2bfd4; font-size: 11px !important; line-height: 1.8; white-space: nowrap; }
+.adminListActions { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; }
+.adminListPage .adminListActions :is(a, button) { margin: 0 !important; min-height: 36px; padding: 8px 12px; font-size: 12px; }
+.adminListPage .adminListActions > button { color: #f5b8c9; border-color: #633246; background: #361d29; }
+.adminStatus { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 5px 8px; border: 1px solid #365745; border-radius: 6px; color: #b1e0c1; background: #1b3025; font-size: 10px; }
+.adminStatus.warning { color: #f3cf91; background: #352b1c; border-color: #655136; }
+.adminStatus.danger { color: #f6b3c0; background: #351d28; border-color: #663244; }
+.adminStatus.muted { color: #b7bfd0; background: #252a34; border-color: #414957; }
+.adminStockLine { display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.adminStockLine > strong { min-width: 24px; text-align: right; }
+.adminStockLine > .adminStatus { min-width: 68px; justify-content: center; }
+.adminListUsage { display: block; margin-top: 8px; color: #96a3bb; font-size: 11px; }
+.adminDetailDialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); padding: 0; border: 1px solid #57404f; border-radius: 16px; background: #151821; color: #f0f1f6; }
+.adminDetailDialog::backdrop { background: #03050bd9; backdrop-filter: blur(4px); }
+.adminDetailContent { padding: 26px; }
+.adminDetailContent > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #343443; }
+.adminDetailContent header p { margin: 0 0 10px; color: #ee9fba; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.adminDetailContent header h2 { margin: 0; font-size: 23px; line-height: 1.4; overflow-wrap: anywhere; }
+.adminDetailContent header button { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #464355; border-radius: 8px; background: #282631; color: #d8c8d5; font-size: 24px; }
+.adminDetailDescription { color: #bbc4d8; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .88rem; line-height: 1.8; }
+.adminDetailMedia { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; }
+.adminDetailMedia figure { margin: 0; min-width: 0; }
+.adminDetailMedia img { display: block; width: 160px; height: 180px; object-fit: contain; background: #0d1018; border-radius: 10px; }
+.adminDetailMedia figcaption { margin-top: 10px; }
+.adminDetailMedia a { color: #f0a5bd; font-size: .8rem; }
+.adminDetailFacts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.adminDetailFacts > div { padding: 14px; border: 1px solid #333a49; border-radius: 10px; }
+.adminDetailFacts dt { color: #8d9db7; font-size: .76rem; }
+.adminDetailFacts dd { margin: 8px 0 0; font-size: .85rem; line-height: 1.6; overflow-wrap: anywhere; }
+.adminListPage :is(button, a, select, summary):focus-visible, .adminDetailDialog :focus-visible { outline: 2px solid #ff9ab7; outline-offset: 3px; }
+@media (max-width: 600px) { .adminListFilters { align-items: stretch; flex-direction: column; } .adminListFilters label { justify-content: space-between; } .adminListPage .adminListFilters select { flex: 1; max-width: 230px; min-width: 0; } .adminListFilters button { margin-left: 0; } .adminDetailContent { padding: 20px; } .adminDetailFacts { grid-template-columns: minmax(0, 1fr); } .adminDetailContent header h2 { font-size: 20px; } }

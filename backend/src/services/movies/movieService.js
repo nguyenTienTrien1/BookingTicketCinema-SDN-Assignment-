@@ -29,6 +29,12 @@ export async function listAdminMovies(query) {
     throw movieError('Từ khóa tìm kiếm không hợp lệ.');
   }
   const filter = { deletedAt: null };
+  if (query.classification !== undefined) {
+    if (!['P', 'K', 'T13', 'T16', 'T18', 'C'].includes(query.classification)) throw movieError('Phân loại phim không hợp lệ.');
+    if (query.classification === 'P') filter.$and = [{ $or: [{ classification: 'P' }, { classification: null, $or: [{ ageLimit: 0 }, { ageLimit: null }] }] }];
+    else if (['T13', 'T16', 'T18'].includes(query.classification)) filter.$and = [{ $or: [{ classification: query.classification }, { classification: null, ageLimit: Number(query.classification.slice(1)) }] }];
+    else filter.classification = query.classification;
+  }
   if (query.search && query.search.trim()) {
     filter.title = { $regex: escapeSearch(query.search.trim()), $options: 'i' };
   }

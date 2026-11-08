@@ -4,18 +4,19 @@ import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueIt
 import './movies.css';
 import './catalogue.css';
 import './adminEditor.css';
-import { vietnamToday, shiftDay, readPromotionWindow, promotionWindowPayload, switchPromotionWindow, displayDay } from '../../utils/promotionWindow';
+import './adminList.css';
+import AdminDetailDialog, { AdminMediaImage } from '../../components/AdminDetailDialog';
 import FormFieldError, { useFieldErrors } from '../../components/FormFieldError';
 import { foodImage } from '../../components/FoodPicker';
 import placeholder from '../../assets/foods/placeholder.svg';
+import { vietnamToday, shiftDay, readPromotionWindow, promotionWindowPayload, switchPromotionWindow, displayDay } from '../../utils/promotionWindow';
 
 const money = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-const dateText = (value) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+const dateText = (value) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const label = (kind) => kind === 'foods' ? 'F&B' : 'khuyến mãi';
-
 function PromotionDates({ item }) {
   const window = readPromotionWindow(item.startsAt, item.endsAt);
-  return window.specificTime ? <PromotionDates item={item} /> : <>Từ {displayDay(window.startsAt)}<br />đến hết {displayDay(window.endsAt)}</>;
+  return window.specificTime ? <>{dateText(item.startsAt)}<br />đến {dateText(item.endsAt)}</> : <>Từ {displayDay(window.startsAt)}<br />đến hết {displayDay(window.endsAt)}</>;
 }
 
 function promotionState(item) {
@@ -38,6 +39,8 @@ function CatalogueList({ kind }) {
   const [result, setResult] = useState({ items: [], total: 0, totalPages: 0 });
   const [keyword, setKeyword] = useState('');
   const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState({});
+  const [selectedItem, setSelectedItem] = useState(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -50,11 +53,12 @@ function CatalogueList({ kind }) {
   useEffect(() => {
     let ignore = false;
     setLoading(true); setError('');
-    listCatalogue(kind, search, page).then((data) => { if (!ignore) setResult(data); })
+    listCatalogue(kind, search, page, filters).then((data) => { if (!ignore) setResult(data); })
       .catch((err) => { if (!ignore) setError(err.message); })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, [kind, search, page, reload]);
+  }, [kind, search, page, reload, filters]);
+  function filterBy(key, value) { setFilters(current => ({ ...current, [key]: value })); setPage(1); }
 
   async function remove(item) {
     if (deleting.current || !window.confirm(`Xóa ${label(kind)} “${item.name}” khỏi danh mục? Lịch sử giao dịch vẫn được giữ lại.`)) return;
@@ -68,7 +72,7 @@ function CatalogueList({ kind }) {
     finally { deleting.current = false; setBusy(false); }
   }
 
-  return <main className="movieAdmin"><div className="movieAdminShell">
+  return <main className="movieAdmin adminListPage"><div className="movieAdminShell">
     <Link className="movieBack" to="/admin/dashboard">← Trung tâm quản trị</Link>
     <CatalogueTabs kind={kind} />
     <header className="movieAdminHeading"><div><p className="movieEyebrow">CINEMA+ / QUẢN TRỊ</p>
@@ -83,29 +87,28 @@ function CatalogueList({ kind }) {
         <input id="catalogue-search" type="search" maxLength={100} value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Nhập từ khóa…" />
         <button className="movieSecondary" type="submit">Tìm kiếm</button>
       </form>
+      <div className="adminListFilters">{kind === 'foods' ? <>
+        <label htmlFor="food-sale-filter">Trạng thái bán<select id="food-sale-filter" value={filters.availability || ''} onChange={event => filterBy('availability', event.target.value)}><option value="">Tất cả trạng thái</option><option value="available">Đang bán</option><option value="paused">Ngừng bán</option></select></label>
+        <label htmlFor="food-stock-filter">Tồn kho<select id="food-stock-filter" value={filters.stockState || ''} onChange={event => filterBy('stockState', event.target.value)}><option value="">Tất cả tồn kho</option><option value="in-stock">Còn hàng</option><option value="low">Sắp hết · Từ 1 đến 5</option><option value="out-of-stock">Hết hàng</option></select></label>
+      </> : <><label htmlFor="promotion-status-filter">Trạng thái<select id="promotion-status-filter" value={filters.status || ''} onChange={event => filterBy('status', event.target.value)}><option value="">Tất cả trạng thái</option><option value="current">Đang hiệu lực</option><option value="future">Chưa bắt đầu</option><option value="expired">Hết hạn</option><option value="exhausted">Hết lượt</option><option value="paused">Tạm ngưng</option></select></label>
+        <label htmlFor="promotion-scope-filter">Phạm vi<select id="promotion-scope-filter" value={filters.scope || ''} onChange={event => filterBy('scope', event.target.value)}><option value="">Tất cả phạm vi</option><option value="food">F&B</option><option value="ticket">Vé</option><option value="all">Vé và F&B</option></select></label></>}
+        {(search || Object.values(filters).some(Boolean)) && <button className="movieSecondary" type="button" onClick={() => { setFilters({}); setSearch(''); setKeyword(''); setPage(1); }}>Xóa bộ lọc</button>}
+      </div>
       {loading && <p className="movieState" role="status">Đang tải danh mục…</p>}
       {!loading && error && <div className="movieError" role="alert">{error} <button className="movieSecondary" onClick={() => setReload(reload + 1)}>Thử lại</button></div>}
       {!loading && !error && <>
         <p className="movieCount" role="status">{result.total} bản ghi{search && ` phù hợp với “${search}”`}</p>
-        {result.items.length === 0 ? <p className="movieState">{search ? 'Không tìm thấy kết quả phù hợp.' : 'Chưa có dữ liệu. Chọn nút Thêm để bắt đầu.'}</p> :
+        {result.items.length === 0 ? <p className="movieState">{search || Object.values(filters).some(Boolean) ? 'Không tìm thấy kết quả phù hợp. Thử thay đổi hoặc xóa bộ lọc.' : 'Chưa có dữ liệu. Chọn nút Thêm để bắt đầu.'}</p> :
           <div className="movieTableWrap"><table className="movieTable catalogueTable">
             <caption className="movieSrOnly">Danh sách {label(kind)}</caption>
-            <thead><tr><th scope="col">{kind === 'foods' ? 'Sản phẩm' : 'Khuyến mãi'}</th><th scope="col">{kind === 'foods' ? 'Giá bán' : 'Mức giảm'}</th>
-              <th scope="col">{kind === 'foods' ? 'Tồn kho' : 'Thời hạn (giờ VN)'}</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+            <thead><tr><th scope="col">{kind === 'foods' ? 'Sản phẩm' : 'Khuyến mãi'}</th><th scope="col" className="adminNumeric">{kind === 'foods' ? 'Giá bán' : 'Mức giảm'}</th>
+              <th scope="col" className={kind === 'foods' ? 'adminNumeric' : ''}>{kind === 'foods' ? 'Tồn kho' : 'Thời hạn (giờ VN)'}</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
             <tbody>{result.items.map((item) => <tr key={item._id}>
-              <td><strong>{item.name}</strong>{kind === 'promotions' && <p className="catalogueCode">{item.code}</p>}
-                <details><summary>Chi tiết</summary><p className="movieDescription">{item.description || 'Chưa có mô tả.'}</p>
-                  {kind === 'foods' ? <>{item.image && <img className="catalogueFoodThumbnail" src={foodImageUrl(item.image)} alt={item.name} loading="lazy" />}<p className="movieMediaPath">Ảnh: {item.image || 'Chưa có'}</p></> : <>
-                    <p>Đơn tối thiểu: {money(item.minOrder)}</p><p>Giảm tối đa: {item.maxDiscount === null ? 'Không giới hạn' : money(item.maxDiscount)}</p>
-                    <p>Phạm vi: {{ food: 'F&B', ticket: 'Vé', all: 'Vé và F&B' }[item.scope]}</p>
-                    <p>Cộng dồn: {item.stackable ? 'Cho phép' : 'Không cho phép'}</p>
-                    <p>Đã dùng: {item.usedCount} / {item.usageLimit === null ? 'Không giới hạn' : item.usageLimit}</p>
-                  </>}
-                </details></td>
-              <td>{kind === 'foods' ? money(item.price) : <>{item.discountType === 'percentage' ? `${item.value}%` : money(item.value)}</>}</td>
-              <td>{kind === 'foods' ? item.stock : <>{dateText(item.startsAt)}<br />đến {dateText(item.endsAt)}</>}</td>
-              <td><span className="movieBadge">{kind === 'foods' ? (item.available ? 'Đang bán' : 'Ngừng bán') : promotionState(item)}</span></td>
-              <td><div className="catalogueActions"><Link className="movieSecondary" to={`/admin/${kind}/${item._id}/edit`} aria-label={`Sửa ${item.name}`}>Sửa</Link>
+              <td><div className={'adminListIdentity' + (kind === 'foods' ? ' food' : '')}>{kind === 'foods' && <AdminMediaImage src={foodImage(item)} alt={item.name} width="64" height="64" />}<div>{kind === 'promotions' && <p className="catalogueCode">{item.code}</p>}<strong>{item.name}</strong>{kind === 'foods' ? <p className="adminListDescription">{item.description || 'Chưa có mô tả.'}</p> : <span className="adminListScope">{{ food: 'F&B', ticket: 'Vé', all: 'Vé và F&B' }[item.scope]}</span>}<button className="adminListDetailButton" type="button" onClick={() => setSelectedItem(item)} aria-label={'Chi tiết ' + item.name}>Chi tiết →</button></div></div></td>
+              <td className="adminNumeric"><strong>{kind === 'foods' ? money(item.price) : item.discountType === 'percentage' ? `${item.value}%` : money(item.value)}</strong>{kind === 'promotions' && item.maxDiscount !== null && <span className="adminListScope">Tối đa {money(item.maxDiscount)}</span>}</td>
+              <td className={kind === 'foods' ? 'adminNumeric' : 'adminDateCell'}>{kind === 'foods' ? <span className="adminStockLine"><strong>{item.stock ?? 0}</strong><span className={'adminStatus ' + (!(item.stock > 0) ? 'danger' : item.stock <= 5 ? 'warning' : '')}>{!(item.stock > 0) ? 'Hết hàng' : item.stock <= 5 ? 'Sắp hết' : 'Còn hàng'}</span></span> : <PromotionDates item={item} />}</td>
+              <td><span className={'adminStatus ' + (kind === 'foods' ? item.available ? '' : 'muted' : promotionState(item) === 'Đang hiệu lực' ? '' : promotionState(item) === 'Chưa bắt đầu' ? 'warning' : promotionState(item) === 'Tạm ngưng' ? 'muted' : 'danger')}>{kind === 'foods' ? (item.available ? 'Đang bán' : 'Ngừng bán') : promotionState(item)}</span>{kind === 'promotions' && <span className="adminListUsage">Đã dùng {item.usedCount} / {item.usageLimit ?? '∞'}</span>}</td>
+              <td><div className="adminListActions"><Link className="movieSecondary" to={`/admin/${kind}/${item._id}/edit`} aria-label={`Sửa ${item.name}`}>Sửa</Link>
                 <button className="movieSecondary" disabled={busy} onClick={() => remove(item)} aria-label={`Xóa ${item.name}`}>Xóa</button></div></td>
             </tr>)}</tbody>
           </table></div>}
@@ -116,6 +119,7 @@ function CatalogueList({ kind }) {
         </nav>}
       </>}
     </section>
+    {selectedItem && <AdminDetailDialog title={selectedItem.name} onClose={() => setSelectedItem(null)}><p className="adminDetailDescription">{selectedItem.description || 'Chưa có mô tả.'}</p>{kind === 'foods' ? <><div className="adminDetailMedia"><figure><AdminMediaImage src={foodImage(selectedItem)} alt={selectedItem.name} /><figcaption>{selectedItem.image && <a href={foodImage(selectedItem)} target="_blank" rel="noopener noreferrer">Mở ảnh sản phẩm ↗</a>}</figcaption></figure></div><dl className="adminDetailFacts"><div><dt>Giá bán</dt><dd>{money(selectedItem.price)}</dd></div><div><dt>Tồn kho</dt><dd>{selectedItem.stock ?? 0} sản phẩm</dd></div><div><dt>Trạng thái bán</dt><dd>{selectedItem.available ? 'Đang bán' : 'Ngừng bán'}</dd></div></dl></> : <dl className="adminDetailFacts"><div><dt>Mã khuyến mãi</dt><dd>{selectedItem.code}</dd></div><div><dt>Mức giảm</dt><dd>{selectedItem.discountType === 'percentage' ? selectedItem.value + '%' : money(selectedItem.value)}</dd></div><div><dt>Giá trị tối thiểu phần áp dụng</dt><dd>{money(selectedItem.minOrder)}</dd></div><div><dt>Giảm tối đa</dt><dd>{selectedItem.maxDiscount === null ? 'Không giới hạn' : money(selectedItem.maxDiscount)}</dd></div><div><dt>Phạm vi</dt><dd>{{ food: 'F&B', ticket: 'Vé', all: 'Vé và F&B' }[selectedItem.scope]}</dd></div><div><dt>Dùng cùng điểm</dt><dd>{selectedItem.stackable ? 'Có' : 'Không'}</dd></div><div><dt>Thời hạn · Giờ Việt Nam</dt><dd><PromotionDates item={selectedItem} /></dd></div><div><dt>Đã dùng</dt><dd>{selectedItem.usedCount} / {selectedItem.usageLimit ?? 'Không giới hạn'}</dd></div></dl>}</AdminDetailDialog>}
   </div></main>;
 }
 

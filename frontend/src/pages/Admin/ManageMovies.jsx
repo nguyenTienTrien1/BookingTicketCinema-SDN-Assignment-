@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { getAdminMovies, deleteMovie } from '../../services/movieService';
+import { getAdminMovies, deleteMovie, movieImageUrl } from '../../services/movieService';
+import { getMoviePoster } from '../../components/MovieCard';
+import AdminDetailDialog, { AdminMediaImage } from '../../components/AdminDetailDialog';
 import './movies.css';
+import './adminList.css';
 
 function classificationOf(movie) {
   if (movie.classification) return movie.classification;
@@ -14,6 +17,8 @@ export default function ManageMovies() {
   const [result, setResult] = useState({ movies: [], total: 0, totalPages: 0 });
   const [keyword, setKeyword] = useState('');
   const [search, setSearch] = useState('');
+  const [classification, setClassification] = useState('');
+  const [selectedMovie, setSelectedMovie] = useState(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,12 +46,12 @@ export default function ManageMovies() {
     let ignore = false;
     setLoading(true);
     setError('');
-    getAdminMovies(search, page)
+    getAdminMovies(search, page, classification)
       .then((data) => { if (!ignore) setResult(data); })
       .catch((err) => { if (!ignore) setError(err.message); })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, [search, page, reload]);
+  }, [search, page, reload, classification]);
 
   function handleSearch(event) {
     event.preventDefault();
@@ -55,7 +60,7 @@ export default function ManageMovies() {
   }
 
   return (
-    <main className="movieAdmin">
+    <main className="movieAdmin adminListPage">
       <div className="movieAdminShell">
         <Link className="movieBack" to="/admin/dashboard">← Trung tâm quản trị</Link>
         <header className="movieAdminHeading">
@@ -73,34 +78,32 @@ export default function ManageMovies() {
               value={keyword} onChange={(event) => setKeyword(event.target.value)} />
             <button className="movieSecondary" type="submit">Tìm kiếm</button>
           </form>
+          <div className="adminListFilters"><label htmlFor="movie-class-filter">Phân loại<select id="movie-class-filter" value={classification} onChange={event => { setClassification(event.target.value); setPage(1); }}>{[['', 'Tất cả phân loại'], ['P', 'P · Mọi độ tuổi'], ['K', 'K · Có người giám hộ'], ['T13', 'Từ 13 tuổi'], ['T16', 'Từ 16 tuổi'], ['T18', 'Từ 18 tuổi'], ['C', 'C · Không phổ biến']].map(([value, title]) => <option key={value} value={value}>{title}</option>)}</select></label>{(classification || search) && <button className="movieSecondary" type="button" onClick={() => { setClassification(''); setKeyword(''); setSearch(''); setPage(1); }}>Xóa bộ lọc</button>}</div>
           {loading && <p className="movieState" role="status">Đang tải danh sách phim…</p>}
           {!loading && error && <div className="movieError" role="alert"><p>{error}</p>
             <button className="movieSecondary" onClick={() => setReload(reload + 1)}>Thử lại</button></div>}
           {!loading && !error && <>
             <p className="movieCount" role="status">{result.total} phim{search ? ` phù hợp với “${search}”` : ' trong danh mục'}</p>
             {result.movies.length === 0 ? <div className="movieState">
-              <h2>{search ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim nào'}</h2>
-              <p>{search ? 'Thử tìm bằng tên phim khác.' : 'Chọn “Thêm phim” để tạo phim đầu tiên.'}</p>
+              <h2>{search || classification ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim nào'}</h2>
+              <p>{search || classification ? 'Thử tên phim hoặc phân loại khác.' : 'Chọn “Thêm phim” để tạo phim đầu tiên.'}</p>
             </div> : <div className="movieTableWrap">
               <table className="movieTable">
                 <caption className="movieSrOnly">Danh sách phim trong hệ thống</caption>
                 <thead><tr><th scope="col">Phim</th><th scope="col">Phân loại</th>
-                  <th scope="col">Thời lượng</th><th scope="col">Khởi chiếu</th><th scope="col">Đánh giá</th><th scope="col">Thao tác</th></tr></thead>
+                  <th scope="col" className="adminNumeric">Thời lượng</th><th scope="col">Khởi chiếu</th><th scope="col" className="adminNumeric">Đánh giá</th><th scope="col">Thao tác</th></tr></thead>
                 <tbody>{result.movies.map((movie) => <tr key={movie._id}>
-                  <td><strong>{movie.title}</strong>{movie.featured && <span className="movieFeatured">Nổi bật</span>}
+                  <td><div className="adminListIdentity"><AdminMediaImage src={movieImageUrl(getMoviePoster(movie))} alt={'Poster ' + movie.title} width="56" height="76" /><div><strong>{movie.title}</strong>{movie.featured && <span className="movieFeatured">Nổi bật</span>}
                     <div className="movieGenres">{movie.genre.join(' · ')}</div>
-                    <details><summary>Xem thông tin</summary><p className="movieDescription">{movie.description || 'Chưa có mô tả.'}</p>
-                      <p className="movieMediaPath">Poster: {movie.poster || 'Chưa có'}</p>
-                      {movie.banner && <p className="movieMediaPath">Banner: {movie.banner}</p>}
-                    </details></td>
+                    <button className="adminListDetailButton" type="button" onClick={() => setSelectedMovie(movie)} aria-label={'Xem thông tin phim ' + movie.title}>Xem thông tin →</button></div></div></td>
                   <td><span className="movieBadge">{classificationOf(movie)}</span></td>
-                  <td>{movie.duration} phút</td>
-                  <td>{movie.releaseDate ? new Date(movie.releaseDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' }) : 'Chưa cập nhật'}</td>
-                  <td>{movie.rating ?? 0}/10</td>
-                  <td><Link className="movieSecondary" to={`/admin/movies/${movie._id}/edit`} aria-label={`Sửa phim ${movie.title}`}>Sửa</Link>
+                  <td className="adminNumeric">{movie.duration} phút</td>
+                  <td className="adminNoWrap">{movie.releaseDate ? new Date(movie.releaseDate).toLocaleDateString('vi-VN', { timeZone: 'UTC' }) : 'Chưa cập nhật'}</td>
+                  <td className="adminNumeric">{movie.rating ?? 0}/10</td>
+                  <td><div className="adminListActions"><Link className="movieSecondary" to={`/admin/movies/${movie._id}/edit`} aria-label={`Sửa phim ${movie.title}`}>Sửa</Link>
                     <button className="movieSecondary" type="button" disabled={Boolean(deleting)} onClick={() => handleDelete(movie)} aria-label={`Xóa phim ${movie.title}`}>
                       {deleting === movie._id ? 'Đang xóa…' : 'Xóa'}
-                    </button></td>
+                    </button></div></td>
                 </tr>)}</tbody>
               </table>
             </div>}
@@ -111,6 +114,7 @@ export default function ManageMovies() {
             </nav>}
           </>}
         </section>
+        {selectedMovie && <AdminDetailDialog title={selectedMovie.title} onClose={() => setSelectedMovie(null)}><p className="adminDetailDescription">{selectedMovie.description || 'Chưa có mô tả.'}</p><div className="adminDetailMedia"><figure><AdminMediaImage src={movieImageUrl(getMoviePoster(selectedMovie))} alt={'Poster ' + selectedMovie.title} /><figcaption><a href={movieImageUrl(getMoviePoster(selectedMovie))} target="_blank" rel="noopener noreferrer">Mở poster ↗</a></figcaption></figure>{selectedMovie.banner && <figure><AdminMediaImage src={movieImageUrl(selectedMovie.banner)} alt={'Banner ' + selectedMovie.title} /><figcaption><a href={movieImageUrl(selectedMovie.banner)} target="_blank" rel="noopener noreferrer">Mở banner ↗</a></figcaption></figure>}</div><dl className="adminDetailFacts"><div><dt>Thể loại</dt><dd>{selectedMovie.genre.join(' · ')}</dd></div><div><dt>Phân loại</dt><dd>{classificationOf(selectedMovie)}</dd></div><div><dt>Thời lượng</dt><dd>{selectedMovie.duration} phút</dd></div><div><dt>Đánh giá</dt><dd>{selectedMovie.rating ?? 0}/10</dd></div></dl></AdminDetailDialog>}
       </div>
     </main>
   );
