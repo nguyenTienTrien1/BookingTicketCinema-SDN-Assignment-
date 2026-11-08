@@ -290,14 +290,14 @@ export default function CinemaMain({ workspace = 'customer' }) {
   return (
     <div className="app">
       <div className={`app-shell ${isAdminDashboard ? 'adminShell' : ''}`}>
-        {isCounterStaff && !isAdminDashboard && <StaffHeader onAccount={() => setTab('account')} onBookTickets={() => setTab('booking')} />}
+        {isCounterStaff && !isAdminDashboard && <StaffHeader activeTab={tab} onAccount={() => setTab('account')} onBookTickets={() => setTab('booking')} />}
         {!isCounterStaff && !hideHeader && (
           <Header tab={tab} setTab={setTab} user={user} onSearch={setSearchQuery} />
         )}
         <main
           className={`main-content ${
             tab !== 'home' && tab !== 'login' ? 'subpage' : ''
-          } ${isAdminDashboard ? 'adminMainContentWrapper' : ''}`}
+          } ${isAdminDashboard ? 'adminMainContentWrapper' : ''} ${isCounterStaff ? 'staffMainContent' : ''}`}
         >
           {isCounterStaff && counterRecovery && tab !== 'counter-payment' && <aside className="paymentNotice counterResume" aria-label="Đơn đang xử lý">
             <div>

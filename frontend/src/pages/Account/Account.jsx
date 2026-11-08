@@ -5,6 +5,7 @@ import { BookingHistory } from './BookingHistory';
 import { ProfilePanel } from './Profile';
 import EmployeeActions from './EmployeeActions';
 import { loginPathForRoles } from '../../utils/permissions';
+import { translateAccountStatus } from '../../utils/uiText';
 import './employeeAccount.css';
 
 export default function Account({ user, setTab, setPending, initialSection }) {
@@ -36,10 +37,11 @@ export default function Account({ user, setTab, setPending, initialSection }) {
         <section className={`page accountPage${isEmployee ? ' employeeAccount' : ''}`}>
             <div className={isEmployee ? 'employeeAccountHeader' : undefined}>
             <div className="accountPageHeading">
-                <p className="bookingEyebrow">{isEmployee ? 'NHÂN VIÊN CINEMA+' : 'TÀI KHOẢN CINEMA+'}</p>
-                <h2>{isEmployee ? 'Hồ sơ nhân viên' : 'Tài khoản của tôi'}</h2>
-                <p>{isEmployee ? 'Quản lý hồ sơ cá nhân và truy cập các nghiệp vụ tại quầy.' : 'Quản lý thông tin cá nhân và lịch sử đặt vé.'}</p>
+                <p className="bookingEyebrow">{isEmployee ? 'CINEMA+ / KHÔNG GIAN NHÂN VIÊN' : 'TÀI KHOẢN CINEMA+'}</p>
+                <h2>{isEmployee ? `Xin chào, ${user.fullName}` : 'Tài khoản của tôi'}</h2>
+                <p>{isEmployee ? 'Sẵn sàng phục vụ khách? Chọn nghiệp vụ để bắt đầu.' : 'Quản lý thông tin cá nhân và lịch sử đặt vé.'}</p>
             </div>
+            {isEmployee && <div className="employeeIdentity"><span className="employeeIdentityAvatar" aria-hidden="true">{user.fullName.trim().charAt(0).toUpperCase()}</span><div><strong>Nhân viên quầy</strong><span data-status={user.status}>{translateAccountStatus(user.status)}</span></div></div>}
 
             {!isEmployee && <button type="button" className="ghost" disabled={loggingOut} onClick={async () => {
                 if (loggingOut) return;
@@ -74,8 +76,9 @@ export default function Account({ user, setTab, setPending, initialSection }) {
             </div>}
             {activeSection === 'profile' ? (
                 <div className={isEmployee ? 'employeeAccountLayout' : undefined}>
-                    <ProfilePanel />
-                    {isEmployee && <EmployeeActions onBookTickets={() => setTab('booking')} />}
+                    {isEmployee ? <><EmployeeActions onBookTickets={() => setTab('booking')} />
+                      <details className="employeeProfileDisclosure"><summary><span className="employeeProfileSymbol" aria-hidden="true">◇</span><span><strong>Hồ sơ nhân viên</strong><small>Thông tin cá nhân, cập nhật hồ sơ và đổi mật khẩu</small></span><span className="employeeProfileExpand" aria-hidden="true">⌄</span></summary><ProfilePanel /></details>
+                    </> : <ProfilePanel />}
                 </div>
             ) : (
                 <BookingHistory

@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 
 const tasks = [
+    { title: 'Bán bắp nước', description: 'Chọn món, nhận tiền mặt và xuất hóa đơn F&B.', to: '/employee/food-sales', icon: 'food' },
     { title: 'Tra cứu thành viên', description: 'Tìm thông tin liên hệ, điểm và hạng thành viên.', to: '/employee/members', icon: 'search' },
     { title: 'Check-in vé', description: 'Quét QR và xác nhận khách vào rạp.', to: '/employee/check-in', icon: 'qr' },
     { title: 'Thu tiền & đối soát', description: 'Tiếp nhận đơn online, đơn tại quầy và xử lý khoản thu.', to: '/staff/tools', icon: 'receipt' },
-    { title: 'Bán bắp nước', description: 'Tạo đơn đồ ăn, thức uống riêng.', to: '/employee/food-sales', icon: 'food' },
 ];
 
 function TaskIcon({ name }) {
@@ -20,7 +20,6 @@ function TaskIcon({ name }) {
 export default function EmployeeActions({ onBookTickets }) {
     return <aside className="employeeTasks" aria-labelledby="employee-tasks-title">
         <div className="employeeTasksHeading">
-            <p className="bookingEyebrow">NGHIỆP VỤ NHÂN VIÊN</p>
             <h2 id="employee-tasks-title">Tác vụ tại quầy</h2>
             <p>Chọn nghiệp vụ để bắt đầu phục vụ khách.</p>
         </div>
@@ -30,7 +29,7 @@ export default function EmployeeActions({ onBookTickets }) {
                 <span className="employeeTaskText"><strong id="employee-task-ticket">Bán vé tại quầy</strong><span id="employee-task-description-ticket">Chọn phim, giữ ghế và tạo đơn vé.</span></span>
                 <span className="employeeTaskArrow" aria-hidden="true">→</span>
             </button>
-            {tasks.map(task => <Link key={task.to} to={task.to} className="employeeTask" aria-labelledby={`employee-task-${task.icon}`} aria-describedby={`employee-task-description-${task.icon}`}>
+            {tasks.map(task => <Link key={task.to} to={task.to} className={'employeeTask employeeTask-' + task.icon} aria-labelledby={`employee-task-${task.icon}`} aria-describedby={`employee-task-description-${task.icon}`}>
                 <span className="employeeTaskIcon"><TaskIcon name={task.icon} /></span>
                 <span className="employeeTaskText"><strong id={`employee-task-${task.icon}`}>{task.title}</strong><span id={`employee-task-description-${task.icon}`}>{task.description}</span></span>
                 <span className="employeeTaskArrow" aria-hidden="true">→</span>

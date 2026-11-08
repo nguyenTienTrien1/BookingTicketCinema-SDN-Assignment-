@@ -56,3 +56,47 @@
     .employeeTasks { padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .employeeTask { transition: none; } }
+.employeeAccount.page { max-width: 1200px; padding-top: 36px; padding-bottom: 48px; }
+.main-content.subpage.staffMainContent { padding-top: 0; }
+.employeeProfileDisclosure > summary:focus-visible { outline: 3px solid #ff9aa2; outline-offset: -4px; border-radius: 14px; }
+.employeeAccountHeader { align-items: center; padding: 28px 32px; border: 1px solid #49303c; border-radius: 18px; background: linear-gradient(115deg, #281a23, #181820 75%); }
+.employeeAccount .accountPageHeading { display: block; }
+.employeeAccount .accountPageHeading .bookingEyebrow { margin: 0 0 12px; font-size: 10px; letter-spacing: .16em; }
+.employeeAccount .accountPageHeading h2 { margin: 0 0 12px; font-size: clamp(24px, 3vw, 34px); line-height: 1.25; overflow-wrap: anywhere; }
+.employeeAccount .accountPageHeading > p:last-child { font-size: .88rem; line-height: 1.6; }
+.employeeIdentity { display: flex; align-items: center; gap: 12px; flex-shrink: 0; padding: 12px 16px; border: 1px solid #ffffff14; border-radius: 12px; background: #ffffff04; }
+.employeeIdentityAvatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #bd2345; font-size: 20px; font-weight: 750; }
+.employeeIdentity > div { display: grid; gap: 5px; font-size: .8rem; }
+.employeeIdentity > div > span { font-size: .72rem; color: #abb4c7; }
+.employeeIdentity [data-status=Active], .employeeIdentity [data-status=active] { color: #a4dfb8; }
+.employeeAccount .employeeAccountLayout { display: block; }
+.employeeAccount .employeeTasks { border: 0; padding: 0; background: transparent; }
+.employeeAccount .employeeTasksHeading { display: block; margin-bottom: 20px; }
+.employeeAccount .employeeTasksHeading h2 { margin: 0 0 7px; font-size: 20px; }
+.employeeAccount .employeeTaskNav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.employeeAccount .employeeTask { position: relative; display: grid; align-content: start; gap: 20px; min-height: 180px; padding: 24px; border-radius: 15px; background: #171920; }
+.employeeAccount .employeeTaskPrimary { grid-column: span 2; background: linear-gradient(110deg, #3b1b2a, #241b28); border-color: #6f3549; }
+.employeeAccount .employeeTask-food { background: linear-gradient(125deg, #32291d, #201d24); border-color: #584737; }
+.employeeAccount .employeeTask:hover { background-color: #24212a; border-color: #df718a; }
+.employeeAccount .employeeTaskIcon { width: 42px; height: 42px; border-radius: 11px; background: #422433; color: #ffb1c3; }
+.employeeAccount .employeeTask-food .employeeTaskIcon { background: #473521; color: #f6ce94; }
+.employeeAccount .employeeTaskText { gap: 8px; }
+.employeeAccount .employeeTaskText strong { font-size: 17px; }
+.employeeAccount .employeeTaskText > span { font-size: .83rem; line-height: 1.6; }
+.employeeAccount .employeeTaskArrow { position: absolute; right: 24px; top: 28px; font-size: 20px; }
+.employeeProfileDisclosure { margin-top: 26px; border: 1px solid #30343e; border-radius: 14px; background: #14161c; overflow: hidden; }
+.employeeProfileDisclosure > summary { display: flex; align-items: center; gap: 14px; padding: 20px 24px; cursor: pointer; list-style: none; }
+.employeeProfileDisclosure > summary::-webkit-details-marker { display: none; }
+.employeeProfileDisclosure > summary > span:nth-child(2) { display: grid; gap: 6px; }
+.employeeProfileDisclosure small { color: #9ba5b8; font-size: .8rem; line-height: 1.5; }
+.employeeProfileSymbol { color: #f4b5c7; font-size: 26px; }
+.employeeProfileExpand { margin-left: auto; font-size: 22px; color: #aeb6c8; }
+.employeeProfileDisclosure[open] .employeeProfileExpand { transform: rotate(180deg); }
+.employeeProfileDisclosure .memberProfile { border: 0; border-top: 1px solid #30343e; border-radius: 0; }
+.employeeProfileDisclosure:not([open]) > .memberProfile { display: none; }
+.employeeProfileDisclosure .profileGrid { margin: 20px 0; }
+.staffWorkspaceHeader nav :is(a, button) { font-size: .82rem; padding: 10px 12px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: #b9c1d1; }
+.staffWorkspaceHeader nav [aria-current=page] { color: #ffd1dd; background: #492333; border-color: #6a3549; }
+.staffWorkspaceHeader nav :is(a, button):hover { color: white; background: #252731; }
+@media (max-width: 760px) { .employeeAccountHeader { align-items: flex-start; flex-direction: column; padding: 24px; } .employeeAccount .employeeTaskNav { grid-template-columns: repeat(2, minmax(0, 1fr)); } .employeeAccount .employeeTaskPrimary { grid-column: span 1; } .employeeIdentity { padding: 8px 12px; } }
+@media (max-width: 560px) { .employeeAccount.page { padding-top: 20px; } .employeeAccount .employeeTaskNav { grid-template-columns: minmax(0, 1fr); } .employeeAccount .employeeTask { display: flex; align-items: center; min-height: 116px; padding: 20px; gap: 16px; } .employeeAccount .employeeTaskIcon { flex-shrink: 0; } .employeeAccount .employeeTaskText { padding-right: 12px; } .employeeAccount .employeeTaskText strong { font-size: 15px; } .employeeAccount .employeeTaskArrow { position: static; margin-left: auto; } .employeeProfileDisclosure > summary { padding: 18px; } .staffWorkspaceHeader { padding: 16px; gap: 14px; } .staffWorkspaceHeader nav { gap: 4px; } }
