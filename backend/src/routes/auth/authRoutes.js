@@ -1,6 +1,7 @@
 import {activateStaff} from '../../services/staffService.js';
 import { Router } from 'express';
 import { login, logout, getCurrentUser } from '../../controllers/auth/loginController.js';
+import { adminLogin } from '../../controllers/auth/adminLoginController.js';
 import { register, verifyEmail, resendVerification } from '../../controllers/auth/registerController.js';
 import { verifyToken } from '../../middleware/auth/verifyToken.js';
 import { forgotPassword, verifyPasswordReset, resetPassword } from '../../controllers/auth/passwordResetController.js';
@@ -20,8 +21,7 @@ router.post('/link-google', googleLimit, protectProfileWrite, verifyToken, requi
 
 // Public login routes
 router.post('/login', login);
-// Compatibility alias for older clients; role comes from the account.
-router.post('/admin/login', login);
+router.post('/admin/login', adminLogin);
 
 // UC-1: Member Registration & Email Verification (BR-1, BR-8)
 router.post('/register', register);

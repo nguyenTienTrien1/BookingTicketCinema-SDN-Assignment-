@@ -88,9 +88,16 @@ test('API authorization and booking regression', async (t) => {
       });
     }
   });
-  await t.test('one login authenticates every role, preserves HttpOnly sessions and ignores client role claims', async () => {
+  await t.test('Member and staff portals enforce database roles before issuing HttpOnly sessions', async () => {
     const employee = await User.create({ fullName: 'Employee', email: 'employee@test.local', password: 'password123', role: 'employee' });
-    for (const [user, portal] of [[member, '/auth/login'], [admin, '/auth/login'], [employee, '/auth/login']]) {
+    for (const [user, portal] of [[member, '/auth/login'], [admin, '/auth/admin/login'], [employee, '/auth/admin/login']]) {
+      const wrongPortal = portal === '/auth/login' ? '/auth/admin/login' : '/auth/login';
+      const before = await User.findById(user.id);
+      const rejected = await request(wrongPortal, null, 'POST', { email: user.email, password: 'password123', role: portal === '/auth/login' ? 'admin' : 'member', portalType: 'admin', allowedRoles: ['member', 'employee', 'admin'] });
+      assert.equal(rejected.status, 403);
+      assert.equal(rejected.cookie, null, 'Wrong portal must not issue a session');
+      assert.equal(rejected.data.user, undefined);
+      assert.equal((await User.findById(user.id)).lastLogin?.getTime(), before.lastLogin?.getTime());
       const result = await request(portal, null, 'POST', { email: '  ' + user.email.toUpperCase() + '  ', password: 'password123', role: 'admin', portalType: 'admin' });
       assert.equal(result.status, 200);
       assert.equal(result.data.user._id, user.id);
@@ -103,12 +110,24 @@ test('API authorization and booking regression', async (t) => {
       assert.equal((await restored.json()).user.role, user.role);
     }
     assert.equal((await request('/auth/login', null, 'POST', { email: admin.email, password: 'wrong-password' })).status, 401);
-    assert.equal((await request('/auth/admin/login', null, 'POST', { email: member.email, password: 'password123' })).status, 200);
+    assert.equal((await request('/auth/admin/login', null, 'POST', { email: member.email, password: 'wrong-password' })).status, 401);
     assert.equal((await request('/auth/login', null, 'POST', { email: member.email, password: 'wrong-password', role: 'admin' })).status, 401);
     const loggedOut = await request('/auth/logout', member, 'POST', {});
     assert.equal(loggedOut.status, 200);
     assert.match(loggedOut.cookie, /token=;/);
     assert.equal((await request('/auth/me')).status, 401);
+  });
+  await t.test('blocked or locked accounts cannot use either portal to obtain a session', async () => {
+    for (const role of ['member', 'employee', 'admin']) {
+      for (const state of [{ status: 'Banned' }, { status: 'Pending Activation' }, { lockUntil: new Date(Date.now() + 60000) }]) {
+        const account = await User.create({ fullName: role, email: randomUUID() + '@portal.test', password: 'password123', role, status: 'Active', ...state });
+        for (const portal of ['/auth/login', '/auth/admin/login']) {
+          const result = await request(portal, null, 'POST', { email: account.email, password: 'password123' });
+          assert.equal(result.status, 401);
+          assert.equal(result.cookie, null);
+        }
+      }
+    }
   });
   await t.test('five simultaneous wrong passwords lock account; expired lock permits correct login', async () => {
     const locked = await User.create({ fullName: 'Locked', email: 'locked@test.local', password: 'password123', status: 'Active' });

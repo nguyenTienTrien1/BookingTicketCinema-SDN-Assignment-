@@ -32,9 +32,9 @@ File sửa: `models/User.js`, `config/db.js`, `services/auth/loginService.js`, `
 
 Google ID Token được xác minh bằng `google-auth-library`: chữ ký, audience, issuer, expiry, subject, email đã xác minh và nonce. Token phải được cấp trong vòng 5 phút; thời điểm cấp phía Google được phép đi trước đồng hồ local tối đa 300 giây, nhất quán với dung sai của thư viện Google. Challenge có chữ ký, ràng buộc cookie trình duyệt, thao tác và Member đang đăng nhập. Google token chỉ dùng trong bộ nhớ lúc gọi API, không lưu localStorage và không dùng làm JWT Cinema+.
 
-Tài khoản mới từ Google là Member Active vì Google đã xác minh email. Tài khoản có sẵn luôn giữ nguyên role/status; email trùng tài khoản local yêu cầu đăng nhập local rồi liên kết, không tự merge. Google login tra theo `sub` đã liên kết và kiểm tra status/BR-7. Link luôn xác minh mật khẩu local qua cùng Auth Service để tránh bỏ qua khóa sau 5 lần sai. Google email phải trùng email Cinema+ khi liên kết.
+Google chỉ đăng nhập Member đã tồn tại và đã liên kết; không tự tạo hoặc khôi phục tài khoản. Google chưa có tài khoản Cinema+ trả 404 và hướng dẫn đăng ký rồi liên kết trong Hồ sơ → Bảo mật. Xóa document khỏi `users` khiến cả đăng nhập mật khẩu và Google bị từ chối; email không bị chiếm lại bởi đăng nhập Google. Tài khoản có sẵn luôn giữ nguyên role/status; email trùng tài khoản local chưa liên kết yêu cầu đăng nhập local rồi liên kết, không tự merge. Google login tra theo `sub` đã liên kết và kiểm tra status/BR-7. Link luôn xác minh mật khẩu local qua cùng Auth Service để tránh bỏ qua khóa sau 5 lần sai. Google email phải trùng email Cinema+ khi liên kết. Các tài khoản Google-only cũ vẫn đăng nhập được nếu document còn tồn tại.
 
-Set Password dùng bcrypt cost 10 rồi cập nhật có điều kiện trên document hiện tại, hash đúng một lần. Set Password và Link Google tăng `tokenVersion`, hết hạn mọi phiên cũ, yêu cầu đăng nhập lại. Các cập nhật kiểm tra lại trạng thái, khóa, version và provider/mật khẩu ngay tại MongoDB. Duplicate-key và các request đồng thời được xử lý an toàn. Không hỗ trợ Unlink trong phiên bản này.
+Set Password dùng bcrypt cost 10 rồi cập nhật có điều kiện trên document hiện tại, hash đúng một lần. Set Password và Link Google tăng `tokenVersion`, hết hạn mọi phiên cũ. Set Password yêu cầu đăng nhập lại. Link Google cấp cookie phiên mới ngay cho trình duyệt vừa xác thực thành công, cập nhật trạng thái liên kết tại Hồ sơ và không yêu cầu đăng nhập lại. Các cập nhật kiểm tra lại trạng thái, khóa, version và provider/mật khẩu ngay tại MongoDB. Duplicate-key và các request đồng thời được xử lý an toàn. Không hỗ trợ Unlink trong phiên bản này.
 
 Các endpoint mới có rate limit theo IP socket, JSON và kiểm tra Origin/Fetch Metadata theo cơ chế Profile hiện có; không log credential/hash/password. Rate limiter hiện dùng bộ nhớ của một Node process, theo giới hạn hạ tầng hiện tại.
 
@@ -120,10 +120,11 @@ npm run build
 
 ## Demo sau khi cấu hình Client ID
 
-1. Dùng tài khoản Google test chưa có Cinema+ → Login → Tiếp tục với Google. Mở Tài khoản → Hồ sơ, ghi lại `_id` qua Network response; Google đã liên kết, mật khẩu chưa thiết lập.
-2. Bảo mật → Đặt mật khẩu → nhập/xác nhận → xác thực lại cùng Google. Sau thành công, đăng nhập bằng email/mật khẩu vừa tạo và kiểm tra cùng `_id`.
+1. Dùng tài khoản Google test chưa có Cinema+ → Login → Đăng nhập bằng Google. Phải báo không tìm thấy tài khoản và không tạo document `users`. Đăng ký bằng email, kích hoạt rồi đăng nhập local để liên kết Google trong Hồ sơ → Bảo mật.
+2. Với tài khoản Google-only cũ còn tồn tại: Bảo mật → Đặt mật khẩu → nhập/xác nhận → xác thực lại cùng Google. Sau thành công, đăng nhập bằng email/mật khẩu vừa tạo và kiểm tra cùng `_id`.
 3. Đăng xuất, đăng nhập lại Google; kiểm tra profile, điểm và booking history không thay đổi.
 4. Với tài khoản local có sẵn: thử Google cùng email để thấy hướng dẫn liên kết → đăng nhập local → Hồ sơ → Liên kết Google → nhập mật khẩu hiện tại → chọn Google cùng email. Sau đó thử cả hai cách đăng nhập.
 5. Kiểm tra Forgot Password cho tài khoản đã có mật khẩu local; Google login vẫn hoạt động sau reset. Google-only phải đăng nhập Google rồi Đặt mật khẩu.
+6. Xóa tài khoản test trong database test rồi thử cả mật khẩu và Google. Cả hai phải thất bại; Google không tạo lại tài khoản. Không thử xóa tài khoản thật có lịch sử giao dịch.
 
 **Tiêu chí dữ liệu:** một Member `_id`, hai cách đăng nhập, cùng hồ sơ/điểm và lịch sử đặt vé. Không cần migration dữ liệu Member hoặc collection riêng cho Google.

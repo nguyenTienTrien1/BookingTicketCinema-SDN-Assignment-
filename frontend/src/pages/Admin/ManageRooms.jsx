@@ -105,7 +105,7 @@ export default function ManageRooms() {
           <caption className="movieSrOnly">Phòng chiếu và cấu hình ghế</caption><thead><tr><th>Rạp / Phòng</th><th>Sức chứa</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
           <tbody>{result.rooms.map(room => <tr key={room._id}><td><strong>{room.name}</strong><div className="movieGenres">{room.cinema}</div></td><td>{room.capacity} ghế</td>
             <td><span className={`movieBadge roomStatus roomStatus${room.status}`}>{labels[room.status]}</span></td><td><div className="roomActions">
-              <Link className="movieSecondary roomAction roomActionEdit" to={`/admin/rooms/${room._id}/seats`}>Cấu hình ghế</Link>
+              <Link className="movieSecondary roomAction roomActionConfigure" to={`/admin/rooms/${room._id}/seats`}>Cấu hình ghế</Link>
               <button className="movieSecondary roomAction roomActionEdit" disabled={saving} onClick={() => open('edit', room)} aria-label={`Sửa ${room.name}`}>Sửa</button>
               <button className="movieSecondary roomAction roomActionDelete" disabled={saving} onClick={() => open('delete', room)} aria-label={`Xóa ${room.name}`}>Xóa</button>
             </div></td></tr>)}</tbody></table></div>}

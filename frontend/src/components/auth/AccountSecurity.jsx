@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { linkGoogleAccount, setLocalPassword } from '../../services/auth/authService';
 import GoogleSignIn from './GoogleSignIn';
 
-export default function AccountSecurity({ methods }) {
+export default function AccountSecurity({ methods, onLinked }) {
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const [action, setAction] = useState('');
@@ -12,6 +12,7 @@ export default function AccountSecurity({ methods }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
   function cancel() {
     setAction('');
@@ -28,6 +29,11 @@ export default function AccountSecurity({ methods }) {
         result = await setLocalPassword({ newPassword, confirmPassword, credential });
       } else {
         result = await linkGoogleAccount({ currentPassword, credential });
+        setUser(result.user);
+        onLinked?.(result.user.loginMethods);
+        cancel();
+        setMessage(result.message);
+        return;
       }
       setUser(null);
       navigate('/login', { replace: true, state: { message: result.message } });
@@ -41,6 +47,7 @@ export default function AccountSecurity({ methods }) {
 
   return <section className="profileSecurity" aria-labelledby="login-methods-title">
     <h3 id="login-methods-title">Bảo mật · Phương thức đăng nhập</h3>
+    {message && <p className="profileSuccess" role="status">{message}</p>}
     <dl className="profileGrid">
       <div><dt>Google</dt><dd>{methods.google ? 'Đã liên kết' : 'Chưa liên kết'}</dd>
         {methods.googleEmail && <dd>{methods.googleEmail}</dd>}</div>
@@ -53,8 +60,8 @@ export default function AccountSecurity({ methods }) {
     {action && <form onSubmit={event => event.preventDefault()}>
       <h4>{action === 'set-password' ? 'Đặt mật khẩu Cinema+' : 'Liên kết tài khoản Google'}</h4>
       <p className="profileHint" id="google-security-help">{action === 'set-password'
-        ? 'Nhập mật khẩu mới có ít nhất 6 ký tự (tối đa 72 byte UTF-8), rồi xác thực lại bằng Google đã liên kết để lưu.'
-        : 'Nhập mật khẩu Cinema+ hiện tại, rồi xác thực Google có cùng email để liên kết.'} Sau khi lưu thành công, bạn cần đăng nhập lại.</p>
+        ? 'Nhập mật khẩu mới có ít nhất 6 ký tự (tối đa 72 byte UTF-8), rồi xác thực lại bằng Google đã liên kết để lưu. Sau khi lưu thành công, bạn cần đăng nhập lại.'
+        : 'Nhập mật khẩu Cinema+ hiện tại, rồi chọn Tiếp tục với Google để xác thực tài khoản có cùng email và hoàn tất liên kết.'}</p>
       <fieldset className="profileFields profilePasswordFields" disabled={saving} aria-describedby="google-security-help">
         {action === 'link-google' ? <label htmlFor="google-link-password">Mật khẩu Cinema+ hiện tại
           <input id="google-link-password" type="password" autoComplete="current-password" required maxLength={72} value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} />

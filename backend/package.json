@@ -18,6 +18,7 @@
     "test:password-reset": "node --test test_password_reset.js",
     "test:google-auth": "node --test test_google_auth.js",
     "test:google-auth:ui": "node --test scripts/test-google-auth-ui.js",
+    "test:login-portals:ui": "node --test scripts/test-login-portals-ui.js",
     "test:showtimes": "node --test test_showtimes.js",
     "test:showtime-suggestions": "node --test test_showtime_suggestions.js",
     "test:rooms": "node --test test_rooms.js",

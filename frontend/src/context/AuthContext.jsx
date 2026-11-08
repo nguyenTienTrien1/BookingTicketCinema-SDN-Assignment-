@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { loginUser, loginGoogle, logout as apiLogout, getMe } from '../services/auth/authService';
+import { loginUser, loginAdmin, loginGoogle, logout as apiLogout, getMe } from '../services/auth/authService';
 
 const AuthContext = createContext(null);
 
@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const sessionRevision = useRef(0);
 
   // Restore authenticated session on page refresh via HttpOnly cookie
@@ -32,15 +33,16 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  async function login(email, password) {
+  async function login(email, password, portal = 'member') {
     const revision = ++sessionRevision.current;
     setError('');
     try {
-      const response = await loginUser({ email, password });
+      const response = await (portal === 'staff' ? loginAdmin : loginUser)({ email, password });
 
       if (!response.user?._id) throw new Error('Phản hồi đăng nhập không hợp lệ.');
       if (revision === sessionRevision.current) {
         setUser(response.user);
+        setNotice('');
         setLoading(false);
       }
       return response.user;
@@ -58,6 +60,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setLoading(false);
     setError('');
+    setNotice('');
   }
 
   async function googleLogin(credential) {
@@ -68,6 +71,7 @@ export function AuthProvider({ children }) {
     if (!response.user?._id) throw new Error('Phản hồi đăng nhập không hợp lệ.');
     if (revision === sessionRevision.current) {
       setUser(response.user);
+      setNotice('');
       setLoading(false);
     }
     return response.user;
@@ -79,6 +83,8 @@ export function AuthProvider({ children }) {
     loading,
     error,
     setError,
+    notice,
+    setNotice,
     login,
     googleLogin,
     logout,

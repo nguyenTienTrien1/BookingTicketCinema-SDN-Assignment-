@@ -66,7 +66,9 @@ export async function setPassword(req, res, next) {
 
 export async function linkGoogle(req, res, next) {
   try {
-    await service.linkGoogle(req.user._id, req.body, readNonce(req, 'link-google'));
-    finishSecurityChange(res, 'Liên kết Google thành công. Vui lòng đăng nhập lại.');
+    const { user, token } = await service.linkGoogle(req.user._id, req.body, readNonce(req, 'link-google'));
+    clearChallenge(res);
+    res.cookie('token', token, getCookieOptions());
+    res.json({ success: true, message: 'Liên kết Google thành công.', user });
   } catch (error) { next(error); }
 }

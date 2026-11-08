@@ -1,26 +1,31 @@
 .roomAdmin {
   font-family: 'Be Vietnam Pro', Inter, Arial, sans-serif;
   --room-ok: #a7f3d0; --room-ok-bg: #14332b; --room-ok-border: #3b916f;
-  --room-info: #bfdbfe; --room-info-bg: #172b46; --room-info-border: #5384b9;
   --room-warn: #f8d38b; --room-warn-bg: #3b2c16; --room-warn-border: #aa8040;
   --room-error: #fecdd3; --room-error-bg: #411c26; --room-error-border: #c06a7d;
   --room-muted: #cbd5e1; --room-muted-bg: #222631; --room-muted-border: #64748b;
+  --room-control-text: #e3e3e8; --room-control-bg: #202127; --room-control-border: #42444e;
 }
 .roomStatus, .roomTypeChip, .roomSelectionChip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid; border-radius: 5px; font-size: 12px; font-weight: 600; line-height: 1.5; }
 .roomStatus::before { content: ''; width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
-.roomAdmin .roomStatusActive { color: var(--room-ok); background: var(--room-ok-bg); border-color: var(--room-ok-border); }
-.roomAdmin .roomStatusInactive, .roomAdmin .roomStatusDisabled, .roomAdmin .roomTypeStandard { color: var(--room-muted); background: var(--room-muted-bg); border-color: var(--room-muted-border); }
-.roomAdmin .roomStatusMaintenance, .roomAdmin .roomTypeVIP { color: var(--room-warn); background: var(--room-warn-bg); border-color: var(--room-warn-border); }
-.roomAdmin .roomStatusBroken { color: var(--room-error); background: var(--room-error-bg); border-color: var(--room-error-border); }
-.roomAdmin .roomStatusSelect option, .roomAdmin .roomTypeSelect option { background: #12141a; }
-.roomAdmin .roomActionAdd, .roomAdmin .roomActionSave { color: var(--room-ok); background: var(--room-ok-bg); border-color: var(--room-ok-border); }
-.roomAdmin .roomActionEdit { color: var(--room-info); background: var(--room-info-bg); border-color: var(--room-info-border); }
-.roomAdmin .roomActionDelete { color: var(--room-error); background: var(--room-error-bg); border-color: var(--room-error-border); }
-.roomAdmin .roomActionWarning { color: var(--room-warn); background: var(--room-warn-bg); border-color: var(--room-warn-border); }
-.roomAdmin .roomActionAdd:hover:not(:disabled), .roomAdmin .roomActionSave:hover:not(:disabled) { background: #1d493c; }
-.roomAdmin .roomActionEdit:hover:not(:disabled) { background: #223f63; }
-.roomAdmin .roomActionDelete:hover:not(:disabled) { background: #572434; }
-.roomAdmin .roomActionWarning:hover:not(:disabled) { background: #503c20; }
+.roomAdmin .roomStatus { color: #c5c6cf; background: #202127; border-color: #3a3c45; }
+.roomTable .roomStatusActive::before { background: #8ab69c; }
+.roomTable .roomStatusMaintenance::before { background: #cbb07d; }
+.roomTable .roomStatusInactive::before { background: #868994; }
+.roomAdmin .roomSeatLegend .roomStatusActive { color: var(--room-ok); background: var(--room-ok-bg); border-color: var(--room-ok-border); }
+.roomAdmin .roomSeatLegend .roomStatusDisabled, .roomAdmin .roomSeatLegend .roomTypeStandard { color: var(--room-muted); background: var(--room-muted-bg); border-color: var(--room-muted-border); }
+.roomAdmin .roomSeatLegend .roomStatusMaintenance, .roomAdmin .roomSeatLegend .roomTypeVIP { color: var(--room-warn); background: var(--room-warn-bg); border-color: var(--room-warn-border); }
+.roomAdmin .roomSeatLegend .roomStatusBroken { color: var(--room-error); background: var(--room-error-bg); border-color: var(--room-error-border); }
+.roomAdmin :is(.roomStatusSelect, .roomTypeSelect), .roomAdmin :is(.roomStatusSelect, .roomTypeSelect) option { color: var(--room-control-text); background: #0c0e13; border-color: var(--room-control-border); }
+.roomAdmin .roomAction { color: var(--room-control-text); background: var(--room-control-bg); border-color: var(--room-control-border); }
+.roomAdmin .roomAction:hover:not(:disabled) { background: #2d2f37; border-color: #686b76; }
+.roomAdmin .moviePrimary:not(.roomActionDelete) { color: #17181d; background: #e3e3e8; border-color: #e3e3e8; }
+.roomAdmin .moviePrimary:not(.roomActionDelete):hover:not(:disabled) { background: #fff; border-color: #fff; }
+.roomAdmin .roomActionDelete:hover:not(:disabled), .roomAdmin .moviePrimary.roomActionDelete { color: var(--room-error); background: var(--room-error-bg); border-color: var(--room-error-border); }
+.roomAdmin .moviePrimary.roomActionDelete:hover:not(:disabled) { background: #572434; }
+.roomAdmin .movieAdminHeading .movieEyebrow { color: #aeb0ba; }
+.roomAdmin :is(a, button, input, textarea, select, summary):not(.roomSeat):focus-visible { outline: 2px solid #b9bbc5; outline-offset: 3px; }
+.roomAdmin .roomSeatShell > .movieWarning { color: #bfc1cb; background: #191a20; border: 1px solid #343640; }
 .roomEditorPanel { margin-bottom: 24px; }
 .roomToolbar label { flex: 1 1 160px; display: flex; flex-direction: column; gap: 8px; }
 .roomToolbar { align-items: flex-end; }
@@ -28,6 +33,12 @@
 .roomTable td:first-child { width: 30%; }
 .roomTable td:last-child { min-width: 270px; }
 .roomTable .movieSecondary { padding: 9px 12px; }
+.roomAdmin .roomTable .roomActionConfigure { color: #bfdbfe; background: #172b46; border-color: #3d648d; }
+.roomAdmin .roomTable .roomActionEdit { color: #f2d391; background: #332a1c; border-color: #77613f; }
+.roomAdmin .roomTable .roomActionDelete { color: #f0b9c3; background: #352027; border-color: #81505c; }
+.roomAdmin .roomTable .roomActionConfigure:hover:not(:disabled) { background: #223f63; border-color: #6d9ac9; }
+.roomAdmin .roomTable .roomActionEdit:hover:not(:disabled) { background: #493a24; border-color: #b19158; }
+.roomAdmin .roomTable .roomActionDelete:hover:not(:disabled) { background: #512a35; border-color: #ba7485; }
 .roomSeatShell { max-width: 1280px; }
 .roomSeatEditor { border: 0; margin: 0; padding: 24px; min-width: 0; }
 .roomLayoutTools { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
@@ -64,7 +75,7 @@
 .roomSeatProperties p { font-size: 13px; overflow-wrap: anywhere; max-height: 120px; overflow: auto; line-height: 1.7; color: #b9c0d1; }
 .roomSeatProperties label { display: flex; flex-direction: column; gap: 9px; margin: 20px 0 10px; font-size: 13px; }
 .roomSeatProperties button { width: 100%; white-space: normal; }
-.roomDanger { color: #fecdd3; margin: 24px 0 12px; }
+.roomDanger { margin: 24px 0 12px; }
 .roomEditorActions { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
 .roomReview { padding: 24px; }
 .roomReviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
@@ -73,7 +84,7 @@
 .roomReviewGrid li { margin-bottom: 8px; }
 .roomReviewGrid > div { max-height: 240px; overflow: auto; border-top: 1px solid #292e3b; }
 .roomReview .movieError { margin: 0; }
-.roomAdmin :is(h2, [tabindex]):focus-visible { outline: 2px solid #fb7185; outline-offset: 4px; }
+.roomAdmin :is(h2, [tabindex]):focus-visible { outline: 2px solid #b9bbc5; outline-offset: 4px; }
 @media (max-width: 900px) {
   .roomSeatWorkspace { grid-template-columns: minmax(0, 1fr); }
   .roomSeatProperties { padding: 24px 0 0; border-left: 0; border-top: 1px solid #292e3b; }

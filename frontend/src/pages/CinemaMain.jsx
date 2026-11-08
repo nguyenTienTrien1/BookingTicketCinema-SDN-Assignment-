@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import "../index.css";
 import Header from "../components/Header";
+import StaffHeader from '../components/StaffHeader';
 import Home from "./Home/Home";
 import Movies from "./Home/Movies";
 import Showtimes from "./Home/Showtimes";
@@ -18,7 +19,7 @@ import { getFoods } from "../services/foodService";
 import { useAuth } from "../context/AuthContext";
 import { canOpenTab } from "../utils/permissions";
 
-export default function CinemaMain() {
+export default function CinemaMain({ workspace = 'customer' }) {
   const location = useLocation();
   const { user: authUser, setUser: setAuthUser } = useAuth();
   const [movies, setMovies] = useState([]);
@@ -38,22 +39,19 @@ export default function CinemaMain() {
   const counterStorageKey = 'cinema-counter-booking-' + user?._id;
   const [counterRecovery, setCounterRecovery] = useState(null);
   const [recoveryRetry, setRecoveryRetry] = useState(0);
-  const [tab, setTab] = useState(
-    location.pathname === "/account" ? "account" : "home",
+  const [tab, setActiveTab] = useState(
+    workspace === 'staff' || location.pathname === "/account" ? "account" : "home",
   );
+  const setTab = useCallback(next => {
+    const target = isCounterStaff ? ({ booking: 'counter-booking', payment: 'counter-payment' }[next] || next) : next;
+    setActiveTab(canOpenTab(user?.role, target) ? target : isCounterStaff ? 'account' : 'home');
+  }, [user?.role, isCounterStaff]);
   useEffect(() => {
-    if (location.pathname === "/account") {
+    if (workspace === 'staff' || location.pathname === "/account") {
       const task = new URLSearchParams(location.search).get('task');
       setTab(isCounterStaff && ['booking', 'payment'].includes(task) ? task : 'account');
-    } else if (
-      user?.role === "admin" &&
-      location.pathname === "/" &&
-      !sessionStorage.getItem("cinema_preview_customer")
-    ) {
-      setTab("account");
     }
-  }, [location.key, location.pathname, location.search, user?.role, isCounterStaff]);
-  const [loginReturnTab, setLoginReturnTab] = useState("home");
+  }, [workspace, location.key, location.pathname, location.search, setTab, isCounterStaff]);
   const [msg, setMsg] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCinemaFilter, setSelectedCinemaFilter] = useState("");
@@ -106,7 +104,7 @@ export default function CinemaMain() {
   );
 
   useEffect(() => {
-    if (tab !== "booking") return;
+    if (!['booking', 'counter-booking'].includes(tab)) return;
     let active = true;
     const refresh = () =>
       Promise.all([getShowtimes(), getFoods()])
@@ -130,6 +128,7 @@ export default function CinemaMain() {
   }, [tab]);
 
   useEffect(() => {
+    if (isCounterStaff && !['counter-booking', 'counter-payment'].includes(tab)) return;
     let active = true;
     setDataLoading(true);
     setDataError("");
@@ -154,7 +153,7 @@ export default function CinemaMain() {
       active = false;
       window.removeEventListener("select-showtime", handleShowtimeSelection);
     };
-  }, [dataRetry]);
+  }, [dataRetry, isCounterStaff, isCounterStaff ? tab : null]);
 
   useEffect(() => {
     if (!msg) return undefined;
@@ -163,7 +162,6 @@ export default function CinemaMain() {
   }, [msg]);
 
   const requireBookingLogin = () => {
-    setLoginReturnTab("booking");
     setMsg("Vui lòng đăng nhập để tiếp tục đặt vé.");
     setTab("login");
   };
@@ -221,17 +219,16 @@ export default function CinemaMain() {
         <Login
           {...props}
           onCancelLogin={() => {
-            setLoginReturnTab("home");
             setTab("home");
           }}
           onLoginSuccess={() => {
-            setTab(loginReturnTab);
-            setLoginReturnTab("home");
+            setTab("home");
           }}
         />
       );
       break;
     case "booking":
+    case "counter-booking":
       page = <Booking {...props} />;
       break;
     case "movie-detail":
@@ -240,6 +237,7 @@ export default function CinemaMain() {
       );
       break;
     case "payment":
+    case "counter-payment":
       page = <Payment {...props} onDone={() => setTab("home")} />;
       break;
     case "account":
@@ -292,7 +290,8 @@ export default function CinemaMain() {
   return (
     <div className="app">
       <div className={`app-shell ${isAdminDashboard ? 'adminShell' : ''}`}>
-        {!hideHeader && (
+        {isCounterStaff && !isAdminDashboard && <StaffHeader onAccount={() => setTab('account')} onBookTickets={() => setTab('booking')} />}
+        {!isCounterStaff && !hideHeader && (
           <Header tab={tab} setTab={setTab} user={user} onSearch={setSearchQuery} />
         )}
         <main
@@ -300,7 +299,7 @@ export default function CinemaMain() {
             tab !== 'home' && tab !== 'login' ? 'subpage' : ''
           } ${isAdminDashboard ? 'adminMainContentWrapper' : ''}`}
         >
-          {isCounterStaff && counterRecovery && tab !== 'payment' && <aside className="paymentNotice counterResume" aria-label="Đơn đang xử lý">
+          {isCounterStaff && counterRecovery && tab !== 'counter-payment' && <aside className="paymentNotice counterResume" aria-label="Đơn đang xử lý">
             <div>
             <p><strong>Đơn đang xử lý: {counterRecovery.id}</strong></p>
             <p>{counterRecovery.loading ? 'Đang kiểm tra trạng thái mới nhất…' : counterRecovery.error || 'Bạn có thể tiếp tục đơn này; thời hạn giữ ghế không được kéo dài.'}</p>

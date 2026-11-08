@@ -52,11 +52,12 @@ test('Google authentication UI with real API/database and simulated GIS', async 
   }
   const base = await frontend(process.env.GOOGLE_CLIENT_ID);
   process.env.CORS_ORIGIN = base;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ channel: process.env.E2E_BROWSER_CHANNEL, headless: true });
   t.after(() => browser.close());
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
   const page = await context.newPage();
   page.setDefaultTimeout(10000);
+  page.setDefaultNavigationTimeout(30000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const who = { sub: randomUUID(), email: `${randomUUID()}@google-ui.test`, name: 'Google UI Test' };
@@ -66,9 +67,10 @@ test('Google authentication UI with real API/database and simulated GIS', async 
     let config;
     window.google = { accounts: { id: {
       initialize(value) { config = value; },
-      renderButton(container) {
+      renderButton(container, options) {
         const button = document.createElement('button');
         button.type = 'button';
+        button.dataset.googleText = options.text;
         button.textContent = 'Tiếp tục với Google (test)';
         button.onclick = () => {
           const now = Math.floor(Date.now() / 1000);
@@ -89,20 +91,34 @@ test('Google authentication UI with real API/database and simulated GIS', async 
     await page.getByLabel('Địa chỉ email', { exact: true }).fill(email);
     await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-    await page.waitForURL('**/account');
+    await page.waitForURL(base + '/');
     await page.goto(base + '/account?section=profile');
   }
 
-  await t.test('Google sign-in, Google-only methods, set password, local login and refresh keep one Member', async () => {
+  await t.test('unknown Google identity shows an account-not-found error without creating a User', async () => {
+    const before = await User.countDocuments();
+    await page.goto(base + '/login');
+    await googleButton();
+    await page.getByRole('alert').filter({ hasText: 'Không tìm thấy tài khoản' }).waitFor();
+    assert.equal(new URL(page.url()).pathname, '/login');
+    assert.equal((await context.cookies()).some(cookie => cookie.name === 'token'), false);
+    assert.equal(await User.countDocuments(), before);
+    assert.equal(await User.countDocuments({ email: who.email }), 0);
+  });
+
+  await t.test('existing Google Member can sign in, set a password and retain the same account', async () => {
+    const existing = await User.create({ fullName: who.name, email: who.email, googleId: who.sub, googleEmail: who.email, role: 'member', status: 'Active' });
     await page.goto(base + '/login');
     await page.getByRole('button', { name: 'Tiếp tục với Google (test)' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Tiếp tục với Google (test)' }).getAttribute('data-google-text'), 'signin_with');
     await screenshot('login-desktop');
     await googleButton();
-    await page.waitForURL('**/account');
+    await page.waitForURL(base + '/');
     await page.goto(base + '/account?section=profile');
     await page.getByRole('heading', { name: /Phương thức đăng nhập/ }).waitFor();
     const account = await User.findOne({ googleId: who.sub }).select('+googleId');
     assert.ok(account);
+    assert.equal(account.id, existing.id);
     assert.equal(account.password, undefined);
     await page.getByText('Chưa thiết lập', { exact: true }).waitFor();
     assert.equal(await page.getByRole('button', { name: 'Đổi mật khẩu', exact: true }).count(), 0);
@@ -129,6 +145,33 @@ test('Google authentication UI with real API/database and simulated GIS', async 
     await screenshot('linked-profile-mobile');
   });
 
+  await t.test('deleting a linked account blocks both password and Google login without recreating it', async () => {
+    await context.clearCookies();
+    const identity = { sub: randomUUID(), email: `${randomUUID()}@deleted-google-ui.test`, name: 'Deleted Google Member' };
+    const account = await User.create({ fullName: identity.name, email: identity.email, password: 'DeletedPassword123!', googleId: identity.sub, googleEmail: identity.email, role: 'member', status: 'Active' });
+    await page.goto(base + '/login');
+    await page.evaluate(value => { window.testGoogleIdentity = value; }, identity);
+    await googleButton();
+    await page.waitForURL(base + '/');
+    await User.deleteOne({ _id: account._id });
+    await page.goto(base + '/login');
+    await page.evaluate(value => { window.testGoogleIdentity = value; }, identity);
+    await page.getByLabel('Địa chỉ email', { exact: true }).fill(identity.email);
+    await page.getByLabel('Mật khẩu', { exact: true }).fill('DeletedPassword123!');
+    const passwordResult = page.waitForResponse(r => new URL(r.url()).pathname === '/api/auth/login' && r.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+    assert.equal((await passwordResult).status(), 401);
+    await page.getByRole('alert').filter({ hasText: 'Email hoặc mật khẩu không chính xác' }).waitFor();
+    const googleResult = page.waitForResponse(r => new URL(r.url()).pathname === '/api/auth/google' && r.request().method() === 'POST');
+    await googleButton();
+    assert.equal((await googleResult).status(), 404);
+    await page.getByRole('alert').filter({ hasText: 'Không tìm thấy tài khoản' }).waitFor();
+    assert.equal(await User.countDocuments({ email: identity.email }), 0);
+    assert.equal(await User.countDocuments({ googleId: identity.sub }), 0);
+    assert.equal((await page.request.get(base + '/api/auth/me')).status(), 401);
+    await screenshot('deleted-account-login-error');
+  });
+
   await t.test('existing local email collision shows linking guidance; linking requires current password', async () => {
     await context.clearCookies();
     const local = await User.create({ fullName: 'Local UI Member', email: `${randomUUID()}@google-ui.test`, password: 'LocalPassword123!', status: 'Active' });
@@ -142,11 +185,21 @@ test('Google authentication UI with real API/database and simulated GIS', async 
     await page.evaluate(value => { window.testGoogleIdentity = value; }, identity);
     await page.getByRole('button', { name: 'Liên kết tài khoản Google', exact: true }).click();
     await page.getByLabel('Mật khẩu Cinema+ hiện tại', { exact: true }).fill('LocalPassword123!');
+    await page.getByRole('button', { name: 'Tiếp tục với Google (test)' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Tiếp tục với Google (test)' }).getAttribute('data-google-text'), 'continue_with');
     await googleButton();
-    await page.waitForURL('**/login');
     await page.getByRole('status').filter({ hasText: 'Liên kết Google thành công' }).waitFor();
+    assert.equal(page.url(), base + '/account?section=profile');
+    assert.equal((await page.request.get(base + '/api/auth/me')).status(), 200);
+    await page.getByText('Đã liên kết', { exact: true }).waitFor();
+    await page.reload();
+    await page.getByText('Đã liên kết', { exact: true }).waitFor();
+    assert.equal((await page.request.get(base + '/api/auth/me')).status(), 200);
+    await page.request.post(base + '/api/auth/logout', { headers: { Origin: base } });
+    await page.goto(base + '/login');
+    await page.evaluate(value => { window.testGoogleIdentity = value; }, identity);
     await googleButton();
-    await page.waitForURL('**/account');
+    await page.waitForURL(base + '/');
     await page.goto(base + '/account?section=profile');
     await page.getByText('Đã liên kết', { exact: true }).waitFor();
     assert.equal((await User.findOne({ googleId: identity.sub })).id, local.id);
@@ -186,7 +239,7 @@ test('Google authentication UI with real API/database and simulated GIS', async 
     await page.getByLabel('Địa chỉ email', { exact: true }).fill(account.email);
     await page.getByLabel('Mật khẩu', { exact: true }).fill('LocalPassword123!');
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-    await page.waitForURL(missingBase + '/account');
+    await page.waitForURL(missingBase + '/');
     await page.goto(missingBase + '/account?section=profile');
     await page.getByRole('heading', { name: 'Local Without Google', exact: true }).waitFor();
     await page.reload();

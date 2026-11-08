@@ -76,25 +76,14 @@ export async function googleLogin(credential, nonce) {
   if (!account) {
     const emailAccount = await User.findOne({ email: identity.email }).select('+googleId');
     if (emailAccount) {
-      // A concurrent Google login can finish between the subject and email
-      // lookups. Only an already-linked identical subject may reuse this record.
+      // Linking may finish between these lookups. Only an already-linked
+      // identical subject may reuse this record.
       if (emailAccount.googleId !== identity.sub) throw collision();
       account = emailAccount;
     }
   }
   if (!account) {
-    try {
-      account = await User.create({
-        fullName: typeof identity.name === 'string' && identity.name.trim() ? identity.name.trim().slice(0, 100) : identity.email,
-        email: identity.email, googleId: identity.sub, googleEmail: identity.email,
-        role: 'member', status: 'Active'
-      });
-    } catch (error) {
-      if (error.code !== 11000) throw error;
-      // Another request may have created this identity while this request waited.
-      account = await User.findOne({ googleId: identity.sub }).select('+googleId');
-      if (!account) throw collision();
-    }
+    throw fail('Không tìm thấy tài khoản Cinema+ cho Google này. Vui lòng đăng ký tài khoản rồi liên kết Google trong Hồ sơ → Bảo mật.', 404);
   }
   checkMember(account);
   const updated = await User.findOneAndUpdate(
@@ -147,4 +136,12 @@ export async function linkGoogle(userId, data, nonce) {
     throw error;
   }
   console.log(`[AUTH AUDIT] Google linked for user=${local._id}`);
+  const updated = await User.findOne({
+    ...activeMemberFilter(account), googleId: identity.sub, password: local.password,
+    tokenVersion: (account.tokenVersion || 0) + 1
+  }).select('+googleId');
+  if (!updated) throw fail('Thông tin tài khoản vừa thay đổi. Vui lòng đăng nhập lại.', 409);
+  const session = createSession(updated);
+  session.user.loginMethods = { google: true, local: true, googleEmail: updated.googleEmail };
+  return session;
 }

@@ -1,20 +1,14 @@
 import * as loginService from '../../services/auth/loginService.js';
-
-const getCookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 24 * 60 * 60 * 1000 // 1 day
-});
+import { getCookieOptions } from './loginController.js';
 
 /**
- * Admin Login endpoint handler (UC-18)
+ * Employee and Admin login endpoint handler (UC-18)
  * URL: POST /api/auth/admin/login
  */
 export async function adminLogin(req, res, next) {
   try {
     const { email, password } = req.body;
-    const { user, token } = await loginService.authenticate(email, password);
+    const { user, token } = await loginService.authenticate(email, password, { allowedRoles: ['employee', 'admin'] });
 
     res.cookie('token', token, getCookieOptions());
 

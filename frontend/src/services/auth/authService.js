@@ -82,7 +82,7 @@ export async function resendVerification(email) {
 }
 
 /**
- * Member and Employee login
+ * Member login
  * @param {{ email: string, password: string }} credentials 
  */
 export async function loginUser(credentials) {
@@ -96,7 +96,7 @@ export async function loginUser(credentials) {
 }
 
 /**
- * Admin login
+ * Employee and Admin login
  * @param {{ email: string, password: string }} credentials 
  */
 export async function loginAdmin(credentials) {

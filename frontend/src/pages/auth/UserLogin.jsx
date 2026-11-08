@@ -1,13 +1,16 @@
 import React from 'react';
 import LoginForm from '../../components/auth/LoginForm';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 /**
- * User Login Page (Member & Employee)
+ * Member Login Page
  * Route: /login
  */
 export default function UserLogin() {
   const location = useLocation();
-  return <>{location.state?.message && <p className="profileLoginNotice" role="status">{location.state.message}</p>}<LoginForm /></>;
+  const { notice } = useAuth();
+  const message = location.state?.message || notice;
+  return <>{message && <p className="profileLoginNotice" role="status">{message}</p>}<LoginForm /></>;
 }
 

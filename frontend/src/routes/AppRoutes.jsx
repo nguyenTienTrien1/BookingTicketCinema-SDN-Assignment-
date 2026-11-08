@@ -12,6 +12,7 @@ import MemberDashboard from '../pages/auth/MemberDashboard';
 import EmployeeDashboard from '../pages/auth/EmployeeDashboard';
 import AdminDashboard from '../pages/auth/AdminDashboard';
 import ProtectedRoute from './ProtectedRoute';
+import CustomerRoute from './CustomerRoute';
 import CinemaMain from '../pages/CinemaMain';
 import ManageMovies from '../pages/Admin/ManageMovies';
 import ManageShowtimes from '../pages/Admin/ManageShowtimes';
@@ -46,18 +47,18 @@ export default function AppRoutes() {
       <Route path="/admin/members" element={<ProtectedRoute allowedRoles={['admin']}><Navigate to="/account?section=members" replace /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute allowedRoles={['member']}><BookingHistoryPage /></ProtectedRoute>} />
       {/* 1. Member Login (/login) */}
-      <Route path="/login" element={<UserLogin />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/login" element={<CustomerRoute><UserLogin /></CustomerRoute>} />
+      <Route path="/forgot-password" element={<CustomerRoute><ForgotPassword /></CustomerRoute>} />
+      <Route path="/reset-password" element={<CustomerRoute><ResetPassword /></CustomerRoute>} />
 
       {/* 2. Admin & Employee Login (/admin/login) */}
       <Route path="/admin/login" element={<AdminLogin />} />
 
       {/* 3. Member Registration (UC-1) */}
-      <Route path="/register" element={<Register />} />
+      <Route path="/register" element={<CustomerRoute><Register /></CustomerRoute>} />
 
       {/* 4. Email Verification (UC-1, BR-8) */}
-      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/verify-email" element={<CustomerRoute><VerifyEmail /></CustomerRoute>} />
 
       {/* 5. Protected Member Dashboard (/dashboard) */}
       <Route
@@ -74,7 +75,7 @@ export default function AppRoutes() {
         path="/employee/dashboard"
         element={
           <ProtectedRoute allowedRoles={['employee']}>
-            <Navigate to="/profile" replace />
+            <CinemaMain workspace="staff" />
           </ProtectedRoute>
         }
       />
@@ -84,7 +85,7 @@ export default function AppRoutes() {
         path="/admin/dashboard"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <Navigate to="/profile" replace />
+            <CinemaMain workspace="staff" />
           </ProtectedRoute>
         }
       />
@@ -115,7 +116,10 @@ export default function AppRoutes() {
       <Route path="/admin/promotions/:id/edit" element={<ProtectedRoute allowedRoles={['admin']}><ManageCatalogue kind="promotions" editing /></ProtectedRoute>} />
 
       {/* 6. Preserved Cinema Application */}
-      <Route path="/*" element={<CinemaMain />} />
+      <Route path="/account" element={<CustomerRoute account><CinemaMain /></CustomerRoute>} />
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
+      <Route path="/employee" element={<ProtectedRoute allowedRoles={['employee']}><Navigate to="/employee/dashboard" replace /></ProtectedRoute>} />
+      <Route path="/*" element={<CustomerRoute><CinemaMain /></CustomerRoute>} />
     </Routes>
   );
 }

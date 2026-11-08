@@ -44,7 +44,8 @@ test('Admin account creation by emailed random password and direct account updat
         const stored = await User.findById(created._id);
         assert.notEqual(stored.password, password); assert.equal(await bcrypt.compare(password, stored.password), true);
         assert.equal(JSON.stringify(result.data).includes(password), false);
-        assert.equal((await request('/auth/login', null, 'POST', { email: created.email, password })).status, 200);
+        assert.match(smtp.inbox.messages.at(-1), /\/admin\/login/);
+        assert.equal((await request('/auth/admin/login', null, 'POST', { email: created.email, password })).status, 200);
         const second = await request('/users', admin, 'POST', { ...payload(), role: 'admin' });
         assert.equal(second.status, 201); assert.equal(second.data.user.role, 'admin'); assert.notEqual(emailedPassword(smtp.inbox.messages.at(-1)), password);
     });
@@ -68,7 +69,7 @@ test('Admin account creation by emailed random password and direct account updat
         assert.equal(retry.status, 200); assert.equal(retry.data.emailSent, true); assert.equal(retry.data.user.status, 'Active');
         const retryPassword = emailedPassword(smtp.inbox.messages.at(-1));
         assert.notEqual((await User.findById(failed._id)).password, oldHash);
-        assert.equal((await request('/auth/login', null, 'POST', { email: failed.email, password: retryPassword })).status, 200);
+        assert.equal((await request('/auth/admin/login', null, 'POST', { email: failed.email, password: retryPassword })).status, 200);
         assert.equal((await request('/users/' + failed._id + '/credentials-email', admin, 'POST', {})).status, 409);
     });
     await t.test('concurrent duplicate creation sends only one password email', async () => {
@@ -106,7 +107,7 @@ test('Admin account creation by emailed random password and direct account updat
         assert.equal(result.status, 200, JSON.stringify(result.data)); created = result.data;
         assert.equal(created.fullName, 'Updated Employee'); assert.equal(created.email, 'updated@accounts.test'); assert.equal(created.phone, ''); assert.equal(created.role, 'admin');
         assert.equal(created.password, undefined); assert.equal(created.credentialsEmailRequestId, undefined);
-        assert.equal((await request('/auth/login', null, 'POST', { email: created.email, password })).status, 200);
+        assert.equal((await request('/auth/admin/login', null, 'POST', { email: created.email, password })).status, 200);
     });
     await t.test('stale updates and duplicate email fail without partial changes', async () => {
         assert.equal((await request('/users/' + created._id, admin, 'PATCH', patch(created, { version: 0 }))).status, 409);

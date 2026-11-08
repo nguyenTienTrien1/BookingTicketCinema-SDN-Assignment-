@@ -2,20 +2,21 @@ const publicTabs = ['home', 'movies', 'showtimes', 'cinemas', 'movie-detail', 'l
 const tabsByRole = {
   guest: [...publicTabs, 'booking', 'account'],
   member: [...publicTabs, 'booking', 'payment', 'account'],
-  employee: [...publicTabs, 'booking', 'payment', 'account'],
-  admin: [...publicTabs, 'booking', 'payment', 'account', 'create-account', 'update-status', 'adjust-points']
+  employee: ['account', 'counter-booking', 'counter-payment'],
+  admin: ['account', 'counter-booking', 'counter-payment', 'create-account', 'update-status', 'adjust-points']
 };
 
 export function canOpenTab(role, tab) {
-  return (tabsByRole[role || 'guest'] || publicTabs).includes(tab);
+  return (tabsByRole[role || 'guest'] || []).includes(tab);
 }
 
-export function loginDestination(role, state) {
-  const from = state?.from;
-  const allowed = state?.allowedRoles;
-  if (Array.isArray(allowed) && (allowed.length === 0 || allowed.includes(role)) &&
-      typeof from?.pathname === 'string' && from.pathname.startsWith('/') && !from.pathname.startsWith('//')) {
-    return { pathname: from.pathname, search: from.search || '', hash: from.hash || '' };
-  }
-  return '/account';
+export function roleHome(role) {
+  if (role === 'admin') return '/admin/dashboard';
+  if (role === 'employee') return '/employee/dashboard';
+  return '/';
+}
+
+export function loginPathForRoles(roles = []) {
+  return roles.length > 0 && roles.every(role => ['employee', 'admin'].includes(role))
+    ? '/admin/login' : '/login';
 }

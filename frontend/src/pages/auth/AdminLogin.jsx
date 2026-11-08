@@ -1,6 +1,11 @@
-import UserLogin from './UserLogin';
+import LoginForm from '../../components/auth/LoginForm';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
-// Reuse the shared login form while keeping /admin/login and its return state.
+// Staff use their own API endpoint; Member login remains at /login.
 export default function AdminLogin() {
-  return <UserLogin />;
+  const location = useLocation();
+  const { notice } = useAuth();
+  const message = location.state?.message || notice;
+  return <>{message && <p className="profileLoginNotice" role="status">{message}</p>}<LoginForm portal="staff" /></>;
 }

@@ -80,7 +80,7 @@ test('UC-5.1 Update Profile, UC-5.2 Change Password, UC-5.3 View Profile', async
         currentPassword, newPassword: 'NewPassword123', confirmPassword: 'NewPassword123'
       }, session)).status, 200);
       assert.equal((await request('GET', '/users/me', undefined, session)).status, 401);
-      const login = await request('POST', '/auth/login', { email: staff.email, password: 'NewPassword123' }, null);
+      const login = await request('POST', '/auth/admin/login', { email: staff.email, password: 'NewPassword123' }, null);
       assert.equal(login.status, 200);
       assert.equal(login.data.user.role, role);
     }

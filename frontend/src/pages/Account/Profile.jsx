@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getProfile, updateProfile, changePassword } from '../../services/profileService';
 import { translateAccountStatus, translateRole } from '../../utils/uiText';
+import { loginPathForRoles } from '../../utils/permissions';
 import './profile.css';
 import AccountSecurity from '../../components/auth/AccountSecurity';
 
@@ -14,7 +15,7 @@ function profileForm(user) {
 }
 
 export function ProfilePanel() {
-  const { setUser } = useAuth();
+  const { setUser, setNotice } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState(null);
@@ -88,8 +89,9 @@ export function ProfilePanel() {
     setSaving(true);
     try {
       const result = await changePassword(passwords);
+      setNotice(result.message);
       setUser(null);
-      navigate('/login', { replace: true, state: { message: result.message } });
+      navigate(loginPathForRoles([profile.role]), { replace: true, state: { message: result.message } });
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.');
     } finally {
@@ -124,7 +126,7 @@ export function ProfilePanel() {
           <button type="button" className="primary" onClick={() => switchMode('edit')}>Cập nhật hồ sơ</button>
           {profile.loginMethods?.local !== false && <button type="button" className="ghost" onClick={() => switchMode('password')}>Đổi mật khẩu</button>}
         </div>
-        {profile.role === 'member' && profile.loginMethods && <AccountSecurity methods={profile.loginMethods} />}
+        {profile.role === 'member' && profile.loginMethods && <AccountSecurity methods={profile.loginMethods} onLinked={loginMethods => setProfile(previous => ({ ...previous, loginMethods }))} />}
       </>}
 
       {mode === 'edit' && <form onSubmit={saveProfile}>
@@ -156,7 +158,7 @@ export function ProfilePanel() {
 }
 
 export default function Profile() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState('');
@@ -167,7 +169,7 @@ export default function Profile() {
     setError('');
     try {
       await logout();
-      navigate('/login', { replace: true });
+      navigate(loginPathForRoles([user?.role]), { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

@@ -59,12 +59,7 @@ export default function AdminPortal({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleViewClientSite() {
-    sessionStorage.setItem("cinema_preview_customer", "1");
-    if (setTab) setTab("home");
-    navigate("/");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+
 
   async function handleLogout() {
     try {
@@ -72,8 +67,7 @@ export default function AdminPortal({
     } catch (e) {
       console.error("Logout error:", e);
     }
-    if (setTab) setTab("home");
-    navigate("/");
+    navigate('/admin/login');
   }
 
   return (
@@ -379,28 +373,7 @@ export default function AdminPortal({
 
         {/* Sidebar Footer Actions */}
         <div className="adminSidebarFooter">
-          <button
-            type="button"
-            className="adminSidebarFooterBtn clientView"
-            onClick={handleViewClientSite}
-            title="Chuyển sang xem giao diện khách hàng"
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            <span>Xem trang khách</span>
-          </button>
+
 
           <button
             type="button"
@@ -448,29 +421,7 @@ export default function AdminPortal({
               <span>Hệ thống bình thường</span>
             </div>
 
-            <button
-              type="button"
-              className="moduleBtnSecondary"
-              onClick={handleViewClientSite}
-              title="Xem trang khách hàng"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ marginRight: "6px" }}
-                aria-hidden="true"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              <span>Xem trang khách</span>
-            </button>
+
           </div>
         </header>
 

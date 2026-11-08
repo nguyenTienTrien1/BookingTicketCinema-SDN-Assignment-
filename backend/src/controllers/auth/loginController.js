@@ -9,13 +9,13 @@ export const getCookieOptions = () => ({
 });
 
 /**
- * Shared Member, Employee and Admin login endpoint (UC-18)
+ * Member login endpoint (UC-18)
  * URL: POST /api/auth/login
  */
 export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
-    const { user, token } = await loginService.authenticate(email, password);
+    const { user, token } = await loginService.authenticate(email, password, { allowedRoles: ['member'] });
 
     // Issue JWT inside HttpOnly cookie (Security Requirement)
     res.cookie('token', token, getCookieOptions());

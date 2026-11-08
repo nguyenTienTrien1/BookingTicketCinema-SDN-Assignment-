@@ -45,8 +45,8 @@ try {
     page.setDefaultTimeout(15000);
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await mkdir(artifacts, { recursive: true });
-    await page.goto(base + '/login'); await page.locator('#cinema-email').fill(employee.email); await page.locator('#cinema-password').fill(password);
-    await page.locator('.cinemaAuthForm button[type=submit]').click(); await page.waitForURL('**/account');
+    await page.goto(base + '/admin/login'); await page.locator('#cinema-email').fill(employee.email); await page.locator('#cinema-password').fill(password);
+    await page.locator('.cinemaAuthForm button[type=submit]').click(); await page.waitForURL(base + '/employee/dashboard'); await page.goto(base + '/account');
     const hold = () => page.getByRole('button', { name: 'Giữ ghế & tiếp tục thanh toán', exact: true });
     const checkbox = () => page.locator('#counter-age-confirmation');
     async function chooseShow(item) {

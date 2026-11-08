@@ -40,9 +40,9 @@ try {
         const p = await context.newPage(); p.setDefaultTimeout(15000);
         p.on('pageerror', error => errors.push(error.message));
         p.on('dialog', dialog => { dialogs.push(dialog.message()); dialog.dismiss(); });
-        await p.goto(base + '/login');
+        await p.goto(base + '/admin/login');
         await p.locator('#cinema-email').fill(email); await p.locator('#cinema-password').fill(secret);
-        await p.locator('.cinemaAuthForm button[type=submit]').click(); await p.waitForURL('**/account');
+        await p.locator('.cinemaAuthForm button[type=submit]').click(); await p.waitForURL(/\/(admin|employee)\/dashboard$/); await p.goto(base + '/account');
         await p.locator('.cinemaAuthForm').waitFor({ state: 'detached' }); return p;
     }
     const waitResponse = (suffix, method) => page.waitForResponse(r => new URL(r.url()).pathname.endsWith(suffix) && r.request().method() === method);
@@ -124,7 +124,7 @@ try {
     await page.getByText('Đã tạo và gửi email', { exact: true }).waitFor();
     const retryPassword = emailedPassword(smtp.inbox.messages.at(-1));
     const retryContext = await browser.newContext();
-    const loginResult = await retryContext.request.post(base + '/api/auth/login', { headers: { Origin: base }, data: { email: 'retry@account-ui.test', password: retryPassword } });
+    const loginResult = await retryContext.request.post(base + '/api/auth/admin/login', { headers: { Origin: base }, data: { email: 'retry@account-ui.test', password: retryPassword } });
     check(loginResult.status() === 200, 'Retried password is usable');
     await page.getByRole('button', { name: 'Tạo tài khoản khác', exact: true }).click();
     const duplicate = await create('Duplicate', 'retry@account-ui.test');

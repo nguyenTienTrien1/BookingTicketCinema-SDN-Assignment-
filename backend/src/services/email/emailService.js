@@ -449,7 +449,7 @@ export async function sendStaffInvitation({to,fullName,token}) {
 
 export async function sendStaffCredentials({ to, fullName, password }) {
   const transport = await getTransporter(true);
-  const loginUrl = new URL('/login', process.env.CLIENT_URL || 'http://localhost:5173').href;
+  const loginUrl = new URL('/admin/login', process.env.CLIENT_URL || 'http://localhost:5173').href;
   const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
   const info = await transport.sendMail({
     from: process.env.EMAIL_FROM || process.env.GMAIL_USER || process.env.SMTP_USER,

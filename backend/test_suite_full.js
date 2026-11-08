@@ -93,19 +93,19 @@ async function runComprehensiveTests() {
     method: 'POST',
     body: JSON.stringify({ email: 'member@cinema.com', password: '123456' })
   });
-  assert(rMemberAtAdmin.status === 200 && rMemberAtAdmin.data.user.role === 'member', 'TC-08: Legacy login alias accepts Member with database role');
+  assert(rMemberAtAdmin.status === 403 && !rMemberAtAdmin.setCookie, 'TC-08: Staff portal rejects Member without a session');
 
   const rAdminAtUser = await request('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email: 'admin@cinema.com', password: 'admin123' })
   });
-  assert(rAdminAtUser.status === 200 && rAdminAtUser.data.user.role === 'admin', 'TC-09: Shared login accepts Admin');
+  assert(rAdminAtUser.status === 403 && !rAdminAtUser.setCookie, 'TC-09: Member portal rejects Admin without a session');
 
   const rEmployeeAtUser = await request('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email: 'employee@cinema.com', password: 'employee123' })
   });
-  assert(rEmployeeAtUser.status === 200 && rEmployeeAtUser.data.user.role === 'employee', 'TC-09b: Shared login accepts Employee');
+  assert(rEmployeeAtUser.status === 403 && !rEmployeeAtUser.setCookie, 'TC-09b: Member portal rejects Employee without a session');
 
   // 6. Generic Non-Disclosing Responses for Bad Password or Missing Email
   const rBadPass = await request('/api/auth/login', {

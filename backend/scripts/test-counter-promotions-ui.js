@@ -46,8 +46,8 @@ try {
   async function login(role) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
     const p = await context.newPage(); p.setDefaultTimeout(12000); p.on('pageerror', e => errors.push(e.message));
-    await p.goto(base + '/login'); await p.locator('#cinema-email').fill(role + '@uc92.test'); await p.locator('#cinema-password').fill(password);
-    await p.locator('.cinemaAuthForm button[type=submit]').click(); await p.waitForURL('**/account'); return p;
+    await p.goto(base + (role === 'member' ? '/login' : '/admin/login')); await p.locator('#cinema-email').fill(role + '@uc92.test'); await p.locator('#cinema-password').fill(password);
+    await p.locator('.cinemaAuthForm button[type=submit]').click(); await p.waitForURL(base + (role === 'member' ? '/' : role === 'admin' ? '/admin/dashboard' : '/employee/dashboard')); await p.goto(base + '/account'); return p;
   }
   page = await login('employee'); await mkdir(artifacts, { recursive: true });
   const waitResponse = (suffix, method = 'PATCH') => page.waitForResponse(r => new URL(r.url()).pathname.endsWith(suffix) && r.request().method() === method);

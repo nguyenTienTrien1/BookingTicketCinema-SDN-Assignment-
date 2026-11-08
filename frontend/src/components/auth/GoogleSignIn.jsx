@@ -64,7 +64,7 @@ export default function GoogleSignIn({ purpose = 'login', onCredential, disabled
       {nonce && buttonWidth > 0 && !busy && !disabled && <GoogleLogin key={`${nonce}-${buttonWidth}`} nonce={nonce} onSuccess={complete}
         onError={() => setError('Không thể xác thực Google. Vui lòng thử lại.')}
         auto_select={false} useOneTap={false} theme="outline_dark" size="large" shape="rectangular"
-        text="signin_with" locale="vi" width={buttonWidth} containerProps={{ className: 'googleSignInButton' }} />}
+        text={purpose === 'login' ? 'signin_with' : 'continue_with'} locale="vi" width={buttonWidth} containerProps={{ className: 'googleSignInButton' }} />}
       {(!nonce || busy || disabled) && <p className="googleSignInNote" role="status">{busy ? 'Đang xác thực Google…' : disabled ? 'Vui lòng hoàn tất thông tin trước khi xác thực Google.' : 'Đang chuẩn bị Google…'}</p>}
     </GoogleOAuthProvider>}
   </div>;

@@ -38,11 +38,11 @@ try {
         const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
         const page = await context.newPage(); activePage = page; page.setDefaultTimeout(12000);
         page.on('pageerror', error => errors.push(error.message));
-        await page.goto(base + '/login');
+        await page.goto(base + (role === 'member' ? '/login' : '/admin/login'));
         await page.locator('#cinema-email').fill(role + '@uc8.test');
         await page.locator('#cinema-password').fill(password);
         await page.locator('.cinemaAuthForm button[type=submit]').click();
-        await page.waitForURL('**/account');
+        await page.waitForURL(base + (role === 'member' ? '/' : role === 'admin' ? '/admin/dashboard' : '/employee/dashboard')); await page.goto(base + '/account');
         return page;
     }
     async function search(page, query) {
@@ -108,7 +108,7 @@ try {
     await employee.locator('.bookingFlow').waitFor();
     check(await employee.locator('.employeeTaskNav').count() === 0, 'Task panel belongs to the profile instead of every page');
     await employee.goto(base + '/admin/members');
-    await employee.waitForURL('**/account?section=profile');
+    await employee.waitForURL('**/employee/dashboard?section=profile');
     check(await employee.locator('.memberSearch').count() === 0, 'Employee cannot enter the Admin member route');
 
     stage = 'Admin UC8 inside the existing portal';
@@ -125,7 +125,7 @@ try {
     await admin.getByText('Đăng nhập gần nhất', { exact: true }).waitFor();
     await admin.screenshot({ path: path.join(artifacts, 'admin-member-search.png'), fullPage: true });
     await admin.goto(base + '/admin/members');
-    await admin.waitForURL('**/account?section=members');
+    await admin.waitForURL('**/admin/dashboard?section=members');
     await admin.getByRole('heading', { name: 'Tra cứu thành viên', exact: true }).waitFor();
     check(await admin.locator('.adminSidebarItem.active').innerText() === 'Tra cứu thành viên', 'Direct Admin links select the matching portal item');
     await admin.setViewportSize({ width: 390, height: 844 });
@@ -137,10 +137,10 @@ try {
     check(await member.getByRole('tab', { name: /Vé của tôi/ }).count() === 1, 'Member account keeps its ticket tab');
     check(await member.locator('.employeeTasks').count() === 0, 'Member does not see employee tasks');
     for (const route of ['/employee/members', '/admin/members']) {
-        await member.goto(base + route); await member.waitForURL('**/account?section=profile');
+        await member.goto(base + route); await member.waitForURL(base + '/');
         check(await member.locator('.memberSearch').count() === 0, 'Member cannot enter ' + route);
     }
-    const guest = await browser.newPage(); await guest.goto(base + '/admin/members'); await guest.waitForURL('**/login');
+    const guest = await browser.newPage(); await guest.goto(base + '/admin/members'); await guest.waitForURL('**/admin/login');
     check(await guest.locator('#cinema-email').isVisible(), 'Guest must log in before Admin member search');
     check(errors.length === 0, 'No browser runtime errors: ' + errors.join('; '));
     console.log(JSON.stringify({ result: 'passed', checks, artifacts, actualApiAndDatabase: true }));

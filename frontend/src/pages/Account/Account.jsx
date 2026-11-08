@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { BookingHistory } from './BookingHistory';
 import { ProfilePanel } from './Profile';
 import EmployeeActions from './EmployeeActions';
+import { loginPathForRoles } from '../../utils/permissions';
 import './employeeAccount.css';
 
 export default function Account({ user, setTab, setPending, initialSection }) {
@@ -43,7 +44,7 @@ export default function Account({ user, setTab, setPending, initialSection }) {
             {!isEmployee && <button type="button" className="ghost" disabled={loggingOut} onClick={async () => {
                 if (loggingOut) return;
                 setLoggingOut(true);
-                try { await logout(); navigate('/login', { replace: true }); }
+                try { await logout(); navigate(loginPathForRoles([user.role]), { replace: true }); }
                 catch (err) { setError(err.message); }
                 finally { setLoggingOut(false); }
             }}>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>}

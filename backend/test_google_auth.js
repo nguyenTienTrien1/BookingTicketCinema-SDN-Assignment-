@@ -92,6 +92,9 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
   async function local(extra = {}) {
     return User.create({ fullName: 'Local Test Member', email: `${randomUUID()}@google-auth.test`, password: 'Password123!', status: 'Active', ...extra });
   }
+  async function googleAccount(who, extra = {}) {
+    return User.create({ fullName: who.name, email: who.email, googleId: who.sub, googleEmail: who.email, role: 'member', status: 'Active', ...extra });
+  }
   function assertSafe(value) {
     const text = JSON.stringify(value);
     for (const field of ['"password"', '"googleId"', '"tokenVersion"', '"credential"', '"token"']) assert.equal(text.includes(field), false, field);
@@ -100,12 +103,28 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
   let memberId;
   let bookingId;
 
-  await t.test('first Google login creates an Active Member without a random/local password and issues app cookie', async () => {
+  await t.test('unknown Google identity cannot create a User or receive a session', async () => {
+    const unknown = identity();
+    const before = await User.countDocuments();
+    const jar = {};
+    const result = await login(unknown, jar);
+    assert.equal(result.status, 404);
+    assert.match(result.data.message, /Không tìm thấy tài khoản/);
+    assert.equal(jar.token, undefined);
+    assert.equal(await User.countDocuments(), before);
+    assert.equal(await User.countDocuments({ email: unknown.email }), 0);
+  });
+
+  await t.test('existing Google-only Member can sign in without creating a new account', async () => {
     who = identity();
+    const existing = await googleAccount(who);
+    const before = await User.countDocuments();
     const jar = {};
     const result = await login(who, jar);
     assert.equal(result.status, 200);
     memberId = result.data.user._id;
+    assert.equal(memberId, existing.id);
+    assert.equal(await User.countDocuments(), before);
     const account = await User.findById(memberId).select('+googleId');
     assert.equal(account.googleId, who.sub);
     assert.equal(account.password, undefined);
@@ -130,7 +149,7 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
     assert.equal(await User.countDocuments({ email: who.email }), 1);
   });
 
-  await t.test('account created between subject and email lookups is reused without a false linking collision', async () => {
+  await t.test('existing account linked between subject and email lookups is reused without a false collision', async () => {
     const originalFind = User.findOne;
     let stale = true;
     const find = t.mock.method(User, 'findOne', function (filter) {
@@ -145,6 +164,29 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
       assert.equal(result.status, 200);
       assert.equal(result.data.user._id, memberId);
     } finally { find.mock.restore(); }
+  });
+
+  await t.test('deleted account stays deleted after password and repeated Google logins; a replacement account is never silently linked', async () => {
+    const deletedIdentity = identity();
+    const account = await googleAccount(deletedIdentity, { password: 'Password123!' });
+    const oldSession = session(account);
+    assert.equal((await login(deletedIdentity)).status, 200);
+    await User.deleteOne({ _id: account._id });
+    const count = await User.countDocuments();
+    assert.equal((await request('POST', '/auth/login', { email: account.email, password: 'Password123!' })).status, 401);
+    assert.equal((await request('GET', '/auth/me', undefined, oldSession)).status, 401);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const jar = {};
+      assert.equal((await login(deletedIdentity, jar)).status, 404);
+      assert.equal(jar.token, undefined);
+    }
+    assert.equal(await User.countDocuments(), count);
+    assert.equal(await User.countDocuments({ email: account.email }), 0);
+    assert.equal(await User.countDocuments({ googleId: deletedIdentity.sub }), 0);
+    const replacement = await local({ email: account.email });
+    assert.notEqual(replacement.id, account.id);
+    assert.equal((await login(deletedIdentity)).status, 409);
+    assert.equal((await User.findById(replacement.id).select('+googleId')).googleId, undefined);
   });
 
   await t.test('Google-only password login fails generically; password reset cannot configure local login', async () => {
@@ -216,6 +258,13 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
     const result = await request('POST', '/auth/link-google', { currentPassword: 'Password123!', credential: credential(linked, nonce) }, jar);
     assert.equal(result.status, 200);
     assert.equal((await request('GET', '/auth/me', undefined, oldSession)).status, 401);
+    const currentSession = await request('GET', '/auth/me', undefined, jar);
+    assert.equal(currentSession.status, 200, 'The browser completing the link stays signed in');
+    assert.equal(currentSession.data.user._id, account.id);
+    assert.notEqual(jar.token, oldSession.token);
+    assert.ok(result.headers['set-cookie'].some(cookie => cookie.startsWith('token=') && cookie.includes('HttpOnly')));
+    assert.deepEqual(result.data.user.loginMethods, { google: true, local: true, googleEmail: account.email });
+    assertSafe(result.data);
     const localResult = await request('POST', '/auth/login', { email: account.email, password: 'Password123!' });
     const googleResult = await login(linked);
     assert.equal(localResult.data.user._id, account.id);
@@ -251,6 +300,7 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
 
   await t.test('database write failures never report a saved password or Google link', async () => {
     const fresh = identity();
+    await googleAccount(fresh);
     const googleJar = {};
     assert.equal((await login(fresh, googleJar)).status, 200);
     const nonce = await challenge(googleJar, 'set-password');
@@ -348,7 +398,7 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
     assert.ok((await User.findById(account.id)).lockUntil > new Date());
   });
 
-  await t.test('simultaneous first Google logins create only one User', async () => {
+  await t.test('simultaneous Google logins for an unknown identity never create a User', async () => {
     const fresh = identity();
     const first = {};
     const second = {};
@@ -358,10 +408,11 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
       request('POST', '/auth/google', { credential: credential(fresh, nonce1) }, first),
       request('POST', '/auth/google', { credential: credential(fresh, nonce2) }, second)
     ]);
-    assert.deepEqual(results.map(result => result.status), [200, 200]);
-    assert.equal(results[0].data.user._id, results[1].data.user._id);
-    assert.equal(await User.countDocuments({ googleId: fresh.sub }), 1);
-    assert.equal(await User.countDocuments({ email: fresh.email }), 1);
+    assert.deepEqual(results.map(result => result.status), [404, 404]);
+    assert.equal(first.token, undefined);
+    assert.equal(second.token, undefined);
+    assert.equal(await User.countDocuments({ googleId: fresh.sub }), 0);
+    assert.equal(await User.countDocuments({ email: fresh.email }), 0);
   });
 
   await t.test('linked account password reset remains single-use and preserves Google login', async () => {
@@ -397,6 +448,7 @@ test('Multi-provider authentication: real MongoDB, controlled Google verificatio
   await t.test('legacy local validation, Google-only profile saves and provider persistence across DB reconnect', async () => {
     await assert.rejects(User.create({ fullName: 'No Password', email: `${randomUUID()}@google-auth.test` }), /password/);
     const fresh = identity();
+    await googleAccount(fresh);
     const jar = {};
     assert.equal((await login(fresh, jar)).status, 200);
     assert.equal((await request('PATCH', '/users/me', { fullName: 'Updated Google Profile' }, jar)).status, 200);

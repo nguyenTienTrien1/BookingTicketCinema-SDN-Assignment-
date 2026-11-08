@@ -55,6 +55,8 @@ try {
   await page.locator('#cinema-email').fill('admin@rooms-browser.test');
   await page.locator('#cinema-password').fill(password);
   await page.locator('button[type="submit"]').click();
+  await page.waitForURL(base + '/admin/dashboard');
+  await page.goto(base + '/admin/rooms');
   await page.getByRole('heading', { name: 'Quản lý phòng chiếu', exact: true }).waitFor(); checks++;
   await visible('Other Room');
   await page.getByRole('button', { name: '+ Thêm phòng', exact: true }).click();

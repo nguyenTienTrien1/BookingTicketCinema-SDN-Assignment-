@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import LoginInput from "./LoginInput";
 import GoogleSignIn from "./GoogleSignIn";
 import "../../styles/auth/login.css";
-import { loginDestination } from '../../utils/permissions';
+import { roleHome } from '../../utils/permissions';
 
-export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
+export default function LoginForm({ onLoginSuccess, onCancelLogin, portal = 'member' }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login, googleLogin, loading: sessionLoading, error: sessionError } = useAuth();
+  const { login, googleLogin, loading: sessionLoading, error: sessionError, setError: setSessionError } = useAuth();
+  useEffect(() => { setSessionError(''); }, [portal, setSessionError]);
 
   // Form inputs initialized empty (no pre-filled credentials)
   const [email, setEmail] = useState("");
@@ -20,7 +20,8 @@ export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [infoToast, setInfoToast] = useState("");
 
-  const cardTitle = "Đăng nhập tài khoản";
+  const isStaff = portal === 'staff';
+  const cardTitle = isStaff ? "Đăng nhập nhân sự" : "Đăng nhập thành viên";
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -36,14 +37,13 @@ export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
     setLoading(true);
 
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, portal);
 
       if (onLoginSuccess && user.role === 'member') {
         onLoginSuccess(user);
-        return;
       }
 
-      navigate(loginDestination(user.role, location.state), { replace: true });
+      navigate(roleHome(user.role), { replace: true });
     } catch (err) {
       setErrorMessage(err.message || "Email hoặc mật khẩu không chính xác.");
     } finally {
@@ -58,9 +58,8 @@ export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
       const user = await googleLogin(credential);
       if (onLoginSuccess && user.role === 'member') {
         onLoginSuccess(user);
-        return;
       }
-      navigate(loginDestination(user.role, location.state), { replace: true });
+      navigate(roleHome(user.role), { replace: true });
     } finally {
       setLoading(false);
     }
@@ -268,18 +267,20 @@ export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
               {loading ? "Đang xử lý..." : "Đăng nhập"}
             </button>
 
-            {/* Divider: ──── hoặc ──── */}
-            <div className="cinemaDivider">
-              <span className="dividerLine" />
-              <span className="dividerText">hoặc</span>
-              <span className="dividerLine" />
-            </div>
-
-            <GoogleSignIn onCredential={handleGoogleLogin} disabled={loading || sessionLoading} />
+            {!isStaff && (
+              <>
+                <div className="cinemaDivider">
+                  <span className="dividerLine" />
+                  <span className="dividerText">hoặc</span>
+                  <span className="dividerLine" />
+                </div>
+                <GoogleSignIn onCredential={handleGoogleLogin} disabled={loading || sessionLoading} />
+              </>
+            )}
           </form>
 
           {/* Footer: Sign up prompt */}
-          <div className="cinemaCardFooter">
+          {!isStaff && <div className="cinemaCardFooter">
             <span className="footerPromptText">Bạn chưa có tài khoản? </span>
             <a
               href="#signup"
@@ -288,7 +289,7 @@ export default function LoginForm({ onLoginSuccess, onCancelLogin }) {
             >
               Đăng ký ngay
             </a>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

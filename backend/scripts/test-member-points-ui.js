@@ -58,7 +58,7 @@ try {
         await p.locator('#cinema-email').fill(name + '@points-ui.test');
         await p.locator('#cinema-password').fill(password);
         await p.locator('.cinemaAuthForm button[type=submit]').click();
-        await p.waitForURL('**/account');
+        await p.waitForURL(base + '/'); await p.goto(base + '/account');
         await p.locator('.cinemaAuthForm').waitFor({ state: 'detached' });
         return p;
     }

@@ -65,6 +65,16 @@ test('Role permissions from RDS: Guest, Member, Employee, Admin', async (t) => {
       }
     }
   });
+  await t.test('staff cannot use Member personal booking, payment, ticket or refund APIs', async () => {
+    for (const actor of [users.employee, users.admin]) {
+      for (const [path, method] of [
+        ['/bookings', 'GET'], ['/bookings', 'POST'], ['/bookings/any', 'GET'],
+        ['/bookings/any/pay', 'POST'], ['/bookings/any/points', 'PATCH'],
+        ['/bookings/any/food', 'PATCH'], ['/bookings/any/cancel', 'POST'],
+        ['/bookings/any/tickets', 'GET'], ['/bookings/any/refund', 'POST']
+      ]) assert.equal((await request(path, actor, method, method === 'GET' ? undefined : {})).status, 403, actor.role + ' ' + path);
+    }
+  });
   await t.test('employee search reveals only permitted member data', async () => {
     const result = await request('/counter/members?search=member@roles.test', users.employee);
     assert.equal(result.status, 200);

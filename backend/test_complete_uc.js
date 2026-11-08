@@ -148,7 +148,7 @@ test('Nine UC completion against transactional MongoDB',async t=>{
   const token=new URL(created.data.activationLink,'http://localhost').searchParams.get('token');const u=await User.findById(created.data.user._id).select('+staffActivationHash');assert.equal(u.staffActivationHash,createHash('sha256').update(token).digest('hex'));
   assert.equal((await request('/auth/activate-staff',null,'POST',{token,password:'Recipient123',confirmPassword:'Recipient123'})).status,200);
   assert.equal((await request('/auth/activate-staff',null,'POST',{token,password:'Recipient123',confirmPassword:'Recipient123'})).status,400);
-  assert.equal((await request('/auth/login',null,'POST',{email,password:'Recipient123'})).status,200);
+  assert.equal((await request('/auth/admin/login',null,'POST',{email,password:'Recipient123'})).status,200);
  });
  await t.test('expired invitation can be renewed, old link is invalid and status cannot bypass activation',async()=>{
   const r={data:await inviteStaff({fullName:'Expired staff',email:randomUUID()+'@staff.test',role:'employee'},admin.id)};const id=r.data.user._id,token=new URL(r.data.activationLink,'http://localhost').searchParams.get('token');await User.updateOne({_id:id},{$set:{staffActivationExpires:new Date(Date.now()-1000)}});

@@ -6,7 +6,7 @@ const GENERIC_AUTH_ERROR = 'Email hoặc mật khẩu không chính xác.';
 const DUMMY_HASH = '$2a$10$e8wM53zB6v0qG6/kF4g8/e6Q5dY8Z8t2b1a0.d9e8f7g6h5i4j3k2';
 
 /**
- * Authenticates every supported account role through the shared login.
+ * Authenticates an account for the roles allowed by the server-side login route.
  * Follows UC-18, BR-1, BR-7, BR-8, BR-11
  */
 export async function authenticate(email, password, options = {}) {
@@ -57,7 +57,7 @@ export async function authenticate(email, password, options = {}) {
     throw err;
   }
 
-  // A single login accepts every supported account role. API authorization stays separate.
+  // Never trust a role or portal supplied in the request body.
   if (!['member', 'employee', 'admin'].includes(account.role)) {
     throw Object.assign(new Error(GENERIC_AUTH_ERROR), { status: 401 });
   }
@@ -76,6 +76,14 @@ export async function authenticate(email, password, options = {}) {
     const err = new Error(GENERIC_AUTH_ERROR);
     err.status = 401;
     throw err;
+  }
+
+  const allowedRoles = options.allowedRoles ?? ['member'];
+  if (!allowedRoles.includes(account.role)) {
+    const message = allowedRoles.includes('member')
+      ? 'Tài khoản nhân sự vui lòng đăng nhập tại cổng Nhân viên / Quản trị viên.'
+      : 'Cổng này chỉ dành cho Nhân viên / Quản trị viên. Thành viên vui lòng đăng nhập tại cổng thành viên.';
+    throw Object.assign(new Error(message), { status: 403 });
   }
 
   // 6. Success: Reset failure count and update last login timestamp

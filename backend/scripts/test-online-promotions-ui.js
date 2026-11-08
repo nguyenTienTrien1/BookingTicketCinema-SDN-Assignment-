@@ -48,7 +48,7 @@ try {
     page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' }); page.setDefaultTimeout(15000);
     const errors = []; page.on('pageerror', error => errors.push(error.message)); await mkdir(artifacts, { recursive: true });
     await page.goto(base + '/login'); await page.locator('#cinema-email').fill(member.email); await page.locator('#cinema-password').fill(password);
-    await page.locator('.cinemaAuthForm button[type=submit]').click(); await page.waitForURL('**/account');
+    await page.locator('.cinemaAuthForm button[type=submit]').click(); await page.waitForURL(base + '/'); await page.goto(base + '/account');
     await page.locator('.cinemaAuthForm').waitFor({ state: 'detached' });
     const responseFor = (suffix, method = 'PATCH') => page.waitForResponse(r => new URL(r.url()).pathname.endsWith(suffix) && r.request().method() === method);
     async function total(amount) { await page.waitForFunction(expected => document.querySelector('.receiptTotal strong')?.textContent === expected, amount.toLocaleString('vi-VN') + 'đ'); check(true, 'Total ' + amount); }
