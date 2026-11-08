@@ -44,7 +44,8 @@
     "db:local": "node scripts/database/local-db.js",
     "db:setup": "node scripts/database/local-db.js --import-current",
     "test:e2e": "node tests/ui/test-member-points-ui.js && node tests/ui/test-accounts-ui.js",
-    "test:tickets": "node --test tests/api/test_tickets.js"
+    "test:tickets": "node --test tests/api/test_tickets.js",
+    "test:adjust-points:ui": "node tests/ui/test-adjust-points-ui.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

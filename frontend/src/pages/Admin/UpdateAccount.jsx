@@ -8,25 +8,31 @@ import './adminAccounts.css';
 const normalizeStatus = value => ({ active: 'Active', inactive: 'Deactivated', blocked: 'Banned', Inactive: 'Deactivated' })[value] || value;
 const draft = user => ({ fullName: user.fullName, email: user.email, phone: user.phone || '', role: user.role, status: normalizeStatus(user.status) });
 
+// Trang admin tìm tài khoản, sửa thông tin và lưu trực tiếp, không hỏi xác nhận lại.
 export default function UpdateAccount({ initialAccountId }) {
     const { user: actor, setUser } = useAuth();
     const [users, setUsers] = useState([]), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState(''), [query, setQuery] = useState(''), [role, setRole] = useState(''), [selected, setSelected] = useState(null), [form, setForm] = useState(null);
+    // Sao chép tài khoản đã chọn sang form, chưa thay đổi dữ liệu trên server.
     function edit(user) { setSelected(user); setForm(draft(user)); setError(''); setMessage(''); }
     useEffect(() => {
         let active = true;
         getUsers().then(data => { if (!active) return; setUsers(data); const user = data.find(item => item._id === initialAccountId); if (user) edit(user); }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
         return () => { active = false; };
     }, [initialAccountId]);
+    // Tải lại danh sách và bản mới nhất của tài khoản đang sửa.
     async function reload() {
         setLoading(true); setError('');
         try { const data = await getUsers(); setUsers(data); if (selected) { const fresh = data.find(item => item._id === selected._id); if (fresh) edit(fresh); else { setSelected(null); setForm(null); } } } catch (e) { setError(e.message); } finally { setLoading(false); }
     }
+    // Đồng bộ dữ liệu đã lưu vào danh sách và hồ sơ đăng nhập nếu đang sửa chính mình.
     function replace(user) { setUsers(current => current.map(item => item._id === user._id ? user : item)); if (user._id === actor?._id) setUser(current => ({ ...current, ...user })); }
+    // Gửi form cùng phiên bản/trạng thái đã xem để server chặn ghi đè dữ liệu cũ.
     async function save(event) {
         event.preventDefault(); if (busy) return;
         setBusy(true); setError(''); setMessage('');
         try { const updated = await updateAccount(selected._id, { ...form, version: selected.__v || 0, expectedStatus: selected.status }); replace(updated); setSelected(null); setForm(null); setMessage('Đã lưu thay đổi tài khoản.'); } catch (e) { setError(e.message); } finally { setBusy(false); }
     }
+    // Gửi lại thông tin đăng nhập cho tài khoản đang chờ email và cập nhật trạng thái.
     async function resend(user) {
         if (busy) return; setBusy(true); setError(''); setMessage('');
         try { const result = await resendCredentials(user._id); replace(result.user); if (selected?._id === user._id) { setSelected(result.user); setForm(draft(result.user)); } if (result.emailSent) setMessage(result.message); else setError(result.message); } catch (e) { setError(e.message); } finally { setBusy(false); }

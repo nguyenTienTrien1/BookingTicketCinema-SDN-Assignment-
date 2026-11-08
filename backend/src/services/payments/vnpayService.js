@@ -5,6 +5,7 @@ import User from "../../models/users/User.js";
 import { settle, loadBooking } from "../bookings/bookingService.js";
 import { transaction, domainError as fail } from "../common/transaction.js";
 import { refundFailedPayment } from "./refundService.js";
+// Sắp xếp, mã hóa tham số vnp_ và bỏ trường chữ ký để tạo chuỗi ký thống nhất.
 export function canonical(params) {
   return Object.keys(params)
     .filter(
@@ -21,6 +22,7 @@ export function canonical(params) {
     )
     .join("&");
 }
+// Tạo chữ ký HMAC-SHA512 bằng khóa bí mật để ký yêu cầu và đối chiếu kết quả.
 export function signature(params, secret = process.env.VNPAY_HASH_SECRET) {
   if (!secret) throw fail("Chưa cấu hình VNPay sandbox.", 503);
   return crypto
@@ -28,6 +30,7 @@ export function signature(params, secret = process.env.VNPAY_HASH_SECRET) {
     .update(canonical(params))
     .digest("hex");
 }
+// Định dạng thời gian yyyyMMddHHmmss theo múi giờ Việt Nam cho VNPay.
 function date(value) {
   const p = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -42,6 +45,7 @@ function date(value) {
   const get = (key) => p.find((x) => x.type === key).value;
   return ["year", "month", "day", "hour", "minute", "second"].map(get).join("");
 }
+// Kiểm tra đơn, tạo/dùng lại mã giao dịch và trả URL VNPay có chữ ký; chưa ghi nhận đã trả tiền.
 export async function createPayment(bookingId, userId, ip, staffId = null) {
   if (
     !process.env.VNPAY_TMN_CODE ||
@@ -96,6 +100,7 @@ export async function createPayment(bookingId, userId, ip, staffId = null) {
     await b.save({ session });
     return a;
   });
+  // Lấy số tiền đã lưu trên server, nhân 100 theo định dạng VNPay.
   const params = {
     vnp_Version: "2.1.0",
     vnp_Command: "pay",
@@ -122,7 +127,9 @@ export async function createPayment(bookingId, userId, ip, staffId = null) {
     reference: attempt.ref,
   };
 }
+// Xác minh kết quả VNPay rồi hoàn tất đơn; callback lặp không xử lý thanh toán lần nữa.
 export async function processIPN(params) {
+  // Kiểm tra chữ ký, merchant, mã giao dịch và số tiền trước khi cập nhật đơn.
   if (
     Object.values(params).some((value) => typeof value !== "string") ||
     !/^[a-f0-9]{128}$/i.test(params.vnp_SecureHash || "")
@@ -153,6 +160,7 @@ export async function processIPN(params) {
     return { RspCode: "02", Message: "Already confirmed" };
   if (attempt.status === "refunded" || attempt.status === "returned")
     return { RspCode: "02", Message: "Already refunded" };
+  // Chỉ thành công khi cả hai mã là 00; thất bại thì ghi nhận và cho phép thử lại.
   if (
     params.vnp_ResponseCode !== "00" ||
     params.vnp_TransactionStatus !== "00"
@@ -180,6 +188,7 @@ export async function processIPN(params) {
   if (attempt.providerRef && attempt.providerRef !== params.vnp_TransactionNo)
     return { RspCode: "99", Message: "Transaction reference mismatch" };
   // This is verified provider evidence; retain it even if local finalization fails.
+  // Lưu bằng chứng khoản thu trước khi gọi settle() để hoàn tất đơn.
   await PaymentAttempt.updateOne(
     { _id: attempt._id, status: { $in: ["created", "failed", "unresolved"] } },
     {
@@ -198,6 +207,7 @@ export async function processIPN(params) {
     });
     return { RspCode: "00", Message: "Confirm Success" };
   } catch (error) {
+    // Đã thu tiền nhưng không phát hành được vé: thử hoàn điểm, nếu chưa được thì chờ đối soát.
     const message = error.status
       ? error.message
       : "Chưa xác nhận hoàn tất khoản thu VNPay. Cần đối soát.";
@@ -233,6 +243,7 @@ export async function processIPN(params) {
 // A signed return has the same provider fields as IPN. Reuse the complete
 // verifier/transaction processor, never a browser success flag or a new proof.
 // Production continues to require the independent IPN channel.
+// Dự phòng khi thiếu IPN: xác minh Return bằng processIPN, chỉ bật cho Sandbox ngoài production.
 export async function processSandboxReturn(params) {
   if (
     process.env.NODE_ENV === "production" ||

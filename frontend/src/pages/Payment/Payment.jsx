@@ -42,7 +42,9 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  const validCash=received.trim()!==''&&Number.isSafeInteger(Number(received))&&Number(received)>=booking.total;
  const change=validCash?Number(received)-booking.total:0;
  const blocked=!editable||busy||editingFood||pointsDirty||promotionDirty||(counter&&method==='cash'&&booking.total>0&&!validCash);
+ // Quản lý trạng thái đang xử lý và thông báo lỗi khi gửi yêu cầu thanh toán/chỉnh đơn.
  async function perform(action){if(busy)return;setBusy(true);setError('');try{await action();}catch(e){setError(e.message);if(!counter)wallet.refresh();}finally{setBusy(false);}}
+ // Đồng bộ đơn và số dư trên giao diện theo dữ liệu server trả về.
  function sync(result,{preservePointsDraft=false}={}){
   setPaymentUncertain(false);
   if(!result.activePayment||result.cashReceived>0)setGatewayUrl('');
@@ -52,6 +54,7 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
   if(user.role==='member'&&result.user)setUser(current=>current?._id===user._id?{...current,memberPoints:result.user.memberPoints}:current);
  }
  const post=(suffix,body,method='POST')=>api(path+suffix,{method,body:JSON.stringify(body)});
+ // Gửi yêu cầu thanh toán; với khách online, chuyển tới URL VNPay do server tạo.
  const pay=()=>perform(async()=>{
   const chosen=booking.total===0?'points':counter?method:'vnpay';
   let result;

@@ -23,6 +23,8 @@ export default function PaymentResult() {
         if (!reference) { setError('Thiếu mã giao dịch VNPay.'); setLoading(false); return; }
         const controller = new AbortController();
         let timer;
+        // Đọc kết quả từ server; nếu giao dịch còn chờ và đơn còn hạn thì kiểm tra lại sau 3 giây.
+        // Chỉ tải vé khi server xác nhận đã thanh toán bằng đúng mã giao dịch đang xem.
         async function refresh() {
             try {
                 const data = await api((staff ? '/payments/results/' : '/bookings/payment-result/') + encodeURIComponent(reference), { signal: controller.signal });

@@ -5,13 +5,16 @@ import {transaction,domainError as fail} from "../common/transaction.js";
 import User from "../../models/users/User.js";
 import { authenticate } from "../auth/loginService.js";
 
+// Luồng tạo tài khoản admin dùng service sinh mật khẩu ngẫu nhiên và gửi email.
 export const createAccount = createStaffAccount;
 
+// Cập nhật trực tiếp trong giao dịch: kiểm tra dữ liệu, quyền admin và phiên bản tài khoản.
 export async function updateAccount(id, data, actorId) {
  if (!mongoose.isObjectIdOrHexString(id)) throw fail('Mã tài khoản không hợp lệ.');
  const fields = validateAccountFields(data);
  if (Object.keys(data).some(key => !['fullName','email','phone','role','status','version','expectedStatus'].includes(key))) throw fail('Thông tin cập nhật chứa trường không được phép.');
  if (!Number.isSafeInteger(data.version) || data.version < 0 || typeof data.expectedStatus !== 'string' || !['member','employee','admin'].includes(data.role) || !['Active','Deactivated','Banned','Pending Activation','Pending Verification'].includes(data.status)) throw fail('Vai trò, trạng thái hoặc phiên bản tài khoản không hợp lệ.');
+ // Khóa chung khi đổi trạng thái/quyền để các yêu cầu đồng thời không làm mất admin cuối cùng.
  await SystemLock.updateOne({_id:'account-status'},{$setOnInsert:{version:0}},{upsert:true});
  return transaction(async session => {
   await SystemLock.updateOne({_id:'account-status'},{$inc:{version:1}},{session});
@@ -19,6 +22,7 @@ export async function updateAccount(id, data, actorId) {
   if (!actor) throw fail('Phiên Admin không còn hợp lệ.',403);
   const user = await User.findById(id).select('+staffActivationHash').session(session);
   if (!user) throw fail('Không tìm thấy tài khoản.',404);
+  // Chặn bản sửa cũ, chuyển đổi thành viên/nhân sự, tự khóa/hạ quyền và bỏ qua xác minh.
   if ((user.__v || 0) !== data.version || user.status !== data.expectedStatus || user.credentialsEmailStatus === 'sending') throw fail('Tài khoản đã thay đổi hoặc đang gửi email. Tải lại rồi lưu lại thông tin.',409);
   if ((user.role === 'member') !== (data.role === 'member')) throw fail('Không chuyển đổi giữa tài khoản thành viên và tài khoản nhân sự.');
   if (String(id) === String(actorId) && (data.role !== 'admin' || data.status !== 'Active')) throw fail('Không được tự khóa hoặc hạ quyền Admin đang sử dụng.',403);
@@ -26,10 +30,12 @@ export async function updateAccount(id, data, actorId) {
   if (data.status === 'Active' && (user.status.startsWith('Pending') || user.staffActivationHash || user.verificationToken || user.credentialsEmailStatus && user.credentialsEmailStatus !== 'sent')) throw fail('Tài khoản phải nhận email đăng nhập hoặc hoàn tất xác minh trước khi hoạt động.');
   if (user.role === 'admin' && ['Active','active'].includes(user.status) && (data.role !== 'admin' || data.status !== 'Active') && await User.countDocuments({role:'admin',status:{$in:['Active','active']}}).session(session) <= 1) throw fail('Không được khóa hoặc hạ quyền Admin cuối cùng.',409);
   const update = { $set: { ...fields, role:data.role, status:data.status, statusUpdatedBy:actorId }, $inc: { __v:1 } };
+  // Đổi quyền hoặc chuyển sang trạng thái không hoạt động thì vô hiệu phiên đăng nhập cũ.
   if (data.role !== user.role || data.status !== user.status && data.status !== 'Active') update.$inc.tokenVersion = 1;
   if (data.status !== user.status) update.$push = { statusHistory: {before:user.status,after:data.status,actor:actorId,at:new Date()} };
   const updated = await User.findOneAndUpdate({_id:id,__v:user.__v},update,{new:true,runValidators:true,session});
   if (!updated) throw fail('Tài khoản vừa thay đổi. Hãy tải lại và thử lại.',409);
+  // Trả thông tin an toàn, không trả mật khẩu hoặc token nội bộ.
   return safeUser(updated);
  });
 }
@@ -57,6 +63,7 @@ export async function updateStatus(id,status,actorId,expectedStatus) {
  });
 }
 
+// Điều chỉnh điểm thành viên: số nguyên khác 0, có lý do, không âm số dư và không xử lý lặp.
 export async function adjustPoints(id, points, reason, actorId, requestId, expectedBalance) {
   if (!Number.isSafeInteger(points) || points === 0) {
     throw Object.assign(new Error('Số điểm điều chỉnh phải là số nguyên khác 0.'), { status: 400 });
@@ -67,7 +74,7 @@ export async function adjustPoints(id, points, reason, actorId, requestId, expec
   if (typeof requestId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId) || !actorId) {
     throw Object.assign(new Error('Thiếu mã yêu cầu điều chỉnh hợp lệ.'), { status: 400 });
   }
-  // Retrying the same request must not change the balance twice.
+  // Cùng mã yêu cầu và nội dung đã lưu thì trả kết quả hiện tại, không cộng/trừ thêm.
   const existing = await User.findOne({ _id: id, 'pointAdjustments.requestId': requestId }).select('+pointAdjustments');
   if (existing) {
     const entry = existing.pointAdjustments.find(item => item.requestId === requestId);
@@ -87,7 +94,7 @@ export async function adjustPoints(id, points, reason, actorId, requestId, expec
   if (!Number.isSafeInteger(afterUnits) || after < 0) {
     throw Object.assign(new Error('Điều chỉnh làm số dư âm hoặc vượt giới hạn cho phép.'), { status: 400 });
   }
-  // The balance and its audit record are written together in one atomic document update.
+  // Cập nhật số dư và lịch sử cùng một lần ghi nguyên tử; chỉ ghi nếu số dư chưa đổi.
   const updated = await User.findOneAndUpdate(
     { _id: id, role: 'member', memberPoints: user.memberPoints, 'pointAdjustments.requestId': { $ne: requestId } },
     { $set: { memberPoints: after }, $push: { pointAdjustments: {
@@ -103,6 +110,7 @@ export async function adjustPoints(id, points, reason, actorId, requestId, expec
   return safeUser(updated);
 }
 
+// Lấy số dư và 20 điều chỉnh thủ công gần nhất, kèm thông tin admin thực hiện.
 export async function pointHistory(id) {
   const user = await User.findById(id).select({ memberPoints: 1, role: 1, pointAdjustments: 1 })
     .populate('pointAdjustments.admin', 'fullName email');

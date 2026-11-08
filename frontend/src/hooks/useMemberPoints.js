@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getProfile } from '../services/profileService';
 
+// Quản lý số dư và bước đổi điểm của thành viên, tự làm mới khi quay lại cửa sổ.
 export default function useMemberPoints(user, setUser) {
     const memberId = user?.role === 'member' ? user._id : null;
     const [step,setStep]=useState(1);
@@ -9,6 +10,7 @@ export default function useMemberPoints(user, setUser) {
     const [error, setError] = useState('');
     const revision = useRef(0);
 
+    // Lấy số dư mới từ server; bỏ qua phản hồi cũ để tránh cập nhật nhầm tài khoản.
     const refresh = useCallback(async () => {
         if (!memberId) return;
         const request = ++revision.current;

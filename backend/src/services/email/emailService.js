@@ -447,6 +447,7 @@ export async function sendStaffInvitation({to,fullName,token}) {
  return {emailSent:!!info.messageId};
 }
 
+// Gửi email, mật khẩu ngẫu nhiên và link đăng nhập qua SMTP thật; kiểm tra người nhận được chấp nhận.
 export async function sendStaffCredentials({ to, fullName, password }) {
   const transport = await getTransporter(true);
   const loginUrl = new URL('/admin/login', process.env.CLIENT_URL || 'http://localhost:5173').href;

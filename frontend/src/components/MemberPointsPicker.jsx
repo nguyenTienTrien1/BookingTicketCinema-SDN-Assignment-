@@ -2,6 +2,7 @@ import { memberPointsQuote } from '../utils/memberPoints';
 
 const money = value => Number(value || 0).toLocaleString('vi-VN') + 'đ';
 
+// Cho khách nhập/chọn nhanh điểm và xem tiền giảm; chưa trừ điểm khi đang chọn.
 export default function MemberPointsPicker({ wallet, value, onChange, subtotal, busy = false }) {
     const step = wallet.step;
     const { maxPoints: max, selectedPoints: points, pointsValid: valid, discount } = memberPointsQuote(wallet.balance, subtotal, value, step);

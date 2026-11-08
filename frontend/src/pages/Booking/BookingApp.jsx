@@ -136,6 +136,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
 
     const ticketPrice = Number(currentShowtime?.price || 0);
     const ticketSubtotal = ticketPrice * seat.length;
+    // Tiền bắp nước xem trước = tổng đơn giá × số lượng; server sẽ tính lại khi tạo đơn.
     const foodSubtotal = food.reduce((sum, item) => sum + Number(item.price || 0) * (item.quantity || 1), 0);
     useEffect(() => {
         if (!currentShowtime) return;
@@ -174,6 +175,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
             if (request === promotionRequest.current) setPromotionBusy(false);
         }
     }
+    // Lọc suất chiếu của phim tại rạp khách đã chọn.
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
         return showtimes.filter((s) => {
@@ -182,6 +184,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         });
     }
 
+    // Chọn/bỏ chọn ghế trên giao diện, chưa giữ trên server; chỉ chọn ghế trống đang hoạt động.
     function handleSeatClick(s) {
         if (s.status !== 'available' || (s.condition && s.condition !== 'Active')) return;
 
@@ -193,6 +196,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         setSeat((prev) => [...prev, s.number]);
     }
 
+    // Kiểm tra đủ lựa chọn của bước hiện tại trước khi chuyển bước tiếp theo.
     function goNext() {
         if (step === 0 && !cinema) {
             setMsg('Vui lòng chọn rạp chiếu.');
@@ -210,6 +214,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         setStep((prev) => Math.min(prev + 1, flowSteps.length - 1));
     }
 
+    // Chặn cách chọn tạo ghế trống lẻ; có lỗi thì quay về bước chọn ghế.
     function validateSeats() {
         const seatError = orphanSeatMessage(currentShowtime?.seats || [], seat);
         if (!seatError) return true;
@@ -218,10 +223,12 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         return false;
     }
 
+    // Quay lại bước trước để chỉnh lựa chọn.
     function goBack() {
         setStep((prev) => Math.max(prev - 1, 0));
     }
 
+    // Kiểm tra lựa chọn và điểm, chặn bấm lặp, rồi gửi yêu cầu tạo đơn online.
     async function book() {
         if (submitting.current) return;
         if (promotionBusy || promotionDirty || promotionError) {
@@ -241,6 +248,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         submitting.current = true;
         setBookingBusy(true);
         try {
+            // Chỉ gửi lựa chọn; server kiểm tra lại và tính số tiền chính thức.
             const booking = await createBooking({
                 promotionCode: activeQuote?.promotion?.code || '',
                 points: selectedPoints,
@@ -249,6 +257,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                 foodItems: food.map((x) => ({ food: x._id, quantity: x.quantity || 1 }))
             });
 
+            // Đơn đã được giữ ghế 10 phút; chuyển sang thanh toán, chưa có vé QR.
             setPending(booking);
             setMsg(`Đặt vé thành công: ${booking._id}. Ghế được giữ trong 10 phút.`);
             setTab('payment');
@@ -484,6 +493,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                             <span className="optionalBadge">Không bắt buộc</span>
                         </div>
                         <p className="helperText">Bạn có thể bỏ qua nếu không muốn gọi thêm đồ ăn.</p>
+                        {/* Chọn món mới chỉ cập nhật trên giao diện, chưa trừ tồn kho. */}
                         <FoodPicker foods={foods} items={food} onChange={setFood} />
                         <div className="bookingActions">
                             <button type="button" className="ghost" onClick={goBack}>Quay lại</button>

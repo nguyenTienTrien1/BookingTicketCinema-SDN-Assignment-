@@ -5,8 +5,10 @@ import './adminAccounts.css';
 
 const emptyForm = () => ({ fullName: '', email: '', phone: '', role: 'employee' });
 
+// Form admin tạo nhân sự: gửi thông tin, hiển thị kết quả và cho gửi lại email nếu lỗi.
 export default function CreateAccount({ onManage }) {
     const [form, setForm] = useState(emptyForm), [busy, setBusy] = useState(false), [result, setResult] = useState(null), [error, setError] = useState('');
+    // Chặn gửi lặp trong lúc xử lý và hiển thị lỗi/kết quả từ server.
     async function perform(action) {
         if (busy) return;
         setBusy(true); setError('');

@@ -20,6 +20,7 @@ import {
   reconcilePayment,
 } from "../../services/payments/counterPaymentService.js";
 import { ownedTickets } from "../../services/bookings/ticketService.js";
+// Trả kết quả giao dịch, đơn và vé; thành viên chỉ xem được đơn của mình.
 export async function result(req, res, next) {
   try {
     const attempt = await PaymentAttempt.findOne({
@@ -66,6 +67,7 @@ export async function result(req, res, next) {
     next(e);
   }
 }
+// Nhận yêu cầu thanh toán của chủ đơn và gọi service theo phương thức đã chọn.
 export async function start(req, res, next) {
   try {
     const b = await Booking.findOne({ _id: req.params.id, user: req.user._id });
@@ -100,6 +102,7 @@ export async function start(req, res, next) {
     next(e);
   }
 }
+// Chuyển yêu cầu thu tiền tại quầy cho service; chưa hoàn tất thì trả HTTP 202.
 export async function cash(req, res, next) {
   try {
     if (
@@ -122,6 +125,7 @@ export async function cash(req, res, next) {
     next(e);
   }
 }
+// Xử lý thanh toán tại quầy qua service dành cho nhân viên/admin.
 export async function staffPay(req, res, next) {
   try {
     const result = await payStaffBooking(
@@ -139,6 +143,7 @@ export async function staffPay(req, res, next) {
     next(error);
   }
 }
+// Nhận thông báo VNPay, gọi service xác minh và phản hồi mã kết quả xử lý.
 export async function ipn(req, res) {
   try {
     res.json(await processIPN(req.query));
@@ -146,6 +151,7 @@ export async function ipn(req, res) {
     res.json({ RspCode: "99", Message: "Retry later" });
   }
 }
+// Xử lý dự phòng Sandbox rồi chuyển trình duyệt về trang kết quả để đọc trạng thái từ server.
 export async function returnUrl(req, res) {
   try {
     await processSandboxReturn(req.query);
@@ -164,6 +170,7 @@ export async function returnUrl(req, res) {
     url.searchParams.set("reference", req.query.vnp_TxnRef);
   res.redirect(url.toString());
 }
+// Lấy danh sách khoản thu cần đối soát, không lưu cache kết quả.
 export async function reconciliation(req, res, next) {
   try {
     res.set("Cache-Control", "no-store").json(await listReconciliation());
@@ -171,6 +178,7 @@ export async function reconciliation(req, res, next) {
     next(error);
   }
 }
+// Chuyển yêu cầu xử lý khoản thu cần đối soát cho service.
 export async function resolvePayment(req, res, next) {
   try {
     res.json(
@@ -180,6 +188,7 @@ export async function resolvePayment(req, res, next) {
     next(error);
   }
 }
+// Kiểm tra và lưu tuổi đã xác minh của thành viên cùng người xác minh.
 export async function verifyAge(req, res, next) {
   try {
     if (
@@ -199,6 +208,7 @@ export async function verifyAge(req, res, next) {
     next(e);
   }
 }
+// Tra cứu thông tin đơn đặt vé theo mã đơn.
 export async function lookup(req, res, next) {
   try {
     const b = await loadBooking(req.params.id);
@@ -209,6 +219,7 @@ export async function lookup(req, res, next) {
   }
 }
 
+// Xem/cập nhật tồn kho; chặn ghi đè nếu số tồn đã thay đổi.
 export async function stock(req, res, next) {
   try {
     if (req.method === "GET") return res.json(await Food.find());
@@ -231,6 +242,7 @@ export async function stock(req, res, next) {
   }
 }
 
+// Tra cứu vé và suất chiếu theo mã vé.
 export async function ticket(req, res, next) {
   try {
     const booking = await Booking.findOne({

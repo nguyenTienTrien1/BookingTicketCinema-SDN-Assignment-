@@ -1,3 +1,4 @@
+// Tính điểm tối đa và tiền giảm để xem trước: 1 điểm = 1.000đ, không vượt số dư/giá trị đơn.
 export function memberPointsQuote(balance, subtotal, value, step = 1) {
     const maxPoints = Math.max(0, Math.floor(Math.min(balance, Math.floor(subtotal / 1000)) / step) * step);
     const selectedPoints = Number(value);

@@ -15,6 +15,7 @@ import {
 } from "../catalogue/counterPromotionService.js";
 import { orphanSeatMessage } from "../../../../shared/seatSelection.mjs";
 export const POINT_VALUE = 1000;
+// Kiểm tra điểm hợp lệ, đủ số dư và không vượt giá trị đơn; chưa trừ điểm.
 export function validatePoints(points, subtotal, balance) {
   const step = Number(process.env.POINT_REDEEM_STEP || 1);
   if (!Number.isSafeInteger(points) || points < 0)
@@ -30,6 +31,7 @@ const populate = [
   { path: "foodItems.food" },
   { path: "user", select: "fullName email role memberPoints status" },
 ];
+// Tính lại tổng tiền trên server: giảm khuyến mãi trước, giảm điểm sau.
 async function reprice(
   booking,
   member,
@@ -47,7 +49,9 @@ async function reprice(
   booking.discount = booking.pointsUsed * POINT_VALUE;
   booking.total = booking.subtotal - booking.discount - quote.discount;
 }
+// Lấy đơn kèm thông tin suất chiếu, phim, món và thành viên.
 export const loadBooking = (id) => Booking.findById(id).populate(populate);
+// Giải phóng ghế đang giữ của đơn; không tác động ghế đã bán.
 export async function releaseSeats(booking, session) {
   await Showtime.updateOne(
     { _id: booking.showtime },
@@ -64,6 +68,7 @@ export async function releaseSeats(booking, session) {
     },
   );
 }
+// Hủy các đơn chờ quá hạn và trả ghế về trạng thái trống.
 export async function expireBookings() {
   const expired = await Booking.find({
     status: "pending",
@@ -85,6 +90,7 @@ export async function expireBookings() {
       await releaseSeats(b, session);
     });
 }
+// Kiểm tra món/tồn kho và lưu tên, đơn giá tại lúc chọn; chưa trừ kho.
 async function foodSnapshot(items, session) {
   if (!Array.isArray(items)) throw fail("Danh sách món không hợp lệ.");
   const seen = new Set(),
@@ -117,6 +123,7 @@ async function foodSnapshot(items, session) {
   }
   return { items: result, total };
 }
+// Chặn phim không được bán; tại quầy yêu cầu xác nhận tuổi/người giám hộ.
 async function checkAge(movie, member, actor, guardian) {
   if (!movie || movie.deletedAt || movie.classification === "C")
     throw fail("Phim không được phép bán vé.");
@@ -140,11 +147,13 @@ export async function previewMemberPromotion({ showtimeId, seats, foodItems = []
  const quote = await quoteCounterPromotion(code, { ticketPrice: show.price, seats, foodItems: food.items, subtotal, pointsUsed: 0 }, null);
  return { subtotal, promotion: quote.promotion, promotionDiscount: quote.discount };
 }
+// Tạo đơn dưới khóa ghi lịch chiếu để tránh xung đột khi sửa lịch.
 export async function createBooking(data) {
   return withScheduleWrite(function () {
     return createBookingWithGuard(data);
   });
 }
+// Kiểm tra dữ liệu, tính tiền và giữ ghế 10 phút trong cùng giao dịch.
 async function createBookingWithGuard({
   userId,
   showtimeId,
@@ -221,6 +230,8 @@ async function createBookingWithGuard({
     await reprice(b, member, session, promotionCode);
     // Operational condition is independent of available/held/booked. Missing
     // condition on a legacy snapshot means Active, never a VIP price override.
+    // Giữ ghế: tất cả ghế phải còn trống và hoạt động mới đổi available → held.
+    // Gắn bookingId và hạn giữ 10 phút; điều kiện ghi ngăn hai khách giữ trùng ghế.
     const claim = await Showtime.updateOne(
       {
         _id: show._id,
@@ -260,6 +271,7 @@ async function createBookingWithGuard({
   return loadBooking(id);
 }
 import Movie from "../../models/movies/Movie.js";
+// Chỉ cho sửa đơn đúng chủ, còn hạn và chưa có thanh toán đang xử lý.
 async function pending(id, userId, session) {
   const b = await Booking.findOne({ _id: id, user: userId }).session(session);
   if (!b) throw fail("Không tìm thấy đơn.", 404);
@@ -272,6 +284,7 @@ async function pending(id, userId, session) {
     );
   return b;
 }
+// Cập nhật số điểm dự kiến dùng và tính lại tiền; chưa trừ điểm thực tế.
 export async function applyMemberPoints(id, userId, points) {
   await transaction(async (session) => {
     const b = await pending(id, userId, session);
@@ -283,12 +296,14 @@ export async function applyMemberPoints(id, userId, points) {
         status: { $in: ["Active", "active"] },
       }).session(session));
     if (!u) throw fail("Khách vãng lai không được dùng điểm.");
+    // Chỉ lưu điểm dự kiến; reprice kiểm tra số dư và khuyến mãi trước khi lưu đơn.
     b.pointsUsed = points;
     await reprice(b, u, session);
     await b.save({ session });
   });
   return loadBooking(id);
 }
+// Thay bắp nước và tính lại tiền, giữ nguyên đơn giá vé đã lưu.
 export async function updateFoods(id, userId, items) {
   await transaction(async (session) => {
     const b = await pending(id, userId, session);
@@ -304,6 +319,7 @@ export async function updateFoods(id, userId, items) {
   });
   return loadBooking(id);
 }
+// Bỏ điểm dự kiến dùng khi khách chủ động chọn thay bằng mã khuyến mãi.
 function replacePromotionPoints(booking, code, replacePoints) {
   if (
     typeof replacePoints !== "boolean" ||
@@ -312,6 +328,7 @@ function replacePromotionPoints(booking, code, replacePoints) {
     throw fail("Chỉ bỏ điểm khi áp dụng một mã khuyến mãi hợp lệ.");
   if (replacePoints) booking.pointsUsed = 0;
 }
+// Áp dụng, đổi hoặc bỏ mã khuyến mãi cho đơn tại quầy.
 export async function applyCounterPromotion(
   id,
   userId,
@@ -329,6 +346,7 @@ export async function applyCounterPromotion(
   });
   return loadBooking(id);
 }
+// Áp dụng, đổi hoặc bỏ mã cho đơn online của chính thành viên.
 export async function applyMemberPromotion(
   id,
   userId,
@@ -354,6 +372,7 @@ export async function applyMemberPromotion(
   });
   return loadBooking(id);
 }
+// Hủy đơn chưa thanh toán và trả ghế; khoản thu chưa rõ phải đối soát trước.
 export async function cancelBooking(id, userId) {
   await transaction(async (session) => {
     const b = await Booking.findOne({ _id: id, user: userId }).session(session);
@@ -383,10 +402,12 @@ export async function cancelBooking(id, userId) {
   return loadBooking(id);
 }
 // Trusted server-only finalization. Client routes cannot pass settlement evidence.
+// Hoàn tất thanh toán từ bằng chứng đã xác minh; mọi thay đổi cùng giao dịch, lỗi thì hoàn tác.
 export async function settle(id, evidence) {
   const result = await transaction(async (session) => {
     const b = await Booking.findById(id).session(session);
     if (!b) throw fail("Không tìm thấy đơn.", 404);
+    // Cùng giao dịch đã hoàn tất thì trả đơn cũ, tránh trừ điểm/kho và tạo vé lặp.
     if (b.status === "paid") {
       if (
         (evidence.ref && evidence.ref !== b.paymentRef) ||
@@ -469,6 +490,7 @@ export async function settle(id, evidence) {
       );
     if (!["demo", "cash", "points", "vnpay"].includes(evidence.kind))
       throw fail("Phương thức không được hỗ trợ.");
+    // Trừ điểm, trừ kho và chuyển ghế đang giữ thành ghế đã bán.
     if (b.user) {
       const member = await User.findOne({
         _id: b.user,
@@ -477,6 +499,7 @@ export async function settle(id, evidence) {
       }).session(session);
       if (!member || member.memberPoints < b.pointsUsed)
         throw fail("Số dư điểm đã thay đổi hoặc tài khoản bị khóa.", 409);
+      // Trừ điểm thực tế và ghi lịch sử trong giao dịch hoàn tất đơn; lỗi thì hoàn tác.
       if (b.pointsUsed)
         await User.updateOne(
           { _id: b.user, memberPoints: { $gte: b.pointsUsed } },
@@ -493,6 +516,7 @@ export async function settle(id, evidence) {
           { session },
         );
     } else if (b.pointsUsed) throw fail("Đơn vãng lai không được dùng điểm.");
+    // Chỉ trừ kho khi hoàn tất thanh toán; điều kiện stock ngăn nhiều đơn bán quá tồn.
     for (const item of b.foodItems) {
       const stock = await Food.updateOne(
         {
@@ -507,6 +531,7 @@ export async function settle(id, evidence) {
       if (stock.modifiedCount !== 1)
         throw fail("Món đã hết hàng, chưa thể hoàn tất thanh toán.", 409);
     }
+    // Hoàn tất thanh toán: chỉ đổi held → booked nếu mọi ghế còn thuộc đơn và chưa hết hạn giữ.
     const sold = await Showtime.updateOne(
       {
         _id: b.showtime,
@@ -525,6 +550,7 @@ export async function settle(id, evidence) {
       { session, arrayFilters: [{ "s.bookingId": b._id, "s.status": "held" }] },
     );
     if (sold.modifiedCount !== 1) throw fail("Giữ ghế không còn hợp lệ.", 409);
+    // Tạo mã QR riêng cho từng ghế, ghi lượt khuyến mãi và biên nhận thanh toán.
     const issuedAt = new Date();
     b.ticketMode = evidence.kind === "demo" ? "demo" : "verified";
     b.ticketContext = {
@@ -580,6 +606,7 @@ export async function settle(id, evidence) {
         });
       await attempt.save({ session });
     }
+    // Kiểm tra hạn lần cuối, ghi doanh thu và đánh dấu đơn đã thanh toán.
     const paidAt = new Date();
     if (paidAt > b.expiresAt || paidAt >= show.startTime)
       throw fail("Đã hết thời gian hoàn tất. Khoản thu cần đối soát.", 410);
@@ -629,9 +656,11 @@ export async function settle(id, evidence) {
   });
   return loadBooking(result);
 }
+// Chặn trình duyệt tự xác nhận đã thanh toán.
 export async function pay() {
   throw fail("Không chấp nhận xác nhận thanh toán từ trình duyệt.", 403);
 }
+// Lấy lịch sử đơn của thành viên, sắp xếp đơn mới nhất trước.
 export const listBookings = (userId) =>
   Booking.find({ user: userId })
     .select(
@@ -647,6 +676,7 @@ export const listBookings = (userId) =>
     ])
     .sort({ createdAt: -1, _id: -1 });
 
+// Mô phỏng thanh toán thất bại khi phát triển; không trừ điểm/kho hay tạo vé.
 export async function simulationFailure(id) {
   if (
     process.env.NODE_ENV === "production" ||

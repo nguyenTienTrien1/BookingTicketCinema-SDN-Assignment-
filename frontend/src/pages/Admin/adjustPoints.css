@@ -1,0 +1,91 @@
+.pointsAdmin { width: 100%; min-width: 0; color: #edf0f6; }
+.pointsPageHeading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 30px; }
+.pointsEyebrow { margin: 0 0 10px; color: #8f9db4; font-size: 10px; letter-spacing: .15em; font-weight: 700; }
+.pointsPageHeading h2 { margin: 0 0 12px; font-size: clamp(24px, 2.5vw, 32px); letter-spacing: -.03em; }
+.pointsPageHeading > div > p:last-child { color: #9daac0; font-size: 13px; line-height: 1.7; margin: 0; }
+.pointsAdminBadge { color: #ff9aa4; border: 1px solid #612b39; background: #391b2566; padding: 9px 12px; border-radius: 7px; font-size: 9px; letter-spacing: .08em; white-space: nowrap; }
+.pointsWorkspace { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(0, 1.3fr); gap: 24px; align-items: start; }
+.pointsDirectory, .pointsEditor, .pointsHistory, .pointsWelcome { background: #12161f; border: 1px solid #2c3342; border-radius: 16px; padding: 24px; min-width: 0; }
+.pointsPanelHeading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; }
+.pointsPanelHeading h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.pointsPanelHeading > span, .pointsPanelHeading p:not(.pointsEyebrow) { color: #94a1b7; font-size: 12px; line-height: 1.6; }
+.pointsPanelHeading p:not(.pointsEyebrow) { margin: 6px 0 0; }
+.pointsSearch { display: grid; gap: 10px; font-size: 12px; color: #d3dbe9; font-weight: 600; }
+.pointsAdmin input, .pointsAdmin textarea { width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid #353e50; border-radius: 9px; color: #f1f4fa; background: #1a202b; font: inherit; font-size: 13px; }
+.pointsAdmin textarea { resize: vertical; min-height: 92px; line-height: 1.7; display: block; }
+.pointsAdmin input::placeholder, .pointsAdmin textarea::placeholder { color: #75839a; }
+.pointsAdmin :focus-visible { outline: 2px solid #ff8797; outline-offset: 3px; }
+.pointsResultCount { color: #7e8da5; font-size: 11px; margin: 18px 0 12px; }
+.pointsMemberList { display: grid; gap: 9px; max-height: 580px; overflow: auto; padding: 3px; margin: -3px; scrollbar-width: thin; scrollbar-color: #444c60 transparent; }
+.pointsMember { display: flex; align-items: center; gap: 12px; padding: 15px 12px; width: 100%; min-width: 0; background: #191e29; border: 1px solid #2d3544; border-radius: 10px; color: #e6ebf5; text-align: left; font: inherit; }
+.pointsMember:hover { border-color: #6c5261; background: #201f2b; }
+.pointsMember.selected { background: #30202a; border-color: #d74a61; box-shadow: inset 3px 0 #ef3654; }
+.pointsAvatar { flex: 0 0 36px; height: 36px; display: grid; place-items: center; border: 1px solid #53405f; border-radius: 50%; color: #e4c5ed; background: #392c45; font-size: 14px; font-weight: 700; }
+.pointsMemberInfo { flex: 1; min-width: 0; }
+.pointsMemberInfo strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
+.pointsMemberInfo > span, .pointsMemberInfo small { display: block; margin-top: 5px; color: #96a6c0; font-size: 11px; overflow-wrap: anywhere; }
+.pointsMemberBalance { display: grid; gap: 5px; text-align: right; flex-shrink: 0; }
+.pointsMemberBalance b { font-size: 16px; color: #dce5f6; }
+.pointsMemberBalance small { color: #8394ad; font-size: 10px; }
+.pointsEditorColumn { display: grid; gap: 24px; min-width: 0; }
+.pointsWelcome { min-height: 380px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; background: radial-gradient(ellipse at 50% 40%, #42253433, transparent 65%), #12161f; }
+.pointsWelcome > span { width: 64px; height: 64px; display: grid; place-items: center; border: 1px solid #613548; border-radius: 18px; color: #ff97ae; font-size: 36px; background: #38222f; }
+.pointsWelcome h3 { font-size: 19px; margin: 22px 0 10px; }
+.pointsWelcome p { color: #92a1b8; line-height: 1.8; font-size: 13px; max-width: 340px; margin: 0; }
+.pointsEditor > .pointsPanelHeading { padding-bottom: 22px; border-bottom: 1px solid #2c3240; align-items: flex-start; }
+.pointsCurrentBalance { text-align: right; flex-shrink: 0; }
+.pointsCurrentBalance > span { display: block; color: #8f9eb4; font-size: 11px; margin-bottom: 8px; }
+.pointsCurrentBalance strong { font-size: 26px; color: #95ebbe; }
+.pointsCurrentBalance small { font-size: 11px; font-weight: 500; }
+.pointsEditor fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pointsFieldLabel, .pointsField { display: block; padding: 0; font-size: 12px; font-weight: 600; color: #dce3ee; margin-bottom: 12px; }
+.pointsField > span { color: #ff8596; }
+.pointsDirection { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.pointsDirection button { display: flex; align-items: center; gap: 10px; text-align: left; color: #c5cfdf; padding: 14px 12px; border: 1px solid #343c4b; border-radius: 10px; background: #191f2a; }
+.pointsDirection button > span:first-child { width: 30px; height: 30px; display: grid; place-items: center; background: #ffffff08; border-radius: 7px; font-size: 23px; flex-shrink: 0; }
+.pointsDirection strong { font-size: 13px; }
+.pointsDirection small { display: block; color: #8999af; font-size: 10px; margin-top: 6px; line-height: 1.5; }
+.pointsDirection .selected.add { border-color: #3f956a; background: #19372d66; color: #99e7bb; }
+.pointsDirection .selected.subtract { border-color: #b6576b; background: #40233266; color: #ffa2b4; }
+.pointsAmountInput { display: flex; align-items: center; border: 1px solid #3b4659; background: #1a202b; border-radius: 10px; padding: 0 16px; gap: 10px; }
+.pointsAmountInput:focus-within { border-color: #f07588; }
+.pointsAmountInput > span:first-child { color: #c6cfdf; font-size: 23px; }
+.pointsAmountInput > span:last-child { color: #8595ae; font-size: 12px; }
+.pointsAmountInput input { padding: 14px 0; border: 0; background: transparent; border-radius: 0; font-size: 19px; font-weight: 600; }
+.pointsHint, .pointsFieldError { margin: 10px 0 22px; font-size: 11px; line-height: 1.7; color: #8595ae; }
+.pointsFieldError { color: #ff9aaa; }
+.pointsAdmin textarea[aria-invalid="true"] { border-color: #df6a80; }
+.pointsReasonHint { display: flex; justify-content: space-between; gap: 10px; }
+.pointsReasonHint > span:last-child { white-space: nowrap; }
+.pointsPreview { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: #0e121a; border: 1px solid #2a3343; border-radius: 12px; padding: 18px 20px; }
+.pointsPreview > div { flex: 1; min-width: 0; }
+.pointsPreview > div:last-child { text-align: right; }
+.pointsPreview > span { color: #626f86; font-size: 23px; }
+.pointsPreview div > span { display: block; font-size: 11px; color: #8c9db6; margin-bottom: 9px; }
+.pointsPreview strong { font-size: 24px; overflow-wrap: anywhere; }
+.pointsPreview small { font-size: 11px; color: #93a3bc; font-weight: 500; }
+.pointsPreview strong.add { color: #98e6b9; }
+.pointsPreview strong.subtract { color: #ffa0b2; }
+.pointsSubmitRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 22px; }
+.pointsSubmitRow > span { color: #8191a9; line-height: 1.7; font-size: 10px; max-width: 220px; }
+.pointsSubmit { padding: 13px 18px; min-height: 44px; border-radius: 8px; background: #e50924; color: white; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.pointsSubmit:hover { background: #ff2340; }
+.pointsAdmin button:disabled, .pointsAdmin fieldset:disabled { opacity: .55; cursor: not-allowed; }
+.pointsEditor fieldset:disabled button { cursor: not-allowed; }
+.pointsFeedback { border: 1px solid; border-radius: 9px; padding: 13px 16px; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.pointsFeedback.error { background: #371e28; border-color: #874252; color: #ffc2ce; }
+.pointsFeedback.success { background: #143025; border-color: #367957; color: #a5ebc3; }
+.pointsRefresh { color: #c0cde1; border: 1px solid #354155; border-radius: 8px; background: #1a2230; padding: 10px 12px; font-size: 11px; white-space: nowrap; }
+.pointsEmpty { text-align: center; color: #899ab4; font-size: 12px; line-height: 1.8; padding: 24px 12px; }
+.pointsEmpty p { margin-bottom: 0; }
+.pointsHistoryList { margin: 0; padding: 0; list-style: none; }
+.pointsHistoryList li { display: flex; gap: 16px; padding: 18px 0; border-top: 1px solid #2b3342; }
+.pointsHistoryList li > div { min-width: 0; }
+.pointsHistoryList strong { font-size: 12px; font-weight: 500; overflow-wrap: anywhere; line-height: 1.7; }
+.pointsHistoryList p { color: #9aaac2; font-size: 11px; line-height: 1.6; margin: 6px 0; }
+.pointsHistoryList time { color: #6f819f; font-size: 10px; }
+.pointsHistoryDelta { min-width: 56px; align-self: flex-start; text-align: center; padding: 7px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.pointsHistoryDelta.add { color: #96e8b8; background: #1c3c2e; }
+.pointsHistoryDelta.subtract { color: #ff9fb1; background: #402632; }
+@media (max-width: 1150px) { .pointsWorkspace { grid-template-columns: minmax(0, 1fr); } .pointsMemberList { max-height: 300px; } .pointsWelcome { min-height: 240px; } }
+@media (max-width: 600px) { .pointsPageHeading { flex-direction: column; align-items: flex-start; } .pointsDirectory, .pointsEditor, .pointsHistory { padding: 18px 16px; } .pointsDirection { gap: 8px; } .pointsDirection button { padding: 12px 10px; gap: 8px; } .pointsDirection small { display: none; } .pointsCurrentBalance strong { font-size: 23px; } .pointsEditor > .pointsPanelHeading { flex-wrap: wrap; } .pointsCurrentBalance { text-align: left; } .pointsSubmitRow { flex-direction: column; align-items: stretch; gap: 12px; } .pointsSubmitRow > span { max-width: none; } .pointsHistory > .pointsPanelHeading { align-items: flex-start; flex-direction: column; } }
