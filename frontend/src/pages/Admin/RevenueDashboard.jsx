@@ -150,6 +150,10 @@ export default function RevenueDashboard() {
         <p>Dữ liệu lúc {displayTime(report.dataTimestamp)} · {report.timezone} · VND</p></div>
       <div className="revenueCards">{fields.map(([key, label]) => <article className={`moviePanel revenueCard ${key === 'net' ? 'revenueNet' : ''}`} key={key}><h2>{label}</h2><strong>{money.format(report.totals[key])}</strong></article>)}</div>
       <p className="revenueHint">{report.totals.paymentCount} thanh toán · {report.totals.refundCount} hoàn tiền</p>
+      {report.pointRefunds && <section className="moviePanel revenueBasis"><h2>Hoàn về điểm thành viên</h2>
+        <p>{money.format(report.pointRefunds.value)} được chuyển thành {Number(report.pointRefunds.points).toLocaleString('vi-VN', { maximumFractionDigits: 3 })} điểm · {report.pointRefunds.count} yêu cầu hoàn tất.</p>
+        <p>Đây là số dư điểm đã cộng, không phải tiền mặt/VNPay đã chi ra. Khoản thu chưa thành đơn chuyển về điểm: {money.format(report.pointRefunds.unfinalizedCollections)}; không tính vào doanh thu bán vé đã hoàn tất.</p>
+      </section>}
       {report.totals.paymentCount === 0 && report.totals.refundCount === 0 ? <div className="moviePanel movieState" role="status"><h2>Chưa có giao dịch được xác minh trong kỳ</h2><p>Tổng ghi nhận là 0. Bạn có thể đổi bộ lọc hoặc xuất báo cáo rỗng.</p></div> : <RevenueChart series={report.series} />}
       <div className="moviePanel revenueTableWrap" role="region" aria-label="Bảng doanh thu" tabIndex="0"><table className="revenueTable"><caption>Chi tiết theo {report.filters.groupBy === 'day' ? 'ngày' : 'tháng'} · Đơn vị VND</caption><thead><tr><th scope="col">Kỳ</th>{fields.map(([key, label]) => <th scope="col" key={key}>{label}</th>)}<th scope="col">Thanh toán</th><th scope="col">Hoàn tiền</th></tr></thead>
         <tbody>{report.series.map((item) => <tr key={item.period}><th scope="row">{item.period}</th>{fields.map(([key]) => <td key={key}>{money.format(item[key])}</td>)}<td>{item.paymentCount}</td><td>{item.refundCount}</td></tr>)}</tbody>

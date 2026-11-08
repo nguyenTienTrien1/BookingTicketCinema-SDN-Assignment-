@@ -2,6 +2,7 @@ import Booking from '../models/Booking.js';
 import User from '../models/User.js';
 import Food from '../models/Food.js';
 import PaymentAttempt from '../models/PaymentAttempt.js';
+import PointRefund from '../models/PointRefund.js';
 import { settle, loadBooking, simulationFailure } from '../services/bookingService.js';
 import { createPayment, processIPN } from '../services/vnpayService.js';
 import { domainError as fail } from '../services/transaction.js';
@@ -13,7 +14,8 @@ export async function result(req,res,next) { try {
  if (req.user.role === 'member') filter.user = req.user._id;
  const booking = await Booking.findOne(filter);
  if(!booking)throw fail('Không tìm thấy giao dịch.',404);
- res.set('Cache-Control', 'no-store').json({status:attempt.status,booking:await loadBooking(booking._id)});
+ const refund = await PointRefund.findOne({ reference: attempt.ref, booking: booking._id }).select('reference kind status rate amount points completedAt').lean();
+ res.set('Cache-Control', 'no-store').json({status:attempt.status,booking:await loadBooking(booking._id),refund});
  }catch(e){next(e);} }
 export async function start(req,res,next) { try {
  const b=await Booking.findOne({_id:req.params.id,user:req.user._id});if(!b)throw fail('Không tìm thấy đơn.',404);

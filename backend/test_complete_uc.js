@@ -69,8 +69,12 @@ test('Nine UC completion against transactional MongoDB',async t=>{
    assert.equal((await callback()).data.RspCode,'00');assert.equal((await callback()).data.RspCode,'02');
    const paidReference=reference;
    reference=first.data.reference;
-   assert.equal((await callback({vnp_TransactionNo:'654321'})).data.RspCode,'99');
-   assert.equal((await PaymentAttempt.findOne({ref:reference})).status,'unresolved');
+   const beforeRefund=(await User.findById(member.id)).memberPoints;
+   assert.equal((await callback({vnp_TransactionNo:'654321'})).data.RspCode,'00');
+   assert.equal((await PaymentAttempt.findOne({ref:reference})).status,'refunded');
+   assert.equal((await User.findById(member.id)).memberPoints,beforeRefund+b.total/1000);
+   assert.equal((await callback({vnp_TransactionNo:'654321'})).data.RspCode,'02');
+   assert.equal((await User.findById(member.id)).memberPoints,beforeRefund+b.total/1000);
    assert.equal((await Booking.findById(b._id)).paymentRef,paidReference);
    reference=paidReference;
    const result=await request('/bookings/payment-result/'+reference,member);

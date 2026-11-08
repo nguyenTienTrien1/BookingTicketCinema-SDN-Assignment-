@@ -65,7 +65,7 @@ async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [
  if (!snapshot) throw fail('Không tìm thấy suất chiếu.',404);
  const id = await transaction(async (session) => {
   const show = await Showtime.findById(showtimeId).session(session);
-  if (!show || show.startTime <= new Date()) throw fail('Suất chiếu không còn mở bán.', 409);
+  if (!show || show.cancelledAt || show.startTime <= new Date()) throw fail('Suất chiếu không còn mở bán.', 409);
   if(show.price!==snapshot.price||String(show.movie)!==String(snapshot.movie)||show.cinema!==snapshot.cinema||show.room!==snapshot.room||show.startTime.getTime()!==snapshot.startTime.getTime())throw fail('Giá hoặc lịch chiếu vừa thay đổi. Vui lòng chọn lại.',409);
   const movie = await Movie.findById(show.movie).session(session);
   const member = userId ? await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session) : null;
@@ -121,7 +121,7 @@ export async function cancelBooking(id, userId) {
  await transaction(async (session) => {
   const b = await Booking.findOne({ _id: id, user: userId }).session(session);
   if (!b) throw fail('Không tìm thấy đơn.', 404);
-  if (b.status === 'paid') throw fail('Vé đã thanh toán không thể hủy giữ ghế.');
+  if (['paid','refund-requested','refunded'].includes(b.status)) throw fail('Vé đã thanh toán hoặc đang hoàn điểm không thể hủy giữ ghế.');
   if (b.status === 'cancelled') return;
   if (b.activePayment) {
    const payment = await PaymentAttempt.findOne({ ref: b.activePayment }).session(session);
@@ -140,7 +140,7 @@ export async function settle(id, evidence) {
    return b._id;
   }
   if (b.status !== 'pending' || !b.expiresAt || b.expiresAt <= new Date()) throw fail('Đơn đã hủy hoặc hết hạn.', 410);
-  const show = await Showtime.findById(b.showtime).session(session); if (!show || show.startTime <= new Date()) throw fail('Suất đã bắt đầu.', 409);
+  const show = await Showtime.findById(b.showtime).session(session); if (!show || show.cancelledAt || show.startTime <= new Date()) throw fail('Suất đã bắt đầu hoặc đã hủy.', 409);
   const finalMovie = await Movie.findById(show.movie).session(session);
   const finalMember = b.user ? await User.findById(b.user).session(session) : null;
   await checkAge(finalMovie, finalMember, b.counterEmployee, b.guardianConfirmed);
@@ -199,7 +199,7 @@ export async function settle(id, evidence) {
 }
 export async function pay() { throw fail('Không chấp nhận xác nhận thanh toán từ trình duyệt.', 403); }
 export const listBookings = (userId) => Booking.find({ user: userId })
- .select('showtime ticketContext ticketMode seats ticketPrice foodItems subtotal pointsUsed discount promotion promotionDiscount total status paymentMethod paymentStatus paymentRef activePayment cashReceived change paymentIssue expiresAt tickets paidAt createdAt updatedAt')
+ .select('showtime ticketContext ticketMode seats ticketPrice foodItems subtotal pointsUsed discount promotion promotionDiscount total status paymentMethod paymentStatus paymentRef activePayment cashReceived change paymentIssue expiresAt tickets paidAt createdAt updatedAt refund cinemaCancellation')
  .populate([{path:'showtime',select:'movie cinema room startTime',populate:{path:'movie',select:'title'}},{path:'foodItems.food',select:'name'}])
  .sort({ createdAt: -1, _id: -1 });
 

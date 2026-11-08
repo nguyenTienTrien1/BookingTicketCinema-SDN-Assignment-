@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import RevenueEntry from '../models/RevenueEntry.js';
 import RevenueReport from '../models/RevenueReport.js';
 import FoodSale from '../models/FoodSale.js';
+import PointRefund from '../models/PointRefund.js';
+import PaymentAttempt from '../models/PaymentAttempt.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 export const REPORT_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -155,10 +157,37 @@ export async function createReport(input, adminId) {
       include(entry, 'food');
     }
   }
+  // Point credits are an internal member balance, not an outgoing cash refund.
+  // Keep the existing cash-flow totals and record this separate liability.
+  const pointRefunds = { value: 0, points: 0, count: 0, unfinalizedCollections: 0 };
+  if (filters.source !== 'food') {
+    const query = { status: 'completed', completedAt: { $gte: start, $lt: end, $lte: dataTimestamp }, createdAt: { $lte: dataTimestamp } };
+    if (filters.method !== 'all') query.method = filters.method;
+    for await (const refund of PointRefund.find(query).lean().cursor()) {
+      const receipt = await PaymentAttempt.findOne({ ref: refund.reference, booking: refund.booking }).lean();
+      if (!receipt || !validMoney(refund.amount) || !validMoney(refund.base) || ![50,80,100].includes(refund.rate) ||
+          refund.amount !== Number(BigInt(refund.base) * BigInt(refund.rate) / 100n) ||
+          Math.round(refund.points * 1000) !== refund.amount || receipt.method !== refund.method ||
+          !['cash','vnpay','points'].includes(refund.method) ||
+          Math.round(refund.balanceAfter * 1000) - Math.round(refund.balanceBefore * 1000) !== refund.amount) {
+        throw reportError('Chứng từ hoàn điểm không khớp; cần đối soát.', 409);
+      }
+      if (refund.kind === 'payment-failure') {
+        if (receipt.status !== 'refunded' || receipt.amount !== refund.base || refund.rate !== 100) throw reportError('Khoản thu chưa hoàn tất thiếu chứng từ hoàn điểm.', 409);
+        pointRefunds.unfinalizedCollections += refund.amount;
+      } else {
+        const original = await RevenueEntry.findOne({ reference: refund.reference, booking: refund.booking, kind: 'payment' }).lean();
+        if (!original || original.amount + original.points !== refund.base || receipt.status !== 'succeeded') throw reportError('Hoàn điểm thiếu thanh toán gốc hợp lệ.', 409);
+      }
+      pointRefunds.value += refund.amount; pointRefunds.count++;
+      if (!validMoney(pointRefunds.value) || !validMoney(pointRefunds.unfinalizedCollections)) throw reportError('Tổng hoàn điểm vượt giới hạn cho phép.', 409);
+    }
+    pointRefunds.points = pointRefunds.value / 1000;
+  }
   const result = {
     filters, timezone: REPORT_TIMEZONE, currency: 'VND', basis: BASIS,
     sourceNote: SOURCE_NOTE, dataTimestamp: dataTimestamp.toISOString(),
-    totals, sources, series: Array.from(buckets.values()), excludedFoodSales
+    totals, sources, series: Array.from(buckets.values()), excludedFoodSales, pointRefunds
   };
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
   const report = await RevenueReport.create({ admin: adminId, result, expiresAt });
@@ -201,6 +230,9 @@ export async function exportReport(id, input, adminId) {
   row('Vé (gồm bắp nước đi kèm)', result.sources.tickets);
   row('Bắp nước tại quầy', result.sources.food);
   for (const item of result.series) row(item.period, item);
+  if (result.pointRefunds) rows.push([], ['HOÀN VỀ ĐIỂM THÀNH VIÊN - KHÔNG PHẢI TIỀN CHI RA'],
+    ['Giá trị chuyển về điểm (VND)', result.pointRefunds.value], ['Số điểm đã cộng', result.pointRefunds.points],
+    ['Số yêu cầu hoàn tất', result.pointRefunds.count], ['Khoản thu chưa thành đơn chuyển về điểm (VND)', result.pointRefunds.unfinalizedCollections]);
   const lines = [];
   for (const cells of rows) lines.push(cells.map(csvCell).join(','));
   return { csv: '\uFEFF' + lines.join('\r\n') + '\r\n', filename: `revenue_${filters.from}_${filters.to}.csv` };

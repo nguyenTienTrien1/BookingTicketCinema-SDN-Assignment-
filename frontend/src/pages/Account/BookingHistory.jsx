@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getBookings } from '../../services/bookingService';
 import { translateFoodName } from '../../utils/uiText';
 import './bookingHistory.css';
+import TicketRefund from './TicketRefund';
 
 function formatDate(value) {
     if (!value) return 'Chưa có thông tin';
@@ -12,8 +13,8 @@ function formatDate(value) {
 }
 
 function bookingStatus(booking, now) {
-    if (booking.status === 'refund-requested') return { label: 'Đang yêu cầu hoàn tiền', className: 'pending' };
-    if (booking.status === 'refunded') return { label: 'Đã hoàn tiền', className: 'cancelled' };
+    if (booking.status === 'refund-requested') return { label: 'Đang hoàn về điểm', className: 'pending' };
+    if (booking.status === 'refunded') return { label: 'Đã hoàn về điểm', className: 'cancelled' };
     if (booking.status === 'paid') return { label: 'Đã thanh toán', className: 'paid' };
     if (booking.status === 'cancelled') return { label: 'Đã hủy', className: 'cancelled' };
     if (booking.status !== 'pending') return { label: 'Chưa xác định', className: 'expired' };
@@ -22,8 +23,8 @@ function bookingStatus(booking, now) {
     return { label: 'Chờ thanh toán', className: 'pending' };
 }
 
-const paymentLabels = { unpaid: 'Chưa thanh toán', paid: 'Đã thanh toán', failed: 'Không thành công', 'refund-requested': 'Đang yêu cầu hoàn tiền', refunded: 'Đã hoàn tiền' };
-const refundLabels = { 'refund-requested': 'Đang xử lý', refunded: 'Đã hoàn tiền' };
+const paymentLabels = { unpaid: 'Chưa thanh toán', paid: 'Đã thanh toán', failed: 'Không thành công', 'refund-requested': 'Đang hoàn về điểm', refunded: 'Đã hoàn về điểm' };
+const refundLabels = { 'refund-requested': 'Đang xử lý hoàn điểm', refunded: 'Đã hoàn về điểm' };
 const methodLabels = { cash: 'Tiền mặt', vnpay: 'VNPay', momo: 'MoMo', 'credit-card': 'Thẻ ngân hàng', mock: 'Mô phỏng', demo: 'Mô phỏng', points: 'Không thu thêm tiền' };
 
 export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, onBookAgain, onCountChange }) {
@@ -32,6 +33,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
     const [error, setError] = useState('');
     const [retry, setRetry] = useState(0);
     const [now, setNow] = useState(Date.now());
+    const [refundNotice, setRefundNotice] = useState('');
 
     useEffect(() => {
         const controller = new AbortController();
@@ -67,6 +69,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                 <button type="button" className="ghost" disabled={loading} onClick={() => setRetry((value) => value + 1)}>Làm mới</button>
             </div>
             {loading && <p className="ticketNotice" role="status">Đang tải lịch sử đặt vé…</p>}
+            {refundNotice && <p className="ticketNotice" role="status">{refundNotice}</p>}
             {error && <div className="ticketNotice ticketNoticeError" role="alert">
                 <p>{error}</p><button type="button" className="ghost" onClick={() => setRetry((value) => value + 1)}>Thử lại</button>
             </div>}
@@ -101,6 +104,8 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                             {missingSnapshot && <p className="helperText">Đơn cũ chưa lưu đầy đủ thông tin gốc; các chi tiết còn thiếu được hiển thị theo dữ liệu hiện có.</p>}
                             {(booking.ticketMode === 'demo' || ['demo', 'mock'].includes(booking.paymentMethod)) && <p className="helperText">Đơn mô phỏng — không xác nhận vào rạp thật.</p>}
                             {booking.paymentIssue && <p className="helperText">Khoản thu cần đối soát: {booking.paymentIssue}</p>}
+                            {booking.cinemaCancellation?.at && <p className="helperText">Rạp đã hủy suất: {booking.cinemaCancellation.reason}. Đơn Member được xử lý hoàn 100% về điểm; khách vãng lai không được hoàn vé.</p>}
+                            {booking.refund?.reference && <p className="helperText" role="status">{booking.refund.status === 'completed' ? 'Đã hoàn' : 'Đang xử lý hoàn'} {Number(booking.refund.points || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })} điểm · Mức {booking.refund.rate}% · Giá trị {Number(booking.refund.amount || 0).toLocaleString('vi-VN')}₫.</p>}
                             {booking.activePayment && booking.cashReceived > 0 && <p className="helperText">Đã ghi nhận tiền mặt, đang chờ hoàn tất. Không thanh toán lại.</p>}
                             <div className="myTicketDetails">
                                 <p><span>Ngày đặt</span><strong>{formatDate(booking.createdAt)}</strong></p>
@@ -120,6 +125,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                             <div className="myTicketFooter">
                                 <div><span>Tổng tiền đơn</span><strong>{Number(booking.total || 0).toLocaleString('vi-VN')}₫</strong></div>
                                 {booking.status === 'paid' && booking.paymentStatus === 'paid' && <Link className="historyLink" to={`/bookings/${booking._id}/tickets`}>Xem vé QR</Link>}
+                                {booking.status === 'paid' && booking.paymentStatus === 'paid' && !['demo','mock'].includes(booking.paymentMethod) && <TicketRefund booking={booking} onChanged={notice => { setRefundNotice(notice); setRetry(value => value + 1); }} />}
                                 {canContinue && onContinuePayment && <button type="button" className="primary" onClick={() => onContinuePayment(booking)}>Thanh toán tiếp</button>}
                                 {status.className === 'expired' && booking.status === 'pending' && onBookAgain && <button type="button" className="ghost" onClick={onBookAgain}>Đặt lại vé</button>}
                             </div>

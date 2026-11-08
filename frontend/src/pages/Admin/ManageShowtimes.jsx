@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getMovies } from '../../services/movieService';
-import { getAdminShowtimes, addShowtime, updateShowtime, deleteShowtime, getShowtime, getShowtimeRooms } from '../../services/showtimeService';
+import { getAdminShowtimes, addShowtime, updateShowtime, deleteShowtime, getShowtime, getShowtimeRooms, cancelShowtime } from '../../services/showtimeService';
 import './movies.css';
 import AutoShowtimes from './AutoShowtimes';
 
@@ -28,6 +28,7 @@ export default function ManageShowtimes() {
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const editor = useRef(null);
   const errorSummary = useRef(null);
 
@@ -67,6 +68,7 @@ export default function ManageShowtimes() {
     setFormError('');
     setMessage('');
     setRecoveryError('');
+    setCancelReason('');
     if (showtime && nextMode === 'edit') {
       // datetime-local is explicitly interpreted as Vietnam time, regardless of device timezone.
       const localTime = new Date(new Date(showtime.startTime).getTime() + 7 * 60 * 60000);
@@ -94,7 +96,9 @@ export default function ManageShowtimes() {
     setSaving(true);
     try {
       let response;
-      if (mode === 'delete') {
+      if (mode === 'cancel') {
+        response = await cancelShowtime(selected._id, selected.updatedAt, cancelReason);
+      } else if (mode === 'delete') {
         response = await deleteShowtime(selected._id, selected.updatedAt);
       } else {
         const data = {
@@ -147,6 +151,7 @@ export default function ManageShowtimes() {
     editorTitle = 'Xác nhận xóa suất chiếu';
     submitLabel = 'Xác nhận xóa';
   }
+  if (mode === 'cancel') { editorTitle = 'Hủy suất chiếu và hoàn điểm'; submitLabel = 'Xác nhận hủy suất'; }
   if (saving) submitLabel = 'Đang xử lý…';
   const selectedRoom = rooms.find((room) => room.cinema === form.cinema && room.name === form.room);
 
@@ -179,7 +184,12 @@ export default function ManageShowtimes() {
             </h2>
             {formError && <p className="movieError" role="alert" tabIndex={-1} ref={errorSummary}>{formError}</p>}
             <fieldset disabled={saving}>
-              {mode === 'delete' ? <>
+              {mode === 'cancel' ? <>
+                <p><strong>{selected.movie?.title}</strong> · {selected.cinema} · {selected.room} · {displayTime(selected.startTime)}</p>
+                <p className="movieWarning">Ngừng bán suất, vô hiệu vé và hoàn 100% về điểm cho Member. Khách vãng lai không được hoàn vé. Không hủy được suất có vé đã check-in.</p>
+                <label>Lý do hủy suất<textarea required minLength={3} maxLength={500} value={cancelReason} onChange={event => setCancelReason(event.target.value)} /></label>
+                <p>Thông báo hủy và kết quả hoàn xuất hiện trong lịch sử đặt vé của khách. Yêu cầu cộng điểm lỗi được giữ để Admin/Employee thử lại ở mục đối soát.</p>
+              </> : mode === 'delete' ? <>
                 <p><strong>{selected.movie ? selected.movie.title : 'Phim không còn tồn tại'}</strong></p>
                 <p>{selected.cinema} · {selected.room} · {displayTime(selected.startTime)}</p>
                 <p>Giá vé: {selected.price.toLocaleString('vi-VN')} VND · {selected.seats.length} ghế</p>
@@ -214,7 +224,7 @@ export default function ManageShowtimes() {
               </>}
               <div className="movieFormActions">
                 <button className="movieSecondary" type="button" onClick={closeEditor}>Hủy</button>
-                <button className="moviePrimary" type="submit" disabled={mode !== 'delete' && !!movieError}>
+                <button className="moviePrimary" type="submit" disabled={!['delete','cancel'].includes(mode) && !!movieError}>
                   {submitLabel}
                 </button>
               </div>
@@ -244,16 +254,18 @@ export default function ManageShowtimes() {
                 <tbody>{result.showtimes.map((showtime) => <tr key={showtime._id}>
                   <td><strong>{showtime.movie ? showtime.movie.title : 'Phim không còn tồn tại'}</strong>
                     <div className="movieGenres">{showtime.cinema} · {showtime.room}</div>
+                    {showtime.cancelledAt && <p className="movieWarning">Đã hủy: {showtime.cancellationReason}</p>}
                     {showtime.movie && <small>{showtime.movie.duration} phút</small>}</td>
                   <td>{displayTime(showtime.startTime)}</td>
                   <td>{showtime.price.toLocaleString('vi-VN')} VND</td>
                   <td>{showtime.seats.filter((seat) => seat.status === 'available' && (!seat.condition || seat.condition === 'Active')).length}/{showtime.seats.length} trống</td>
-                  <td><button className="movieSecondary" disabled={saving}
+                  <td><button className="movieSecondary" disabled={saving || !!showtime.cancelledAt}
                     aria-label={`Sửa suất chiếu ${displayTime(showtime.startTime)} tại ${showtime.room}`}
                     onClick={() => openEditor('edit', showtime)}>Sửa</button>{' '}
-                    <button className="movieSecondary" disabled={saving}
+                    <button className="movieSecondary" disabled={saving || !!showtime.cancelledAt}
                       aria-label={`Xóa suất chiếu ${displayTime(showtime.startTime)} tại ${showtime.room}`}
-                      onClick={() => openEditor('delete', showtime)}>Xóa</button></td>
+                      onClick={() => openEditor('delete', showtime)}>Xóa</button>{' '}
+                    <button className="movieSecondary" disabled={saving} onClick={() => openEditor('cancel', showtime)}>{showtime.cancelledAt ? 'Kiểm tra hoàn điểm' : 'Hủy suất & hoàn điểm'}</button></td>
                 </tr>)}</tbody>
               </table></div>}
             {result.totalPages > 1 && <nav className="moviePagination" aria-label="Phân trang suất chiếu">

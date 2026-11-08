@@ -16,6 +16,8 @@ const showtimeSchema = new mongoose.Schema({
   room: { type: String, required: true },
   startTime: { type: Date, required: true },
   price: { type: Number, required: true },
+  cancelledAt: Date, cancellationReason: String,
+  cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   seats: [seatSchema]
 }, { timestamps: true });
 

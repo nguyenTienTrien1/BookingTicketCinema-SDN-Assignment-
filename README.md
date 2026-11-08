@@ -230,3 +230,12 @@ The diagram's View → Controller → Service → Model → Database flow maps t
 - Create Account
 - Update Account Status
 - Adjust Member Points
+# UC7.1 — Refund to Member points
+
+- Member refunds cover the entire unused booking, including food/drinks already delivered, after promotion discounts. Any checked-in ticket blocks the refund. Guest bookings are not eligible.
+- Before showtime: at least 24 hours = 100%; 2–24 hours = 80%; 45 minutes–2 hours = 50%; under 45 minutes = no Member cancellation/refund. The same percentage applies to cash value and redeemed points. The server previews and rechecks the accepted amount at confirmation.
+- All eligible value becomes Member points at 1 point = 1,000 VND. Refund value rounds down to whole VND; balances retain up to 0.001 point. Spending remains in configured redemption steps (default 100 points). Promotion usage and food stock are not restored.
+- Admin can cancel a showtime through the existing showtime screen. Cancellation stops sales, preserves history, displays an in-app notice and refunds eligible Member bookings at 100%. Shows with checked-in tickets cannot be cancelled under this policy. Guest tickets are revoked without a points refund.
+- Verified cash/VNPay collections that cannot finalize a Member booking are refunded 100% to points; proposed points that were never deducted are not credited again. Extra verified charges do not invalidate a separately paid booking. Unverified receipts stay unresolved. Existing guest cash-receipt reconciliation is separate from paid-ticket refunds.
+- `PointRefund.reference` is unique across these flows. Booking claims prevent concurrent check-in; a transaction commits the balance, audit evidence, ticket revocation and seat release together. Failed credits stay blocked for Admin/Employee retry in Counter Tools. No provider refund API is called.
+- Revenue reports retain cash-flow totals and separately show the value converted to points, including collections that never finalized a sale. These figures are also included in the exported report.

@@ -24,6 +24,8 @@ export default function CounterTools() {
  const [receipts, setReceipts] = useState([]);
  const [receiptsReady, setReceiptsReady] = useState(false);
  const [notes, setNotes] = useState({});
+ const [refunds, setRefunds] = useState([]);
+ const [refundsReady, setRefundsReady] = useState(false);
  const [message, setMessage] = useState('');
  const [busy, setBusy] = useState(false);
 
@@ -37,13 +39,17 @@ export default function CounterTools() {
 
  async function refreshReceipts() {
   setReceiptsReady(false);
+  setRefundsReady(false);
   setReceipts(await api('/payments/reconciliation'));
+  setRefunds(await api('/payments/refunds'));
+  setRefundsReady(true);
   setReceiptsReady(true);
  }
 
  useEffect(() => {
   let active = true;
   api('/payments/reconciliation').then(data => { if (active) { setReceipts(data); setReceiptsReady(true); } }).catch(error => { if (active) setMessage(error.message); });
+  api('/payments/refunds').then(data => { if (active) { setRefunds(data); setRefundsReady(true); } }).catch(error => { if (active) setMessage(error.message); });
   if (admin) api('/payments/stock').then(data => { if (active) setFoods(data); }).catch(error => { if (active) setMessage(error.message); });
   return () => { active = false; };
  }, [admin]);
@@ -66,6 +72,7 @@ export default function CounterTools() {
   const reason = (notes[receipt.ref] || '').trim();
   if (reason.length < 3) throw new Error('Nhập lý do xử lý từ 3 ký tự.');
   if (action === 'cash-returned' && !window.confirm('Xác nhận đã trả lại ' + money(receipt.amount) + ' cho khách? Tiền thừa đã trả trước đó không được trả lần nữa.')) return;
+  if (action === 'refund-points' && !window.confirm('Hoàn 100% khoản thu đã xác minh về điểm Member? Không hoàn thêm bằng tiền mặt/VNPay.')) return;
   const result = await api('/payments/reconciliation/' + encodeURIComponent(receipt.ref), {
    method: 'POST', body: JSON.stringify({ action, reason, returnedAmount: action === 'cash-returned' ? receipt.amount : undefined })
   });
@@ -115,15 +122,29 @@ export default function CounterTools() {
     {receipt.actor && <p>Người ghi nhận: {receipt.actor.fullName}</p>}
     {receipt.receivedAmount != null && <p>Khách đưa: {money(receipt.receivedAmount)} · Tiền thừa đã trả: {money(receipt.change)}</p>}
     <p>{receipt.message || 'Khoản thu chưa hoàn tất.'}</p>
-    {receipt.method === 'vnpay' && <p>Chỉ thử hoàn tất khi có xác nhận từ VNPay. Khoản cần hoàn qua cổng thanh toán vẫn chờ xác minh, không tự đánh dấu đã hoàn.</p>}
+    {receipt.method === 'vnpay' && <p>Chỉ xử lý khi có xác nhận thu tiền từ VNPay. Đơn Member không hoàn tất được hoàn 100% về điểm, không gửi hoàn tiền qua VNPay.</p>}
     <label>Lý do / ghi chú
      <input aria-label={'Lý do đối soát ' + receipt.ref} maxLength={500} value={notes[receipt.ref] || ''} onChange={event => setNotes({ ...notes, [receipt.ref]: event.target.value })} />
     </label>
     <div className="movieFormActions" style={{ flexWrap: 'wrap' }}>
      <button className="movieSecondary" style={{ whiteSpace: 'normal' }} disabled={!receipt.booking || !receipt.collectedAt || (receipt.method === 'vnpay' && !receipt.providerRef)} onClick={() => run(() => resolve(receipt, 'retry'))}>Thử hoàn tất khoản đã thu</button>
-     {receipt.method === 'cash' && <button className="movieSecondary" style={{ whiteSpace: 'normal' }} onClick={() => run(() => resolve(receipt, 'cash-returned'))}>Xác nhận đã trả lại {money(receipt.amount)}</button>}
+     {receipt.booking?.user && <button className="movieSecondary" disabled={!receipt.collectedAt || (receipt.method === 'vnpay' && !receipt.providerRef)} onClick={() => run(() => resolve(receipt, 'refund-points'))}>Hoàn 100% về điểm</button>}
+     {receipt.method === 'cash' && !receipt.booking?.user && <button className="movieSecondary" style={{ whiteSpace: 'normal' }} onClick={() => run(() => resolve(receipt, 'cash-returned'))}>Xác nhận đã trả lại {money(receipt.amount)}</button>}
      <button className="movieSecondary" style={{ whiteSpace: 'normal' }} onClick={() => run(() => resolve(receipt, 'note'))}>Lưu ghi chú đối soát</button>
     </div>
+   </article>)}
+   <h2>Đối soát hoàn điểm</h2>
+   {!refundsReady && <p role="status">Chưa tải xong danh sách hoàn điểm.</p>}
+   {refundsReady && refunds.length === 0 && <p>Không có yêu cầu hoàn điểm đang chờ xử lý.</p>}
+   {refunds.map(refund => <article className="paymentPanel" key={refund.reference}>
+    <h3>{refund.user?.fullName} · {Number(refund.points).toLocaleString('vi-VN', { maximumFractionDigits: 3 })} điểm</h3>
+    <p>Mã đơn: {refund.booking?._id} · Mã khoản thu: {refund.reference}</p>
+    <p>{refund.error || 'Đã ghi nhận yêu cầu, chưa xác nhận cộng điểm.'}</p>
+    <button className="movieSecondary" onClick={() => run(async () => {
+     const result = await api('/payments/refunds/' + encodeURIComponent(refund.reference) + '/retry', { method: 'POST', body: '{}' });
+     setMessage(result.refund.status === 'completed' ? 'Đã hoàn điểm thành công.' : 'Yêu cầu vẫn chờ xử lý. Chưa cộng điểm thành công.');
+     await refreshReceipts();
+    })}>Thử lại cộng điểm</button>
    </article>)}
   </fieldset>}
 

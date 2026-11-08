@@ -64,7 +64,7 @@ async function paymentMode(booking) {
 
 async function issueContext(booking) {
   const showtime = await Showtime.findById(booking.showtime).populate('movie');
-  if (!showtime?.movie || showtime.movie.classification === 'C' || !booking.seats.length ||
+  if (!showtime?.movie || showtime.cancelledAt || showtime.movie.classification === 'C' || !booking.seats.length ||
       new Set(booking.seats).size !== booking.seats.length) throw ticketError('Không thể phát hành vé cho đơn này.', 409);
   for (const number of booking.seats) {
     if (!showtime.seats.some((seat) => seat.number === number && String(seat.bookingId) === String(booking._id) &&
@@ -145,7 +145,7 @@ function referenceValue(value) {
 
 export async function checkInShowtimes() {
   const now = Date.now(), settings = admissionSettings();
-  const showtimes = await Showtime.find({ startTime: { $gte: new Date(now - settings.closeAfterMinutes * 60000), $lte: new Date(now + 86400000) } })
+  const showtimes = await Showtime.find({ cancelledAt: null, startTime: { $gte: new Date(now - settings.closeAfterMinutes * 60000), $lte: new Date(now + 86400000) } })
     .select('movie cinema room startTime').populate({ path: 'movie', select: 'title' }).sort({ startTime: 1 }).limit(200);
   return { showtimes, settings };
 }

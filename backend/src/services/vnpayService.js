@@ -4,6 +4,7 @@ import PaymentAttempt from '../models/PaymentAttempt.js';
 import User from '../models/User.js';
 import { settle, loadBooking } from './bookingService.js';
 import { transaction, domainError as fail } from './transaction.js';
+import { refundFailedPayment } from './refundService.js';
 export function canonical(params) {
  return Object.keys(params).filter(k => k.startsWith('vnp_') && !['vnp_SecureHash','vnp_SecureHashType'].includes(k)).sort().map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]).replace(/%20/g, '+')).join('&');
 }
@@ -38,6 +39,7 @@ export async function processIPN(params) {
  const attempt = await PaymentAttempt.findOne({ ref:params.vnp_TxnRef, method:'vnpay' }); if (!attempt) return { RspCode:'01', Message:'Order not found' };
  if (!/^\d+$/.test(params.vnp_Amount) || Number(params.vnp_Amount) !== attempt.amount * 100 || (params.vnp_CurrCode && params.vnp_CurrCode !== 'VND')) return { RspCode:'04', Message:'Invalid amount' };
  if (attempt.status === 'succeeded') return { RspCode:'02', Message:'Already confirmed' };
+ if (attempt.status === 'refunded' || attempt.status === 'returned') return { RspCode:'02', Message:'Already refunded' };
  if (params.vnp_ResponseCode !== '00' || params.vnp_TransactionStatus !== '00') {
   await transaction(async session => { const a=await PaymentAttempt.findOne({ref:attempt.ref,status:'created',collectedAt:null}).session(session); if(!a)return; a.status='failed';a.responseCode=params.vnp_ResponseCode;await a.save({session}); await Booking.updateOne({_id:a.booking,activePayment:a.ref,status:'pending'},{$set:{activePayment:null}},{session}); });
   return { RspCode:'00', Message:'Failure recorded' };
@@ -45,12 +47,16 @@ export async function processIPN(params) {
  if (!params.vnp_TransactionNo || params.vnp_TransactionNo === '0') return { RspCode:'99', Message:'Missing transaction reference' };
  if (attempt.providerRef && attempt.providerRef !== params.vnp_TransactionNo) return { RspCode:'99', Message:'Transaction reference mismatch' };
  // This is verified provider evidence; retain it even if local finalization fails.
- await PaymentAttempt.updateOne({ _id: attempt._id, status: { $ne: 'succeeded' } }, { $set: { providerRef: params.vnp_TransactionNo, collectedAt: attempt.collectedAt || new Date() } });
+ await PaymentAttempt.updateOne({ _id: attempt._id, status: { $in: ['created','failed','unresolved'] } }, { $set: { providerRef: params.vnp_TransactionNo, collectedAt: attempt.collectedAt || new Date() } });
  try { await settle(attempt.booking,{kind:'vnpay',ref:attempt.ref,verified:true,providerRef:params.vnp_TransactionNo}); return { RspCode:'00', Message:'Confirm Success' }; }
  catch (error) {
   const message = error.status ? error.message : 'Chưa xác nhận hoàn tất khoản thu VNPay. Cần đối soát.';
-  await PaymentAttempt.updateOne({ref:attempt.ref,status:{$ne:'succeeded'}},{$set:{status:'unresolved',providerRef:params.vnp_TransactionNo,message}});
+  await PaymentAttempt.updateOne({ref:attempt.ref,status:{$in:['created','failed','unresolved']}},{$set:{status:'unresolved',providerRef:params.vnp_TransactionNo,message}});
   await Booking.updateOne({ _id: attempt.booking, status: 'pending', activePayment: attempt.ref }, { $set: { paymentIssue: message } });
+  try {
+   const refund = await refundFailedPayment(attempt.ref);
+   if (refund.status === 'completed') return { RspCode:'00', Message:'Payment credited to member points' };
+  } catch { /* Keep unresolved when evidence or Member account is missing. */ }
   return { RspCode:'99', Message:'Recorded for reconciliation' };
  }
 }

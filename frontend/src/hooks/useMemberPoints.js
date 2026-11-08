@@ -32,9 +32,11 @@ export default function useMemberPoints(user, setUser) {
     useEffect(() => {
         refresh();
         window.addEventListener('focus', refresh);
+        window.addEventListener('member-points-changed', refresh);
         return () => {
             ++revision.current;
             window.removeEventListener('focus', refresh);
+            window.removeEventListener('member-points-changed', refresh);
         };
     }, [refresh]);
 

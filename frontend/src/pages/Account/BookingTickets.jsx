@@ -12,7 +12,7 @@ export function ticketDate(value) {
 }
 
 const statusLabels = { issued: 'Chưa sử dụng', 'checked-in': 'Đã check-in', expired: 'Hết giờ nhận khách', revoked: 'Đã thu hồi' };
-const bookingLabels = { pending: 'Đang chờ thanh toán', paid: 'Đơn đã ghi nhận thanh toán', cancelled: 'Đã hủy', 'refund-requested': 'Đang yêu cầu hoàn tiền', refunded: 'Đã hoàn tiền' };
+const bookingLabels = { pending: 'Đang chờ thanh toán', paid: 'Đơn đã ghi nhận thanh toán', cancelled: 'Đã hủy', 'refund-requested': 'Đang hoàn về điểm', refunded: 'Đã hoàn về điểm' };
 
 export default function BookingTickets() {
     const { id } = useParams();

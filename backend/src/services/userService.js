@@ -54,14 +54,15 @@ export async function adjustPoints(id, points, reason, actorId, requestId, expec
   if (expectedBalance !== undefined && expectedBalance !== user.memberPoints) {
     throw Object.assign(new Error('Số dư đã thay đổi. Vui lòng tải lại trước khi điều chỉnh.'), { status: 409 });
   }
-  const after = user.memberPoints + points;
-  if (!Number.isSafeInteger(after) || after < 0) {
+  const afterUnits = Math.round(user.memberPoints * 1000) + points * 1000;
+  const after = afterUnits / 1000;
+  if (!Number.isSafeInteger(afterUnits) || after < 0) {
     throw Object.assign(new Error('Điều chỉnh làm số dư âm hoặc vượt giới hạn cho phép.'), { status: 400 });
   }
   // The balance and its audit record are written together in one atomic document update.
   const updated = await User.findOneAndUpdate(
     { _id: id, role: 'member', memberPoints: user.memberPoints, 'pointAdjustments.requestId': { $ne: requestId } },
-    { $inc: { memberPoints: points }, $push: { pointAdjustments: {
+    { $set: { memberPoints: after }, $push: { pointAdjustments: {
       requestId, delta: points, before: user.memberPoints, after, reason: reason.trim(), admin: actorId
     } } },
     { new: true, runValidators: true }

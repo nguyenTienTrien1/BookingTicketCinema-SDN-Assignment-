@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import { loadBooking, releaseSeats, settle, simulationFailure } from './bookingService.js';
 import { createPayment } from './vnpayService.js';
 import { transaction, domainError as fail } from './transaction.js';
+import { refundFailedPayment } from './refundService.js';
 
 async function requireStaff(actorId) {
  const actor = await User.findOne({ _id: actorId, role: { $in: ['admin', 'employee'] }, status: { $in: ['Active', 'active'] } });
@@ -27,6 +28,10 @@ async function finishReceipt(attempt, actorId, reason) {
   if (reason) update.$push = { reconciliation: { action: 'retry', reason, actor: actorId, at: new Date() } };
   await PaymentAttempt.updateOne({ ref: attempt.ref, status: { $in: ['created', 'unresolved'] } }, update);
   await Booking.updateOne({ _id: attempt.booking, status: 'pending', activePayment: attempt.ref }, { $set: { paymentIssue: message } });
+  if (latest?.user) {
+   try { await refundFailedPayment(attempt.ref); }
+   catch { /* Retain the verified receipt for staff reconciliation. */ }
+  }
   return loadBooking(attempt.booking);
  }
 }
@@ -88,21 +93,25 @@ export async function payStaffBooking(id, input, actorId, ip) {
 
 export function listReconciliation() {
  return PaymentAttempt.find({ status: 'unresolved' })
-  .populate({ path: 'booking', select: 'status paymentRef total expiresAt showtime seats activePayment', populate: { path: 'showtime', select: 'movie cinema room startTime', populate: { path: 'movie', select: 'title' } } })
+  .populate({ path: 'booking', select: 'user status paymentRef total expiresAt showtime seats activePayment refund', populate: { path: 'showtime', select: 'movie cinema room startTime', populate: { path: 'movie', select: 'title' } } })
   .populate({ path: 'actor', select: 'fullName email' }).sort({ createdAt: -1 });
 }
 
 export async function reconcilePayment(ref, input, actorId) {
  await requireStaff(actorId);
- if (!['retry', 'cash-returned', 'note'].includes(input.action) || typeof input.reason !== 'string' || input.reason.trim().length < 3 || input.reason.length > 500) throw fail('Chọn tác vụ và nhập lý do từ 3 đến 500 ký tự.');
+ if (!['retry', 'cash-returned', 'refund-points', 'note'].includes(input.action) || typeof input.reason !== 'string' || input.reason.trim().length < 3 || input.reason.length > 500) throw fail('Chọn tác vụ và nhập lý do từ 3 đến 500 ký tự.');
  const reason = input.reason.trim();
  const receipt = await PaymentAttempt.findOne({ ref });
  if (!receipt) throw fail('Không tìm thấy khoản thu.', 404);
+ if (input.action === 'refund-points') {
+  const refund = await refundFailedPayment(ref, actorId, reason);
+  return { booking: await loadBooking(receipt.booking), refund, message: refund.status === 'completed' ? 'Đã hoàn 100% khoản thu về điểm thành viên.' : 'Đã ghi nhận yêu cầu; cần thử lại cộng điểm trong mục hoàn điểm.' };
+ }
  if (input.action === 'retry') {
   if (receipt.status === 'succeeded') return { booking: await loadBooking(receipt.booking), message: 'Khoản thu đã hoàn tất trước đó.' };
   if (receipt.status !== 'unresolved' || (receipt.method === 'cash' ? !receipt.collectedAt : receipt.method !== 'vnpay' || !receipt.providerRef)) throw fail('Khoản thu chưa có bằng chứng hợp lệ để hoàn tất.', 409);
   const booking = await finishReceipt(receipt, actorId, reason);
-  return { booking, message: booking?.status === 'paid' && booking.paymentRef === ref ? 'Đã hoàn tất khoản thu, không thu tiền lần nữa.' : 'Chưa thể hoàn tất. Khoản thu vẫn chờ đối soát.' };
+  return { booking, message: booking?.refund?.status === 'completed' ? 'Khoản thu đã hoàn về điểm thành viên.' : booking?.status === 'paid' && booking.paymentRef === ref ? 'Đã hoàn tất khoản thu, không thu tiền lần nữa.' : 'Chưa thể hoàn tất. Khoản thu vẫn chờ đối soát.' };
  }
  await transaction(async session => {
   const current = await PaymentAttempt.findOne({ ref }).session(session);
@@ -112,6 +121,7 @@ export async function reconcilePayment(ref, input, actorId) {
    if (current.method !== 'cash' || !current.collectedAt) throw fail('Chỉ xác nhận trả lại tiền mặt đã nhận cho đơn chưa hoàn tất.');
    const booking = await Booking.findById(current.booking).session(session);
    if (booking?.status === 'paid' && booking.paymentRef === ref) throw fail('Đơn đã thanh toán thành công. Hoàn vé thuộc quy trình khác.', 409);
+   if (booking?.user) throw fail('Khoản thu của Member phải hoàn về điểm; không xác nhận trả tiền mặt.', 409);
    if (input.returnedAmount !== current.amount) throw fail('Tiền trả lại phải bằng khoản thực thu sau khi đã trả tiền thừa.');
    current.status = 'returned';
    if (booking?.activePayment === ref) {

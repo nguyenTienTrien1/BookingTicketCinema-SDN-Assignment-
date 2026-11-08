@@ -31,6 +31,10 @@ export function getShowtime(id) {
   return api(`/showtimes/${id}`);
 }
 
+export function cancelShowtime(id, updatedAt, reason) {
+  return api(`/showtimes/${id}/cancel`, { method: 'POST', body: JSON.stringify({ updatedAt, reason }) });
+}
+
 export function getShowtimeRooms() {
   return api('/showtimes/rooms');
 }

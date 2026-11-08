@@ -109,7 +109,7 @@ async function validateShowtime(body, excludedId, session = null) {
     throw showtimeError('Sơ đồ ghế của phòng không hợp lệ.', 409);
   }
   const endTime = new Date(startTime.getTime() + (movie.duration + 15) * 60000);
-  const filter = { cinema, room, startTime: { $lt: endTime } };
+  const filter = { cinema, room, startTime: { $lt: endTime }, cancelledAt: null };
   if (excludedId) filter._id = { $ne: excludedId };
   // Compare both ends: an earlier movie can still be playing when this one starts.
   const neighbourQuery = Showtime.find(filter).collation({ locale: 'en', strength: 2 })
@@ -149,6 +149,7 @@ async function editableShowtime(id, body) {
   checkId(id);
   const showtime = await Showtime.findById(id);
   if (!showtime) throw showtimeError('Không tìm thấy suất chiếu.', 404);
+  if (showtime.cancelledAt) throw showtimeError('Suất đã hủy được giữ lại để đối chiếu giao dịch; không sửa hoặc xóa.', 409);
   if (!body || typeof body.updatedAt !== 'string' || !showtime.updatedAt ||
       body.updatedAt !== showtime.updatedAt.toISOString()) {
     throw showtimeError('Suất chiếu đã thay đổi. Vui lòng tải lại danh sách trước khi tiếp tục.', 409);
@@ -286,6 +287,7 @@ export async function suggestShowtimes(body, adminId) {
   if (rooms.length === 0) throw showtimeError('Rạp chưa có phòng đang hoạt động với sơ đồ ghế sử dụng được.', 409);
   const windowEnd = new Date(`${input.endDate}T${input.closingTime}:00+07:00`);
   const shows = await Showtime.find({
+    cancelledAt: null,
     // Include neighbours just after closing: a final film's cleanup must not
     // collide with them, even if that neighbour was added outside these hours.
     cinema: input.cinema, startTime: { $lt: new Date(windowEnd.getTime() + CLEANING) },
