@@ -14,6 +14,8 @@ import react from '@vitejs/plugin-react';
 import app from '../src/app.js';
 import User from '../src/models/User.js';
 import Food from '../src/models/Food.js';
+import Movie from '../src/models/Movie.js';
+import Showtime from '../src/models/Showtime.js';
 import { FOOD_IMAGE_DIRECTORY } from '../src/services/foodImageService.js';
 
 test('Admin chooses a local F&B image, previews, saves, reloads and replaces it', async (t) => {
@@ -112,5 +114,33 @@ test('Admin chooses a local F&B image, previews, saves, reloads and replaces it'
   await page.waitForURL(base + '/admin/foods');
   assert.equal(uploadCount, 2);
   assert.equal(await Food.countDocuments(), 1);
+  await User.create({ fullName: 'Image Member', email: 'member@image-ui.test', password, role: 'member', status: 'Active' });
+  const movie = await Movie.create({ title: 'Image Test Movie', classification: 'P', duration: 90, genre: ['Action'] });
+  await Showtime.create({ movie: movie.id, cinema: 'Image Cinema', room: 'Room 1', price: 80000, startTime: new Date(Date.now() + 10800000), seats: Array.from({ length: 12 }, (_, i) => ({ number: 'A' + (i + 1) })) });
+  const memberContext = await browser.newContext({ viewport: { width: 1366, height: 1000 } });
+  assert.equal((await memberContext.request.post(base + '/api/auth/login', { data: { email: 'member@image-ui.test', password } })).status(), 200);
+  const memberPage = await memberContext.newPage();
+  memberPage.setDefaultTimeout(12000);
+  memberPage.on('pageerror', error => errors.push(error.message));
+  await memberPage.goto(base + '/');
+  await memberPage.getByText('Lịch chiếu', { exact: true }).first().click();
+  await memberPage.locator('.showtimeSlotBtn').first().click();
+  await memberPage.locator('.seat:not(:disabled)').nth(0).click();
+  await memberPage.locator('.seat:not(:disabled)').nth(1).click();
+  await memberPage.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+  const memberImage = memberPage.locator('.foodItem img').first();
+  await memberImage.waitFor();
+  assert.equal(await memberImage.getAttribute('src'), base + secondImage, 'Member displays the exact image saved by Admin');
+  await memberPage.waitForFunction(() => document.querySelector('.foodItem img')?.naturalWidth > 0);
+  await memberPage.locator('.foodItem').first().screenshot({ path: path.join(artifacts, 'member-product-image.png') });
+  const sources = await memberPage.evaluate(async () => {
+    const { foodImage } = await import('/src/components/FoodPicker.jsx');
+    return [foodImage({ image: 'https://example.com/popcorn_small.png' }), foodImage({ image: '/assets/foods/popcorn_small.png' }), foodImage({ name: 'Bình Nước' })];
+  });
+  assert.equal(sources[0], 'https://example.com/popcorn_small.png');
+  assert.match(sources[1], /popcorn_small\.png/);
+  assert.match(sources[2], /^(data:image\/svg\+xml|.*placeholder\.svg)/);
+  await memberImage.evaluate(image => { image.src = '/api/uploads/foods/missing.webp'; });
+  await memberPage.waitForFunction(() => { const image = document.querySelector('.foodItem img'); return image?.src.startsWith('data:image/svg+xml') && image.naturalWidth > 0; });
   assert.deepEqual(errors, []);
 });
