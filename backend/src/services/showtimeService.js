@@ -38,6 +38,13 @@ function checkId(id) {
   }
 }
 
+async function showtimePage(filter, direction, skip, limit) {
+  return Showtime.find(filter)
+    .select('-seats.bookingId -seats.holdUntil')
+    .populate('movie', 'title duration classification ageLimit')
+    .sort({ startTime: direction, _id: direction }).skip(skip).limit(limit);
+}
+
 export async function listShowtimes(query) {
   const page = Number(query.page || 1);
   const limit = Number(query.limit || 10);
@@ -50,11 +57,21 @@ export async function listShowtimes(query) {
     checkId(query.movie);
     filter.movie = query.movie;
   }
+  const now = new Date();
+  const upcomingFilter = { ...filter, startTime: { $gte: now } };
+  const pastFilter = { ...filter, startTime: { $lt: now } };
   const total = await Showtime.countDocuments(filter);
-  const showtimes = await Showtime.find(filter)
-    .select('-seats.bookingId -seats.holdUntil')
-    .populate('movie', 'title duration classification ageLimit')
-    .sort({ startTime: 1, _id: 1 }).skip((page - 1) * limit).limit(limit);
+  const upcomingTotal = await Showtime.countDocuments(upcomingFilter);
+  const offset = (page - 1) * limit;
+  const showtimes = [];
+  // Paginate one combined order: upcoming (soonest first), then past (latest first).
+  if (offset < upcomingTotal) {
+    showtimes.push(...await showtimePage(upcomingFilter, 1, offset, limit));
+  }
+  if (showtimes.length < limit && offset < total) {
+    const pastOffset = Math.max(0, offset - upcomingTotal);
+    showtimes.push(...await showtimePage(pastFilter, -1, pastOffset, limit - showtimes.length));
+  }
   return { showtimes, total, page, totalPages: Math.ceil(total / limit) };
 }
 

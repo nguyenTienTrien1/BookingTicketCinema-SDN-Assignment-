@@ -78,6 +78,42 @@ test('UC-17.1–17.4 Admin showtime management', async (t) => {
       assert.equal((await request(`/showtimes?${query}`)).status, 400);
     }
   });
+  await t.test('upcoming shows precede history across pages; equal times and movie filters stay stable', async () => {
+    const now = Date.now();
+    const fixture = { cinema: valid.cinema, room: valid.room, price: 80000, movie: movie._id };
+    const shows = await Showtime.insertMany([
+      { ...fixture, startTime: new Date(now - 120 * 60000) },
+      { ...fixture, startTime: new Date(now + 60 * 60000) },
+      { ...fixture, startTime: new Date(now + 30 * 60000) },
+      { ...fixture, startTime: new Date(now - 60 * 60000) },
+      { ...fixture, startTime: new Date(now + 30 * 60000) },
+      { ...fixture, movie: otherMovie._id, startTime: new Date(now + 15 * 60000) }
+    ]);
+    const ids = shows.map(show => String(show._id));
+    try {
+      const seen = [];
+      for (let page = 1; page <= 3; page++) {
+        const response = await request(`/showtimes?movie=${movie._id}&limit=2&page=${page}`);
+        assert.equal(response.status, 200);
+        assert.equal(response.data.total, 5);
+        assert.equal(response.data.totalPages, 3);
+        for (const show of response.data.showtimes) seen.push(show._id);
+      }
+      assert.deepEqual(seen, [ids[2], ids[4], ids[1], ids[3], ids[0]]);
+      assert.equal(new Set(seen).size, 5);
+      const first = await request('/showtimes?limit=3&page=1');
+      const second = await request('/showtimes?limit=3&page=2');
+      assert.deepEqual(first.data.showtimes.map(show => show._id), [ids[5], ids[2], ids[4]]);
+      assert.deepEqual(second.data.showtimes.map(show => show._id), [ids[1], ids[3], ids[0]]);
+      assert.deepEqual((await request(`/showtimes?movie=${movie._id}&limit=2&page=4`)).data.showtimes, []);
+      // With no upcoming screenings, history still shows the most recent first.
+      await Showtime.deleteMany({ _id: { $in: [shows[1]._id, shows[2]._id, shows[4]._id] } });
+      const history = await request(`/showtimes?movie=${movie._id}`);
+      assert.deepEqual(history.data.showtimes.map(show => show._id), [ids[3], ids[0]]);
+    } finally {
+      await Showtime.deleteMany({ _id: { $in: shows.map(show => show._id) } });
+    }
+  });
   await t.test('create copies the configured room layout and ignores injected seat states', async () => {
     const result = await request('/showtimes', 'POST', { ...valid, cinema: ' Test Cinema ', seats: [{ number: 'X1', status: 'booked' }] });
     assert.equal(result.status, 201);
