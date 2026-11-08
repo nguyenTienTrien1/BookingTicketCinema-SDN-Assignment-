@@ -48,6 +48,115 @@ function RevenueChart({ series }) {
   </figure>;
 }
 
+function SourceRevenueChart({ sources }) {
+  const [selected, setSelected] = useState(null);
+  const items = [
+    { key: 'tickets', label: 'Vé và bắp nước đi kèm', value: sources.tickets.payments, color: '#fb7185' },
+    { key: 'food', label: 'Bắp nước tại quầy', value: sources.food.payments, color: '#38bdf8' }
+  ];
+  const total = items[0].value + items[1].value;
+  const chosen = items.find(item => item.key === selected);
+  const circumference = 2 * Math.PI * 76;
+  let offset = 0;
+  const slices = [];
+  for (const item of items) {
+    const ratio = total > 0 ? item.value / total : 0;
+    slices.push(<circle key={item.key} cx="110" cy="110" r="76" fill="none" stroke={item.color} strokeWidth="24"
+      strokeDasharray={`${ratio * circumference} ${circumference}`} strokeDashoffset={-offset * circumference}
+      opacity={selected && selected !== item.key ? 0.25 : 1}>
+      <title>{item.label}: {money.format(item.value)} ({(ratio * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%)</title>
+    </circle>);
+    offset += ratio;
+  }
+  return <figure className="moviePanel revenueInsight revenueSourceChart">
+    <figcaption><h2>Cơ cấu tiền thu</h2><p>Tỷ trọng theo nguồn, trước hoàn tiền.</p></figcaption>
+    <div className="revenueDonut">
+      <svg viewBox="0 0 220 220" role="img" aria-label={`Tiền thu từ vé: ${money.format(items[0].value)}; bắp nước tại quầy: ${money.format(items[1].value)}.`}>
+        <circle cx="110" cy="110" r="76" fill="none" stroke="#303644" strokeWidth="24" />
+        <g transform="rotate(-90 110 110)">{total > 0 && slices}</g>
+      </svg>
+      <div className="revenueDonutValue" role="status"><span>{chosen ? chosen.label : 'Tổng tiền thu'}</span><strong>{money.format(chosen ? chosen.value : total)}</strong></div>
+    </div>
+    <div className="revenueSourceLegend" role="group" aria-label="Chọn nguồn để xem tiền thu">
+      {items.map(item => <button type="button" key={item.key} aria-pressed={selected === item.key}
+        onClick={() => setSelected(selected === item.key ? null : item.key)}>
+        <span className="revenueSourceName"><i aria-hidden="true" style={{ background: item.color }} />{item.label}</span>
+        <span><strong>{money.format(item.value)}</strong><small>{(total > 0 ? item.value / total * 100 : 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%</small></span>
+      </button>)}
+    </div>
+    <p className="revenueHint">{total === 0 ? 'Chưa có tiền thu trong kỳ; không có tỷ trọng để hiển thị.' : 'Chọn một nguồn để xem chi tiết; chọn lại để trở về tổng.'}</p>
+  </figure>;
+}
+
+function RevenueBreakdownChart({ totals }) {
+  const items = [
+    { key: 'gross', label: 'Giá gốc', value: totals.gross },
+    { key: 'discounts', label: '− Giảm giá', value: totals.discounts > 0 ? -totals.discounts : 0 },
+    { key: 'fees', label: '+ Phí', value: totals.fees },
+    { key: 'points', label: '− Điểm quy đổi', value: totals.points > 0 ? -totals.points : 0 },
+    { key: 'payments', label: '= Tiền thu', value: totals.payments },
+    { key: 'refunds', label: '− Hoàn tiền', value: totals.refunds > 0 ? -totals.refunds : 0 },
+    { key: 'net', label: '= Thu ròng', value: totals.net }
+  ];
+  let min = 0;
+  let max = 0;
+  for (const item of items) { min = Math.min(min, item.value); max = Math.max(max, item.value); }
+  const range = max - min || 1;
+  const zero = -min / range * 100;
+  return <figure className="moviePanel revenueInsight revenueBreakdownChart">
+    <figcaption><h2>Tiền thu và các khoản điều chỉnh</h2><p>Các khoản khấu trừ nằm bên trái mức 0 · Đơn vị VND.</p></figcaption>
+    <dl className="revenueBreakdownList">{items.map(item => {
+      const left = (Math.min(0, item.value) - min) / range * 100;
+      const width = Math.abs(item.value) / range * 100;
+      return <div className={`revenueBreakdownRow ${['payments', 'net'].includes(item.key) ? 'revenueBreakdownTotal' : ''}`} key={item.key}>
+        <dt>{item.label}</dt><dd>{money.format(item.value)}</dd>
+        <div className="revenueBreakdownTrack" aria-hidden="true"><span className="revenueZeroLine" style={{ left: `${zero}%` }} /><span className={`revenueBreakdownBar ${item.value < 0 ? 'negative' : 'positive'}`} style={{ left: `${left}%`, width: `${width}%` }} /></div>
+      </div>;
+    })}</dl>
+    <p className="revenueHint">Giá gốc − giảm giá + phí − điểm = tiền thu. Tiền thu − hoàn tiền = thu ròng. Hoàn về điểm thành viên được thống kê riêng.</p>
+  </figure>;
+}
+
+function TransactionVolumeChart({ series, totals }) {
+  const [selected, setSelected] = useState(null);
+  const groups = [];
+  const step = Math.max(1, Math.ceil(series.length / 12));
+  for (let index = 0; index < series.length; index += step) {
+    const last = Math.min(index + step, series.length) - 1;
+    const group = { from: series[index].period, to: series[last].period, payments: 0, refunds: 0 };
+    for (let item = index; item <= last; item++) {
+      group.payments += series[item].paymentCount;
+      group.refunds += series[item].refundCount;
+    }
+    groups.push(group);
+  }
+  let maximum = 1;
+  for (const group of groups) maximum = Math.max(maximum, group.payments, group.refunds);
+  function label(group) { return group.from === group.to ? group.from : `${group.from} → ${group.to}`; }
+  const active = selected === null ? null : groups[selected];
+  const hasTransactions = totals.paymentCount > 0 || totals.refundCount > 0;
+  return <figure className="moviePanel revenueInsight revenueVolumeChart">
+    <figcaption><h2>Số giao dịch theo kỳ</h2><p>So sánh số thanh toán và hoàn tiền{step > 1 ? ` · Gộp tối đa 12 nhóm, mỗi nhóm tối đa ${step} kỳ liên tiếp` : ''}.</p></figcaption>
+    <div className="revenueVolumeLegend"><span><i className="revenuePaymentMark" aria-hidden="true" />Thanh toán</span><span><i className="revenueRefundMark" aria-hidden="true" />Hoàn tiền</span></div>
+    {hasTransactions ? <div className="revenueVolumeRegion" role="region" aria-label="Biểu đồ số giao dịch theo kỳ, có thể cuộn ngang" tabIndex={0}>
+      <div className="revenueVolumePlot" style={{ minWidth: `${groups.length * 76}px` }}>
+        {groups.map((group, index) => <button type="button" className="revenueVolumeColumn" key={group.from}
+          aria-pressed={selected === index} aria-label={`${label(group)}: ${group.payments} thanh toán, ${group.refunds} hoàn tiền`}
+          title={`${label(group)}: ${group.payments} thanh toán, ${group.refunds} hoàn tiền`}
+          onClick={() => setSelected(selected === index ? null : index)}>
+          <span className="revenueVolumeBars" aria-hidden="true">
+            <span className="revenuePaymentMark" style={{ height: `${group.payments / maximum * 100}%` }}><b>{group.payments > 0 ? group.payments : ''}</b></span>
+            <span className="revenueRefundMark" style={{ height: `${group.refunds / maximum * 100}%` }}><b>{group.refunds > 0 ? group.refunds : ''}</b></span>
+          </span>
+          <span className="revenueVolumePeriod">{group.from}{group.from !== group.to && <><br />→ {group.to}</>}</span>
+        </button>)}
+      </div>
+    </div> : <p className="revenueChartEmpty">Chưa có thanh toán hoặc hoàn tiền để vẽ biểu đồ.</p>}
+    <p className="revenueVolumeDetail" role="status">{active ? label(active) : 'Toàn kỳ'}: <strong>{active ? active.payments : totals.paymentCount}</strong> thanh toán · <strong>{active ? active.refunds : totals.refundCount}</strong> hoàn tiền.</p>
+    <p className="revenueHint">{hasTransactions ? `Chọn một nhóm để xem số lượng. Cột cùng dùng một thang đo, tối đa ${maximum} giao dịch; số liệu từng kỳ vẫn có đầy đủ trong bảng bên dưới.` : 'Số giao dịch trong các kỳ bằng 0. Bạn có thể thay đổi bộ lọc để xem kỳ khác.'}</p>
+  </figure>;
+}
+
 export default function RevenueDashboard() {
   const [filters, setFilters] = useState(initialFilters);
   const [report, setReport] = useState(null);
@@ -155,6 +264,11 @@ export default function RevenueDashboard() {
         <p>Đây là số dư điểm đã cộng, không phải tiền mặt/VNPay đã chi ra. Khoản thu chưa thành đơn chuyển về điểm: {money.format(report.pointRefunds.unfinalizedCollections)}; không tính vào doanh thu bán vé đã hoàn tất.</p>
       </section>}
       {report.totals.paymentCount === 0 && report.totals.refundCount === 0 ? <div className="moviePanel movieState" role="status"><h2>Chưa có giao dịch được xác minh trong kỳ</h2><p>Tổng ghi nhận là 0. Bạn có thể đổi bộ lọc hoặc xuất báo cáo rỗng.</p></div> : <RevenueChart series={report.series} />}
+      <section className="revenueInsights" aria-label="Biểu đồ phân tích doanh thu" key={report.reportId}>
+        <SourceRevenueChart sources={report.sources} />
+        <RevenueBreakdownChart totals={report.totals} />
+        <TransactionVolumeChart series={report.series} totals={report.totals} />
+      </section>
       <div className="moviePanel revenueTableWrap" role="region" aria-label="Bảng doanh thu" tabIndex="0"><table className="revenueTable"><caption>Chi tiết theo {report.filters.groupBy === 'day' ? 'ngày' : 'tháng'} · Đơn vị VND</caption><thead><tr><th scope="col">Kỳ</th>{fields.map(([key, label]) => <th scope="col" key={key}>{label}</th>)}<th scope="col">Thanh toán</th><th scope="col">Hoàn tiền</th></tr></thead>
         <tbody>{report.series.map((item) => <tr key={item.period}><th scope="row">{item.period}</th>{fields.map(([key]) => <td key={key}>{money.format(item[key])}</td>)}<td>{item.paymentCount}</td><td>{item.refundCount}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row">Tổng</th>{fields.map(([key]) => <td key={key}>{money.format(report.totals[key])}</td>)}<td>{report.totals.paymentCount}</td><td>{report.totals.refundCount}</td></tr></tfoot></table></div>
