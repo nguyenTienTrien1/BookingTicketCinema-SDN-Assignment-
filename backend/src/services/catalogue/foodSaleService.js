@@ -72,6 +72,7 @@ export async function cancelFoodSale(id, employeeId) {
 export async function payFoodSale(id, input, employeeId) {
   let sale = await getFoodSale(id, employeeId);
   if (sale.status === 'paid') return sale;
+  if (sale.status === 'returned') throw saleError('Khoản thu đã được trả lại khách. Không thanh toán lại đơn này.', 409);
   if (sale.status === 'reconciliation') throw saleError('Đơn cần đối soát. Không thu tiền lần nữa.', 409);
   if (sale.status === 'cancelled') throw saleError('Đơn đã hủy, không thể thanh toán.', 409);
   const hello = await mongoose.connection.db.admin().command({ hello: 1 });

@@ -178,7 +178,7 @@ export default function FoodCounter() {
       <h2>{sale.status === 'paid' ? 'Hóa đơn đã thanh toán' : 'Đơn bán F&B'}</h2>
       <p className="foodReceiptId">Mã đơn: {sale._id}</p>
       <p>Nhân viên: {user.fullName}</p>
-      <p>Trạng thái: {{ pending: 'Chờ thanh toán', payment_received: 'Đã ghi nhận nhận tiền — đang hoàn tất', paid: 'Đã thanh toán', cancelled: 'Đã hủy', reconciliation: 'Cần đối soát thanh toán' }[sale.status]}</p>
+      <p>Trạng thái: {{ pending: 'Chờ thanh toán', payment_received: 'Đã ghi nhận nhận tiền — đang hoàn tất', paid: 'Đã thanh toán', cancelled: 'Đã hủy', reconciliation: 'Cần đối soát thanh toán', returned: 'Đã trả tiền khách' }[sale.status]}</p>
       <div className={'foodCounterCheckout' + (sale.status === 'pending' ? ' awaitingCash' : '')}><div className="foodCounterOrderSummary">
       <div className="movieTableWrap"><table className="movieTable foodReceiptTable"><thead><tr><th scope="col">Sản phẩm</th><th scope="col">Đơn giá</th><th scope="col">Số lượng</th><th scope="col">Thành tiền</th></tr></thead>
         <tbody>{sale.items.map((item) => <tr key={item.food}><td data-label="Sản phẩm"><span className="foodCounterReceiptProduct"><ProductImage food={catalogue.foods.find(food => String(food._id) === String(item.food)) || { name: item.name }} width="48" height="48" />{item.name}</span></td><td data-label="Đơn giá">{money(item.unitPrice)}</td><td data-label="Số lượng">{item.quantity}</td><td data-label="Thành tiền">{money(item.unitPrice * item.quantity)}</td></tr>)}</tbody>
@@ -210,10 +210,12 @@ export default function FoodCounter() {
       {['payment_received', 'reconciliation'].includes(sale.status) && <div className="movieWarning" role="status">
         <p>Đã ghi nhận tiền mặt: {money(sale.cashReceived)}. Không thu tiền lần nữa.</p>
         <p>{sale.issue || 'Kiểm tra trạng thái đơn để xác định kết quả.'}</p>
+        <button className="moviePrimary" type="button" disabled={busy} onClick={() => navigate('/staff/tools?section=reconciliation&order=' + sale._id)}>Mở đối soát đơn F&B</button>
         <button className="movieSecondary" disabled={busy} onClick={() => perform(async () => setSale(await getFoodSale(sale._id)))}>Kiểm tra trạng thái</button>
         {sale.status === 'payment_received' && <button className="movieSecondary" disabled={busy} onClick={pay}>Thử hoàn tất đơn đã nhận tiền</button>}
       </div>}
-      {['paid', 'cancelled', 'reconciliation'].includes(sale.status) && <div className="movieFormActions">
+      {sale.status === 'returned' && <p className="movieSuccess" role="status">Đã ghi nhận trả lại {money(sale.returnedAmount)} cho khách. Đơn không trừ tồn kho.</p>}
+      {['paid', 'cancelled', 'reconciliation', 'returned'].includes(sale.status) && <div className="movieFormActions">
         <button className="moviePrimary" disabled={busy} onClick={newOrder}>Tạo đơn mới</button>
       </div>}
     </section>}

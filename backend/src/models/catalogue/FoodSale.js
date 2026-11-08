@@ -12,13 +12,16 @@ const foodSaleSchema = new mongoose.Schema({
   }],
   total: { type: Number, required: true },
   currency: { type: String, default: 'VND' },
-  status: { type: String, enum: ['pending', 'payment_received', 'paid', 'cancelled', 'reconciliation'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'payment_received', 'paid', 'cancelled', 'reconciliation', 'returned'], default: 'pending' },
   paymentMethod: { type: String, enum: ['cash'] },
   cashReceived: Number,
   change: Number,
   paymentConfirmedAt: Date,
   paidAt: Date,
-  issue: String
+  issue: String,
+  returnedAmount: Number,
+  returnedAt: Date,
+  reconciliation: [{ _id: false, action: { type: String, enum: ['retry', 'cash-returned', 'note'] }, reason: String, actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: Date }]
 }, { timestamps: true });
 
 // One request creates one order, including retries after a lost response.
