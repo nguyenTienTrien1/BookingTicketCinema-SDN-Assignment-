@@ -36,19 +36,19 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  const balance=counter?Number(booking.user?.memberPoints||0):wallet.balance;
  const pointsAllowed=!booking.promotion||booking.promotion.stackable;
  const {maxPoints,pointsValid:validPoints}=memberPointsQuote(pointsAllowed?balance:0,booking.subtotal-(booking.promotionDiscount||0),points,pointStep);
- const pointsDirty=Number(points)!==booking.pointsUsed;
+ const pointsDirty=points.trim()===''||Number(points)!==Number(booking.pointsUsed||0);
  const editable=booking.status==='pending'&&remaining>0&&!booking.activePayment&&!paymentUncertain;
  const canEditOrder=editable&&!collectionOnly&&(!counter||user.role==='admin'||String(booking.counterEmployee)===String(user._id));
  const validCash=received.trim()!==''&&Number.isSafeInteger(Number(received))&&Number(received)>=booking.total;
  const change=validCash?Number(received)-booking.total:0;
  const blocked=!editable||busy||editingFood||pointsDirty||promotionDirty||(counter&&method==='cash'&&booking.total>0&&!validCash);
  async function perform(action){if(busy)return;setBusy(true);setError('');try{await action();}catch(e){setError(e.message);if(!counter)wallet.refresh();}finally{setBusy(false);}}
- function sync(result){
+ function sync(result,{preservePointsDraft=false}={}){
   setPaymentUncertain(false);
   if(!result.activePayment||result.cashReceived>0)setGatewayUrl('');
   if(counter&&!result.activePayment)setNotice('');
   if(counter&&result.total!==booking?.total)setReceived('');
-  setBooking(result);setPending(result);setPoints(String(result.pointsUsed||0));
+  setBooking(result);setPending(result);if(!preservePointsDraft||!pointsDirty)setPoints(String(result.pointsUsed||0));
   if(user.role==='member'&&result.user)setUser(current=>current?._id===user._id?{...current,memberPoints:result.user.memberPoints}:current);
  }
  const post=(suffix,body,method='POST')=>api(path+suffix,{method,body:JSON.stringify(body)});
@@ -85,8 +85,25 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  <p className="orderReference">Mã đơn: {booking._id}</p><p className="helperText">Nhân viên kiểm tra tuổi và điều kiện người giám hộ tại quầy.</p></section>
  <section className="paymentPanel"><div className="panelHeading"><h3>Bắp & nước</h3>{canEditOrder&&<button className="ghost" disabled={busy} onClick={()=>{setError('');setItems(booking.foodItems.map(item=>({...item.food,quantity:item.quantity})));setEditingFood(!editingFood);}}>{editingFood?'Hủy chỉnh sửa':'Đổi bắp nước'}</button>}</div>
  {editingFood?<><FoodPicker foods={foods} items={items} onChange={setItems} disabled={busy}/><button className="primary" disabled={busy} onClick={()=>perform(async()=>{sync(await post('/food',{foodItems:items.map(item=>({food:item._id,quantity:item.quantity}))},'PATCH'));setEditingFood(false);})}>Lưu món và cập nhật tổng tiền</button></>:booking.foodItems?.length?<div className="paymentFoodList">{booking.foodItems.map(item=><div className="paymentFoodRow" key={item._id||item.food?._id}><img src={foodImage(item.food||item)} alt={translateFoodName(item.name||item.food?.name)} width="64" height="64"/><div><strong>{translateFoodName(item.name||item.food?.name)}</strong><small>{item.quantity} × {money(item.unitPrice)}</small></div><b>{money(item.unitPrice*item.quantity)}</b></div>)}</div>:<p className="helperText">{canEditOrder?'Bạn chưa chọn bắp nước. Có thể thêm món hoặc tiếp tục thanh toán.':'Đơn không có bắp nước đi kèm.'}</p>}</section>
- {counter&&!collectionOnly&&<CounterPromotion booking={booking} editable={canEditOrder} disabled={busy||editingFood||pointsDirty} onDraftChange={setPromotionDirty} onCancelDraft={()=>setError('')} onApply={code=>perform(async()=>sync(await post('/promotion',{code},'PATCH')))} onRemove={()=>perform(async()=>sync(await post('/promotion',{code:''},'PATCH')))}/>}
- {canEditOrder&&(booking.user||!counter)&&<section className="paymentPanel pointsPayment"><h3>Ưu đãi thành viên</h3><p>Số dư: <strong>{balance} điểm</strong> · 1 điểm = 1.000đ</p><label htmlFor="paymentPoints">Điểm muốn sử dụng</label><div className="pointsControl"><input id="paymentPoints" type="number" min="0" step={pointStep} max={maxPoints} value={points} onChange={e=>setPoints(e.target.value)} disabled={busy||!pointsAllowed||promotionDirty}/><button className="ghost" disabled={busy||!validPoints||!pointsDirty||promotionDirty} onClick={()=>perform(async()=>{sync(await post('/points',{points:Number(points)},'PATCH'));})}>Áp dụng điểm</button>{booking.pointsUsed>0&&<button className="ghost" disabled={busy||promotionDirty} onClick={()=>perform(async()=>{sync(await post('/points',{points:0},'PATCH'));})}>Bỏ dùng điểm</button>}</div><small>{pointsAllowed?`Đổi theo bội số ${pointStep}, tối đa ${maxPoints} điểm. Chỉ trừ khi thanh toán thành công.`:'Mã khuyến mãi đang áp dụng không dùng cùng điểm. Bỏ mã nếu muốn sử dụng điểm.'}</small>{!counter&&<button className="paymentTextButton" disabled={busy||wallet.refreshing} onClick={wallet.refresh}>Làm mới số dư</button>}</section>}
+ {!collectionOnly&&<CounterPromotion
+  heading={counter?'Khuyến mãi tại quầy':'Mã khuyến mãi'} booking={booking} editable={canEditOrder}
+  disabled={busy||editingFood} onDraftChange={setPromotionDirty} onCancelDraft={()=>setError('')}
+  onApply={code=>perform(async()=>{sync(await post('/promotion',{code},'PATCH'),{preservePointsDraft:true});})}
+  onReplacePoints={code=>perform(async()=>{sync(await post('/promotion',{code,replacePoints:true},'PATCH'));})}
+  onRemove={()=>perform(async()=>{sync(await post('/promotion',{code:''},'PATCH'),{preservePointsDraft:true});})}
+ />}
+ {canEditOrder&&(booking.user||!counter)&&<section className="paymentPanel pointsPayment">
+  <h3>Ưu đãi thành viên</h3><p>Số dư: <strong>{balance} điểm</strong> · 1 điểm = 1.000đ</p>
+  <p className="paymentPointsApplied">Đang áp dụng: <strong>{booking.pointsUsed||0} điểm</strong> · Giảm {money(booking.discount)}</p>
+  <label htmlFor="paymentPoints">Điểm muốn sử dụng</label>
+  <div className="pointsControl"><input id="paymentPoints" type="number" min="0" step={pointStep} max={maxPoints} value={points} onChange={e=>setPoints(e.target.value)} disabled={busy||!pointsAllowed}/>
+   <button className="ghost" disabled={busy||!validPoints||!pointsDirty} onClick={()=>perform(async()=>{sync(await post('/points',{points:Number(points)},'PATCH'));})}>Áp dụng điểm</button>
+   {pointsDirty&&<button className="ghost" disabled={busy} onClick={()=>{setPoints(String(booking.pointsUsed||0));setError('');}}>Hủy thay đổi điểm</button>}
+   {booking.pointsUsed>0&&<button className="ghost" disabled={busy} onClick={()=>perform(async()=>{sync(await post('/points',{points:0},'PATCH'));})}>Bỏ dùng điểm</button>}
+  </div>
+  <small>{pointsAllowed?`${pointStep===1?'Nhập số điểm nguyên':`Đổi theo bội số ${pointStep}`}, tối đa ${maxPoints} điểm. Chỉ trừ khi thanh toán thành công.`:'Mã khuyến mãi đang áp dụng không dùng cùng điểm. Bỏ mã nếu muốn sử dụng điểm.'}</small>
+  {!counter&&<button className="paymentTextButton" disabled={busy||wallet.refreshing} onClick={wallet.refresh}>Làm mới số dư</button>}
+ </section>}
  </div><aside className="paymentPanel paymentReceipt"><h3>Chi tiết thanh toán</h3>{editable&&<div className={'holdTimer'+(remaining<120?' urgent':'')} role="timer">Giữ ghế còn <strong>{Math.floor(remaining/60)}:{String(remaining%60).padStart(2,'0')}</strong></div>}
  <div className="receiptLines"><p><span>Vé ({booking.seats.length} × {money(booking.ticketPrice)})</span><b>{money(booking.ticketPrice*booking.seats.length)}</b></p><p><span>Bắp nước</span><b>{money(booking.subtotal-booking.ticketPrice*booking.seats.length)}</b></p><p><span>Tạm tính</span><b>{money(booking.subtotal)}</b></p>
  {booking.promotion&&<p className="receiptDiscount"><span>Khuyến mãi ({booking.promotion.code})</span><b>−{money(booking.promotionDiscount)}</b></p>}
@@ -96,7 +113,9 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  {booking.total>0&&<fieldset className="paymentMethods"><legend>Phương thức thanh toán</legend><label className={method==='vnpay'?'selected':''}><input type="radio" name="paymentMethod" value="vnpay" checked={method==='vnpay'} disabled={busy} onChange={()=>setMethod('vnpay')}/><span><strong>VNPay Sandbox</strong><small>Chuyển sang cổng thanh toán Sandbox</small></span></label>{counter&&<label className={method==='cash'?'selected':''}><input type="radio" name="paymentMethod" value="cash" checked={method==='cash'} disabled={busy} onChange={()=>setMethod('cash')}/><span><strong>Tiền mặt tại quầy</strong><small>Nhân viên xác nhận trước khi hết giữ ghế</small></span></label>}</fieldset>}
  {counter&&method==='cash'&&booking.total>0&&<label className="receivedLabel">Số tiền khách đưa<input type="number" min="0" step="1" value={received} onChange={e=>setReceived(e.target.value)} disabled={busy}/><small>{validCash?`Tiền trả khách: ${money(change)}`:`Cần nhận tối thiểu ${money(booking.total)}.`}</small></label>}
  {booking.total===0&&<p className="paymentNotice">Đơn đã được giảm còn 0đ. Xác nhận để nhận vé QR.</p>}
- {(editingFood||pointsDirty||promotionDirty)&&<p className="helperText" role="status">Lưu hoặc hủy thay đổi bắp nước, mã khuyến mãi và điểm trước khi thanh toán.</p>}
+ {editingFood&&<p className="helperText" role="status">Lưu món hoặc hủy chỉnh sửa bắp nước trước khi thanh toán.</p>}
+ {promotionDirty&&<p className="helperText" role="status">Mã vừa nhập chưa áp dụng. Chọn Áp dụng mã hoặc Hủy thay đổi mã.</p>}
+ {pointsDirty&&<p className="helperText" role="status">Số điểm vừa nhập chưa áp dụng. Chọn Áp dụng điểm hoặc Hủy thay đổi điểm.</p>}
  <button className="primary paymentSubmit" disabled={blocked} onClick={pay}>{submitLabel}</button>
 
  {canEditOrder&&<button className="paymentTextButton cancelOrder" disabled={busy} onClick={()=>perform(async()=>{if(window.confirm('Hủy đơn và giải phóng ghế?'))sync(await post('/cancel',{}));})}>Hủy đơn và giải phóng ghế</button>}</>}

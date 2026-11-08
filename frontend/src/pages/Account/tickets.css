@@ -26,3 +26,19 @@
 .qrScanner video { display: block; width: min(100%, 480px); margin: 18px auto; border-radius: 10px; }
 .ticketPage :focus-visible { outline: 3px solid #fb7185; outline-offset: 3px; }
 @media (max-width: 560px) { .ticketSummary, .issuedTicket, .checkInPanel { padding: 18px; } .checkInDetails { grid-template-columns: 1fr; } }
+.cinemaTicketPage { padding: 28px 24px 64px; background: radial-gradient(ellipse at 85% 10%, #57233022, transparent 50%); min-height: 80vh; }
+.cinemaTicketPageShell { max-width: 1120px; margin: 0 auto; }
+.cinemaTicketPageHeading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin: 24px 0 30px; }
+.cinemaTicketPageHeading h1 { font-size: clamp(26px, 3vw, 36px); margin: 0 0 12px; letter-spacing: -.035em; }
+.cinemaTicketPageHeading > div > p:last-child { font-size: 14px; color: #aeb6c6; line-height: 1.7; margin: 0; }
+.cinemaTicketPageHeading button { flex-shrink: 0; }
+.cinemaTicketBookingMeta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 22px; margin: 0 0 32px; padding: 20px 24px; border: 1px solid #333640; border-top: 0; border-radius: 0 0 14px 14px; background: #151820; }
+.cinemaTicketBookingMeta span { display: block; color: #989faf; font-size: 10px; letter-spacing: .1em; margin-bottom: 8px; }
+.cinemaTicketBookingMeta code, .cinemaTicketBookingMeta strong { color: #d4dbe7; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
+.cinemaTicketPage .cinemaTicketHero { border-radius: 20px 20px 0 0; }
+.cinemaTicketCount { display: inline-block; vertical-align: middle; margin-left: 10px; padding: 6px 9px; font-size: 11px; font-weight: 500; background: #302530; border: 1px solid #55333d; border-radius: 6px; color: #ff9aa6; }
+.cinemaTicketGuide { display: flex; gap: 14px; padding: 22px 24px; margin-top: 24px; border: 1px solid #303541; border-radius: 12px; background: #161d2844; }
+.cinemaTicketGuide > span { color: #bdc9e5; font-size: 24px; }
+.cinemaTicketGuide strong { font-size: 14px; color: #d9e2f3; }
+.cinemaTicketGuide p { color: #9eacc1; font-size: 13px; margin: 8px 0 0; line-height: 1.8; }
+@media (max-width: 600px) { .cinemaTicketPage { padding: 18px 16px 40px; } .cinemaTicketPageHeading { flex-direction: column; align-items: flex-start; gap: 16px; } .cinemaTicketBookingMeta { padding: 20px; } }

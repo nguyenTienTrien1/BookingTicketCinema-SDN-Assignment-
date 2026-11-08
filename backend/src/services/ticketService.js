@@ -128,7 +128,12 @@ export async function ownedTickets(bookingId, memberId) {
     tickets.push({ reference, seat: ticket.seat, status, checkedInAt: ticket.checkedInAt,
       qrDataUrl: status === 'issued' ? ticket.qr || await QRCode.toDataURL(reference, { width: 264, margin: 4, errorCorrectionLevel: 'M' }) : null });
   }
-  return { ...result, mode, showtime: context, window, tickets };
+  // Artwork is current catalogue data; admission details remain the paid snapshot.
+  const currentShowtime = await Showtime.findById(booking.showtime).select('movie')
+    .populate({ path: 'movie', select: 'title poster banner duration classification' }).lean();
+  const movie = currentShowtime?.movie;
+  return { ...result, mode, showtime: context, window, tickets,
+    movie: movie ? { title: movie.title, poster: movie.poster, banner: movie.banner, duration: movie.duration, classification: movie.classification } : null };
 }
 
 function referenceValue(value) {

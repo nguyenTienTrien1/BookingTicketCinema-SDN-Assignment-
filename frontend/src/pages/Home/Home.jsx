@@ -37,13 +37,7 @@ export default function Home({
 
   // Handlers for movie card actions
   const handleBookMovie = (movie) => {
-    // Preselect showtime if available, otherwise pass movie
-    const movieShowtime = showtimes.find((st) => {
-      const stMovieId = st.movie?._id || st.movie;
-      return String(stMovieId) === String(movie._id);
-    });
-
-    setSelected(movieShowtime || movie);
+    setSelected(movie);
     setTab('booking');
   };
 

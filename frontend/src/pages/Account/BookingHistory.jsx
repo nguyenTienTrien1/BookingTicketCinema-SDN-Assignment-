@@ -5,6 +5,7 @@ import { getBookings } from '../../services/bookingService';
 import { translateFoodName } from '../../utils/uiText';
 import './bookingHistory.css';
 import TicketRefund from './TicketRefund';
+import { MovieArtwork } from '../../components/CinemaTicket';
 
 function formatDate(value) {
     if (!value) return 'Chưa có thông tin';
@@ -95,7 +96,7 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                     const missingSnapshot = !saved.movieTitle || !saved.startTime || (booking.foodItems || []).some(item => !item.name);
                     const canContinue = booking.status === 'pending' && status.className === 'pending' && !booking.cashReceived && showtime && new Date(showtime.startTime).getTime() > now;
                     return <article className="myTicketCard" key={booking._id}>
-                        <div className="myTicketPoster" aria-hidden="true"><span>{movieTitle}</span></div>
+                        <MovieArtwork movie={movie || {}} className="myTicketPoster" />
                         <div className="myTicketContent">
                             <div className="myTicketHeader">
                                 <div><span className="ticketReference">MÃ ĐẶT VÉ · {booking._id}</span><h3>{movieTitle}</h3></div>
@@ -113,6 +114,8 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                                 <p><span>Rạp / phòng</span><strong>{location}</strong></p>
                                 <p><span>Ghế</span><strong>{booking.seats?.join(', ') || 'Chưa có thông tin'}</strong></p>
                                 <p><span>Bắp nước</span><strong>{foods || 'Không gọi thêm'}</strong></p>
+                            </div>
+                            <details className="historyPaymentDetails"><summary>Chi tiết thanh toán</summary><div className="myTicketDetails">
                                 <p><span>Trạng thái thanh toán</span><strong>{paymentLabels[booking.paymentStatus] || 'Chưa có thông tin'}</strong></p>
                                 {refundLabels[booking.status] && <p><span>Trạng thái hoàn tiền</span><strong>{refundLabels[booking.status]}</strong></p>}
                                 {booking.paymentStatus === 'paid' && <p><span>Phương thức thanh toán</span><strong>{methodLabels[booking.paymentMethod] || 'Chưa có thông tin'}</strong></p>}
@@ -121,10 +124,10 @@ export function BookingHistory({ memberId, onBrowseMovies, onContinuePayment, on
                                 <p><span>Tạm tính</span><strong>{Number(booking.subtotal || 0).toLocaleString('vi-VN')}₫</strong></p>
                                 <p><span>Giảm từ điểm ({booking.pointsUsed || 0} điểm)</span><strong>{Number(booking.discount || 0).toLocaleString('vi-VN')}₫</strong></p>
                                 {booking.promotion && <p><span>Khuyến mãi ({booking.promotion.code})</span><strong>−{Number(booking.promotionDiscount || 0).toLocaleString('vi-VN')}₫</strong></p>}
-                            </div>
+                            </div></details>
                             <div className="myTicketFooter">
                                 <div><span>Tổng tiền đơn</span><strong>{Number(booking.total || 0).toLocaleString('vi-VN')}₫</strong></div>
-                                {booking.status === 'paid' && booking.paymentStatus === 'paid' && <Link className="historyLink" to={`/bookings/${booking._id}/tickets`}>Xem vé QR</Link>}
+                                {booking.status === 'paid' && booking.paymentStatus === 'paid' && <Link className="historyLink ticketOpenLink" to={`/bookings/${booking._id}/tickets`}>Xem vé QR →</Link>}
                                 {booking.status === 'paid' && booking.paymentStatus === 'paid' && !['demo','mock'].includes(booking.paymentMethod) && <TicketRefund booking={booking} onChanged={notice => { setRefundNotice(notice); setRetry(value => value + 1); }} />}
                                 {canContinue && onContinuePayment && <button type="button" className="primary" onClick={() => onContinuePayment(booking)}>Thanh toán tiếp</button>}
                                 {status.className === 'expired' && booking.status === 'pending' && onBookAgain && <button type="button" className="ghost" onClick={onBookAgain}>Đặt lại vé</button>}

@@ -60,7 +60,7 @@ export async function promotion(req, res, next) {
     const sale = await ownedSale(req);
     if (!sale) return res.status(404).json({ message: 'Không tìm thấy đơn bán tại quầy của bạn.' });
     if (typeof req.body?.code !== 'string') return res.status(400).json({ message: 'Vui lòng gửi mã khuyến mãi; dùng chuỗi rỗng để bỏ mã.' });
-    res.json(await bookings.applyCounterPromotion(sale._id, sale.user, req.body.code));
+    res.json(await bookings.applyCounterPromotion(sale._id, sale.user, req.body.code, req.body.replacePoints));
   } catch (error) { next(error); }
 }
 

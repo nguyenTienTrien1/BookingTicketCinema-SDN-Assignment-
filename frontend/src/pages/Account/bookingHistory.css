@@ -13,6 +13,14 @@
 .bookingHistory h3 { overflow-wrap: anywhere; }
 .bookingHistory .myTicketDetails p span, .bookingHistory .myTicketFooter > div span { color: #b5b8c3; }
 .bookingHistory .myTicketFooter { flex-wrap: wrap; }
+.bookingHistory .myTicketPoster { background: linear-gradient(145deg, #44232d, #171a25); align-self: start; aspect-ratio: 2/3; min-height: 0; margin: 20px 0 20px 20px; border-radius: 10px; border: 1px solid #ffffff18; }
+.bookingHistory .myTicketPoster img { width: 100%; height: 100%; object-fit: cover; }
+.historyPaymentDetails { border-top: 1px solid #292e39; padding: 14px 0; }
+.historyPaymentDetails summary { cursor: pointer; color: #aeb6c6; font-size: 13px; width: fit-content; padding: 4px 0; }
+.historyPaymentDetails[open] summary { margin-bottom: 16px; }
+.bookingHistory .ticketOpenLink { padding: 13px 20px; color: #fff; background: #e50924; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 700; }
+.bookingHistory .ticketOpenLink:hover { background: #fa1632; }
+@media (max-width: 650px) { .bookingHistory .myTicketPoster { margin: 16px 16px 0; height: 180px; aspect-ratio: auto; } .bookingHistory .myTicketPoster img { object-position: center 30%; } }
 @media (max-width: 560px) { .historyHeading { flex-direction: column; gap: 12px; } .bookingHistory .myTicketContent { padding: 16px; } }
 .refundDialog {
     width: min(560px, calc(100vw - 32px));

@@ -45,12 +45,15 @@ These are explicitly labeled demo payments, using the local MongoDB replica set 
 
 ## Online Member redemption
 
+Members can apply/remove a promotion on their own pending online order at `PATCH /api/bookings/:id/promotion`. The payment screen includes code suggestions and the accepted discount. Ticket/food/all scopes, minimums, caps, dates, usage limits and point stacking use the same server calculation and atomic redemption as counter bookings. Online Members cannot edit codes on counter orders through this endpoint. See [online promotions](ONLINE_PROMOTIONS.md).
+
 Members can choose redemption points in the online confirmation step, use the maximum permitted amount or choose zero. The preview shows the discount and remaining amount. The same server-side limits apply to online and counter bookings. Points remain unchanged while seats are held; successful demo payment deducts them once. Members can change/remove applied points on a pending payment screen, but cannot modify points after payment or use another Member's balance.
 
 Online booking and payment refresh the profile balance on entry, browser focus and manual refresh. Successful payment updates the shared account balance and pending booking. If Admin changes the balance before payment, the server rechecks it; the Member can refresh and reduce/remove redemption before retrying. No automatic point earning is included.
 
 ## Checks
 
+- Online promotions: `npm run test:online-promotions -w backend` and `npm run test:online-promotions:ui -w backend` cover ownership, code validity, price calculations, point stacking, food edits, last-use concurrency, VNPay callback retries and zero-total orders in isolated databases.
 - Counter age-check UI: `npm run test:counter-age:ui -w backend`. At order confirmation, restricted movies show an explicit required age/guardian checkbox next to the hold button. Unchecked confirmation disables submission; P movies without an age limit proceed normally. Selecting different screenings, seats or customers clears the check. Browser regression covers P/T13/T16/T18/K and legacy age limits with real holds and navigation to payment in an isolated database.
 - Member points browser regression: `npm run test:member-points:ui -w backend`. Uses an isolated random database and verifies a 20-point balance on a 229,000 VND order, typing, refresh failures, mobile, changing/removing points, VNPay-only online checkout, signed test callback settlement, retry without double deduction, zero balance, and explicitly configured step 100. Gateway navigation is intercepted; no external payment is made. Screenshots: `.local/qa/member-points/`.
 - Backend: `npm test -w backend` (isolated temporary databases).

@@ -123,13 +123,8 @@ export default function MovieDetail({
   }
 
   function handleBookTickets() {
-    const section = document.getElementById('detail-showtimes');
-    if (section && showtimesList.length > 0) {
-      section.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      setSelected(currentMovie);
-      setTab('booking');
-    }
+    setSelected(currentMovie);
+    setTab('booking');
   }
 
   function handleShowtimeSelect(st) {

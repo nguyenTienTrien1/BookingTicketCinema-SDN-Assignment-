@@ -195,7 +195,7 @@ try {
     const callbackUrl = base + '/api/payments/vnpay/ipn?' + new URLSearchParams(ipn);
     check((await (await page.request.get(callbackUrl)).json()).RspCode === '00', 'Signed test callback settles the VNPay payment');
     await page.goto(base + '/payment-result?reference=' + payment.reference);
-    await page.getByRole('status').filter({ hasText: 'Thanh toán thành công' }).waitFor();
+    await page.getByRole('heading', { name: 'Thanh toán thành công!' }).waitFor();
     check((await User.findById(member.id)).memberPoints === 0, 'Deduct exactly 20 points at settlement');
     check((await (await page.request.get(callbackUrl)).json()).RspCode === '02', 'Repeated callback returns already confirmed');
     const after = await User.findById(member.id).select('+redemptionEntries');

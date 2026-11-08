@@ -112,13 +112,15 @@ test('UC9.2 counter food and promotion snapshots with atomic redemption', async 
     assert.equal((await Promotion.findById(p.id)).usedCount, 0); assert.equal((await Food.findById(fix.food.id)).stock, 100);
   });
 
-  await t.test('counter creation supports a server-priced code and ignores submitted discount or total; online creation cannot inject it', async () => {
+  await t.test('counter and online creation validate a server-priced code and ignore submitted discount or total', async () => {
     const p = await promo();
     const fix = await fixture({ extra: { promotionCode: p.code, promotionDiscount: 999999, total: 1, subtotal: 1, promotion: { code: 'FAKE' } } });
     assert.equal(fix.booking.total, 245000); assert.equal(fix.booking.promotion.code, p.code);
     const show = await Showtime.create({ movie: movie.id, cinema: 'Test', room: randomUUID(), startTime: new Date(Date.now() + 3600000), price: 100000, seats: [{ number: 'A1' }] });
     const online = await request('/bookings', actors.member, 'POST', { showtimeId: show.id, seats: ['A1'], promotionCode: p.code });
-    assert.equal(online.status, 403); assert.equal((await Showtime.findById(show.id)).seats[0].status, 'available');
+    assert.equal(online.status, 409, 'Food code cannot apply to an online order without food'); assert.equal((await Showtime.findById(show.id)).seats[0].status, 'available');
+    const eligible = await request('/bookings', actors.member, 'POST', { showtimeId: show.id, seats: ['A1'], foodItems: [{ food: fix.food.id, quantity: 2 }], promotionCode: p.code, promotionDiscount: 999999, total: 1 });
+    assert.equal(eligible.status, 201); assert.equal(eligible.data.promotionDiscount, 5000); assert.equal(eligible.data.total, 145000);
   });
 
   await t.test('payment freezes the accepted prices, persists history and redeems once across concurrent retries', async () => {

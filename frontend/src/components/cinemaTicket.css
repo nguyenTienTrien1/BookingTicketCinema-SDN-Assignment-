@@ -1,0 +1,81 @@
+.cinemaEyebrow { margin: 0 0 10px; color: #afb4c2; font-size: 11px; font-weight: 700; letter-spacing: .16em; }
+.cinemaArtwork { position: relative; overflow: hidden; display: grid; place-items: center; background: linear-gradient(145deg, #44232d, #171a25); }
+.cinemaArtwork > span { color: #ece5e6; font-weight: 800; font-size: 16px; letter-spacing: -.05em; }
+.cinemaArtwork > span > span { color: #ff344a; }
+.cinemaArtwork img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cinemaResultPage, .cinemaTicketPage { position: relative; isolation: isolate; }
+.cinemaPageBackdrop { position: absolute; inset: 0 0 auto; height: 760px; z-index: -1; pointer-events: none; opacity: .32; }
+.cinemaPageBackdrop > span { display: none; }
+.cinemaPageBackdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg, #08090c 0%, #08090c77 70%, #08090c88), linear-gradient(90deg, #08090caa, transparent 50%, #08090caa); }
+.cinemaTicketHero { position: relative; overflow: hidden; isolation: isolate; border: 1px solid #39323b; border-radius: 22px; background: #18171d; }
+.cinemaHeroBackdrop { position: absolute; inset: 0; z-index: -2; opacity: .48; }
+.cinemaHeroBackdrop > span { display: none; }
+.cinemaHeroBackdrop img { object-position: center 30%; }
+.cinemaTicketHero::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgb(12 13 19 / 90%) 0%, rgb(12 13 19 / 65%) 60%, rgb(12 13 19 / 25%)), linear-gradient(0deg, #111319, transparent 95%); }
+.cinemaHeroContent { display: flex; align-items: center; gap: 30px; padding: 34px; }
+.cinemaHeroPoster { width: 148px; aspect-ratio: 2/3; flex-shrink: 0; border-radius: 12px; border: 1px solid #ffffff2b; box-shadow: 0 14px 36px #0006; }
+.cinemaHeroInfo { flex: 1; min-width: 0; }
+.cinemaHeroInfo .cinemaEyebrow { color: #ff9aa6; }
+.cinemaHeroInfo h2 { font-size: clamp(23px, 3vw, 36px); line-height: 1.25; color: #fff; margin: 0 0 14px; overflow-wrap: anywhere; }
+.cinemaMovieTags { display: flex; gap: 8px; margin-bottom: 22px; }
+.cinemaMovieTags span { background: #ffffff0d; border: 1px solid #ffffff30; border-radius: 5px; padding: 4px 8px; color: #e7e9ef; font-size: 12px; }
+.cinemaShowtimeDetails { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 30px; }
+.cinemaShowtimeDetails dt { color: #b9bfcd; font-size: 12px; margin-bottom: 6px; }
+.cinemaShowtimeDetails dd { margin: 0; font-size: 15px; font-weight: 600; color: #fff; overflow-wrap: anywhere; }
+.cinemaShowtimeDetails .cinemaSeatList { color: #ff9aa6; }
+.cinemaSeatTickets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.cinemaSeatTicket { min-width: 0; border: 1px solid #343741; border-radius: 18px; background: #191c24; overflow: hidden; }
+.cinemaTicketTop { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #ffffff0e; }
+.cinemaTicketTop > span:first-child { font-size: 14px; font-weight: 800; letter-spacing: -.04em; }
+.cinemaTicketTop b { color: #ff344a; }
+.cinemaTicketTop small { color: #9fa7b7; font-size: 9px; letter-spacing: .1em; margin-left: 8px; font-weight: 500; }
+.cinemaTicketBadge { background: #12372d; color: #8de3b9; padding: 5px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.cinemaSeatTicket--checked-in .cinemaTicketBadge { color: #a9cfff; background: #1e3351; }
+.cinemaSeatTicket--expired .cinemaTicketBadge, .cinemaSeatTicket--revoked .cinemaTicketBadge { background: #35313a; color: #c7becb; }
+.cinemaTicketBody { display: grid; grid-template-columns: minmax(0, 1fr) 164px; gap: 18px; padding: 24px 20px; align-items: center; }
+.cinemaTicketSeatInfo { min-width: 0; }
+.cinemaTicketSeatInfo h3 { font-size: 44px; color: #fff; margin: 0 0 15px; line-height: 1; }
+.cinemaTicketSeatInfo > strong { display: block; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.cinemaTicketSeatInfo p { margin: 7px 0 0; font-size: 12px; line-height: 1.6; color: #b4bbca; overflow-wrap: anywhere; }
+.cinemaTicketQrArea { text-align: center; }
+.cinemaTicketQrArea img { display: block; width: 164px; max-width: 100%; height: auto; background: white; padding: 6px; border-radius: 10px; }
+.cinemaTicketQrArea > span { display: block; color: #a6aebd; font-size: 10px; margin-top: 10px; line-height: 1.5; }
+.cinemaTicketUnavailable { min-height: 164px; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; padding: 12px; border: 1px dashed #454957; border-radius: 10px; color: #bfc6d3; font-size: 12px; }
+.cinemaTicketUnavailable > span:first-child { font-size: 30px; }
+.cinemaTicketBottom { display: flex; align-items: center; gap: 15px; justify-content: space-between; border-top: 1px dashed #45414c; padding: 16px 20px; background: #ffffff03; }
+.cinemaTicketBottom > div { min-width: 0; }
+.cinemaTicketBottom span { display: block; font-size: 9px; color: #959eaf; letter-spacing: .12em; margin-bottom: 5px; }
+.cinemaTicketBottom code { color: #b9c0cf; font-size: 10px; overflow-wrap: anywhere; user-select: all; }
+.cinemaTicketBottom a { color: #fff; text-decoration: none; white-space: nowrap; font-size: 12px; padding: 10px 12px; border: 1px solid #444752; border-radius: 7px; }
+.cinemaTicketBottom a:hover { border-color: #ff6c7b; background: #ffffff08; }
+.cinemaSeatTicket :focus-visible { outline: 3px solid #ff9aa6; outline-offset: 3px; }
+.cinemaBackLink { display: inline-block; color: #aeb6c5; text-decoration: none; padding: 10px 0; font-size: 13px; }
+.cinemaBackLink:hover { color: white; }
+.cinemaSectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 0 22px; }
+.cinemaSectionHeading h2 { margin: 0 0 10px; font-size: 23px; color: #fff; }
+.cinemaSectionHeading p:not(.cinemaEyebrow) { color: #aeb6c6; margin: 0; font-size: 13px; line-height: 1.7; }
+.cinemaTextLink { color: #ff9aa6; text-decoration: none; font-size: 13px; line-height: 1.5; padding: 10px 0; }
+.cinemaTextLink:hover { color: #ffc7cf; text-decoration: underline; }
+.cinemaActionPrimary, .cinemaActionSecondary { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 12px 20px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; }
+.cinemaActionPrimary { background: #e50924; color: white; border: 1px solid #e50924; }
+.cinemaActionPrimary:hover { background: #fa1632; }
+.cinemaActionSecondary { border: 1px solid #383e4c; background: #1a1e27; color: #d8dfea; }
+.cinemaActionSecondary:hover { border-color: #8c94a5; }
+.cinemaActionSecondary:disabled { opacity: .5; cursor: wait; }
+.cinemaInlineNotice { padding: 18px 20px; background: #26232a; border: 1px solid #52434b; border-radius: 10px; color: #e1c7cf; font-size: 13px; line-height: 1.7; }
+@media (min-width: 1200px) { .cinemaTicketBody { grid-template-columns: minmax(0, 1fr) 190px; } .cinemaTicketQrArea img { width: 190px; } }
+@media (max-width: 900px) { .cinemaSeatTickets { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+    .cinemaHeroContent { display: grid; grid-template-columns: 84px minmax(0, 1fr); padding: 24px 20px; gap: 20px 18px; align-items: center; }
+    .cinemaHeroInfo { display: contents; }
+    .cinemaHeroPoster { width: 84px; }
+    .cinemaHeroInfo h2 { font-size: 22px; }
+    .cinemaHeroInfo .cinemaEyebrow { font-size: 9px; }
+    .cinemaShowtimeDetails { grid-column: 1/-1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
+    .cinemaShowtimeDetails dd { font-size: 13px; }
+    .cinemaMovieTags { flex-wrap: wrap; margin-bottom: 0; }
+    .cinemaTicketBody { grid-template-columns: minmax(0, 1fr) 150px; padding: 20px 16px; gap: 12px; }
+    .cinemaTicketTop, .cinemaTicketBottom { padding: 14px 16px; }
+    .cinemaTicketTop small { display: none; }
+    .cinemaTicketSeatInfo h3 { font-size: 38px; }
+}

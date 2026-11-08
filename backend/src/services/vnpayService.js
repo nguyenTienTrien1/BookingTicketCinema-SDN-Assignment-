@@ -60,3 +60,16 @@ export async function processIPN(params) {
   return { RspCode:'99', Message:'Recorded for reconciliation' };
  }
 }
+
+// Sandbox merchants may not have an IPN URL registered for a changing tunnel.
+// A signed return has the same provider fields as IPN. Reuse the complete
+// verifier/transaction processor, never a browser success flag or a new proof.
+// Production continues to require the independent IPN channel.
+export async function processSandboxReturn(params) {
+ if (process.env.NODE_ENV === 'production' || process.env.VNPAY_SANDBOX_RETURN_FALLBACK !== 'true') return null;
+ let gateway;
+ try { gateway = new URL(process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'); } catch { return null; }
+ if (gateway.protocol !== 'https:' || gateway.hostname !== 'sandbox.vnpayment.vn') return null;
+ if (!params.vnp_SecureHash) return null;
+ return processIPN(params);
+}

@@ -4,9 +4,10 @@ import Food from '../models/Food.js';
 import PaymentAttempt from '../models/PaymentAttempt.js';
 import PointRefund from '../models/PointRefund.js';
 import { settle, loadBooking, simulationFailure } from '../services/bookingService.js';
-import { createPayment, processIPN } from '../services/vnpayService.js';
+import { createPayment, processIPN, processSandboxReturn } from '../services/vnpayService.js';
 import { domainError as fail } from '../services/transaction.js';
 import { payStaffBooking, listReconciliation, reconcilePayment } from '../services/counterPaymentService.js';
+import { ownedTickets } from '../services/ticketService.js';
 export async function result(req,res,next) { try {
  const attempt = await PaymentAttempt.findOne({ref:req.params.reference,method:'vnpay'});
  if(!attempt)throw fail('Không tìm thấy giao dịch.',404);
@@ -15,7 +16,12 @@ export async function result(req,res,next) { try {
  const booking = await Booking.findOne(filter);
  if(!booking)throw fail('Không tìm thấy giao dịch.',404);
  const refund = await PointRefund.findOne({ reference: attempt.ref, booking: booking._id }).select('reference kind status rate amount points completedAt').lean();
- res.set('Cache-Control', 'no-store').json({status:attempt.status,booking:await loadBooking(booking._id),refund});
+ let ticketDetails;
+ if (req.user.role !== 'member' && attempt.status === 'succeeded' && booking.status === 'paid' && booking.paymentRef === attempt.ref) {
+  try { ticketDetails = await ownedTickets(booking._id, booking.user); }
+  catch { ticketDetails = { tickets: [], message: 'Chưa tải được vé. Vui lòng kiểm tra lại trạng thái hoặc liên hệ quản lý.' }; }
+ }
+ res.set('Cache-Control', 'no-store').json({status:attempt.status,booking:await loadBooking(booking._id),refund,ticketDetails});
  }catch(e){next(e);} }
 export async function start(req,res,next) { try {
  const b=await Booking.findOne({_id:req.params.id,user:req.user._id});if(!b)throw fail('Không tìm thấy đơn.',404);
@@ -43,7 +49,13 @@ export async function staffPay(req, res, next) {
  } catch (error) { next(error); }
 }
 export async function ipn(req,res) { try { res.json(await processIPN(req.query)); } catch {res.json({RspCode:'99',Message:'Retry later'});} }
-export async function returnUrl(req,res) { const url=new URL('/payment-result',process.env.CLIENT_URL||process.env.FRONTEND_URL||'http://localhost:5173'); if(typeof req.query.vnp_TxnRef==='string')url.searchParams.set('reference',req.query.vnp_TxnRef); res.redirect(url.toString()); }
+export async function returnUrl(req,res) {
+ try { await processSandboxReturn(req.query); }
+ catch { console.warn('[VNPAY] Sandbox return could not be finalized; check IPN/payment status.'); }
+ const url=new URL('/payment-result',process.env.CLIENT_URL||process.env.FRONTEND_URL||'http://localhost:5173');
+ if(typeof req.query.vnp_TxnRef==='string')url.searchParams.set('reference',req.query.vnp_TxnRef);
+ res.redirect(url.toString());
+}
 export async function reconciliation(req, res, next) {
  try { res.set('Cache-Control', 'no-store').json(await listReconciliation()); }
  catch (error) { next(error); }

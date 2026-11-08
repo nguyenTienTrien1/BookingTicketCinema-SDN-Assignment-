@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto';
 import Promotion from '../models/Promotion.js';
 import { domainError as fail } from './transaction.js';
 
-// Approved UC9.2 policy: one code/order, scoped minimum, floor to VND,
+// Shared online/counter policy: one code/order, scoped minimum, floor to VND,
 // promotion before points; only stackable promotions may accompany points.
+// Keep the existing policy ID so previously quoted counter orders stay valid.
 export const COUNTER_PROMOTION_POLICY = 'counter-v1';
 
 export function normalizePromotionCode(code) {
@@ -27,7 +28,6 @@ function signature(promotion) {
 export async function quoteCounterPromotion(code, booking, session) {
   code = normalizePromotionCode(code);
   if (!code) return { promotion: undefined, discount: 0 };
-  if (!booking.counterEmployee) throw fail('Khuyến mãi này chỉ áp dụng cho đơn vé tại quầy.', 403);
   const now = new Date();
   const promotion = await Promotion.findOne({ code, active: true, deletedAt: null }).session(session);
   if (!promotion || !Number.isFinite(promotion.startsAt?.getTime()) || !Number.isFinite(promotion.endsAt?.getTime()) || promotion.startsAt > now || promotion.endsAt <= now) throw fail('Mã khuyến mãi không tồn tại, chưa bắt đầu hoặc đã hết hạn.', 409);

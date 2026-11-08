@@ -15,6 +15,7 @@ r.post('/:id/refund', protectWrite, refunds.request);
 r.get('/payment-result/:reference', result);
 r.post('/', c.create);
 r.patch('/:id/points', c.points);
+r.patch('/:id/promotion', protectWrite, c.promotion);
 r.post('/:id/pay', start);
 r.get('/:id', c.view);
 r.patch('/:id/food', c.food);

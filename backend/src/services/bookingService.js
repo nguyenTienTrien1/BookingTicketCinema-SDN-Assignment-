@@ -112,11 +112,26 @@ export async function updateFoods(id, userId, items) {
   b.foodItems = f.items; b.subtotal = subtotal; await reprice(b, u, session); await b.save({ session });
  }); return loadBooking(id);
 }
-export async function applyCounterPromotion(id, userId, code) {
+function replacePromotionPoints(booking, code, replacePoints) {
+ if (typeof replacePoints !== 'boolean' || (replacePoints && (typeof code !== 'string' || !code.trim()))) throw fail('Chỉ bỏ điểm khi áp dụng một mã khuyến mãi hợp lệ.');
+ if (replacePoints) booking.pointsUsed = 0;
+}
+export async function applyCounterPromotion(id, userId, code, replacePoints = false) {
  await transaction(async session => {
   const b = await pending(id, userId, session);
   if (!b.counterEmployee) throw fail('Chỉ áp dụng khuyến mãi cho đơn tại quầy.', 403);
   const member = b.user && await User.findById(b.user).session(session);
+  replacePromotionPoints(b, code, replacePoints);
+  await reprice(b, member, session, code); await b.save({ session });
+ }); return loadBooking(id);
+}
+export async function applyMemberPromotion(id, userId, code, replacePoints = false) {
+ await transaction(async session => {
+  const b = await pending(id, userId, session);
+  if (b.counterEmployee) throw fail('Thành viên chỉ được đổi mã trên đơn đặt vé trực tuyến của mình.', 403);
+  const member = await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session);
+  if (!member) throw fail('Tài khoản thành viên không còn hoạt động.', 403);
+  replacePromotionPoints(b, code, replacePoints);
   await reprice(b, member, session, code); await b.save({ session });
  }); return loadBooking(id);
 }
@@ -203,7 +218,7 @@ export async function settle(id, evidence) {
 export async function pay() { throw fail('Không chấp nhận xác nhận thanh toán từ trình duyệt.', 403); }
 export const listBookings = (userId) => Booking.find({ user: userId })
  .select('showtime ticketContext ticketMode seats ticketPrice foodItems subtotal pointsUsed discount promotion promotionDiscount total status paymentMethod paymentStatus paymentRef activePayment cashReceived change paymentIssue expiresAt tickets paidAt createdAt updatedAt refund cinemaCancellation')
- .populate([{path:'showtime',select:'movie cinema room startTime',populate:{path:'movie',select:'title'}},{path:'foodItems.food',select:'name'}])
+ .populate([{path:'showtime',select:'movie cinema room startTime',populate:{path:'movie',select:'title poster banner'}},{path:'foodItems.food',select:'name'}])
  .sort({ createdAt: -1, _id: -1 });
 
 export async function simulationFailure(id) {

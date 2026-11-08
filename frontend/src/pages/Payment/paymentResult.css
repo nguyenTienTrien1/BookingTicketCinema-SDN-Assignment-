@@ -1,0 +1,31 @@
+.cinemaResultPage { min-height: 80vh; background: radial-gradient(ellipse at 50% 5%, #24362d44, transparent 45%); padding: 28px 24px 64px; }
+.cinemaResultShell { max-width: 1120px; margin: 0 auto; }
+.cinemaResultHeader { text-align: center; max-width: 720px; margin: 14px auto 34px; }
+.cinemaResultIcon { display: grid; place-items: center; width: 66px; height: 66px; margin: 0 auto 22px; color: #ffd394; background: #59432533; border: 1px solid #a77e4a66; border-radius: 50%; font-size: 32px; }
+.cinemaResultIcon svg { width: 36px; height: 36px; }
+.cinemaResultHeader--success .cinemaResultIcon { color: #85ecbd; background: #1a754330; border-color: #41966b80; box-shadow: 0 0 0 9px #1f6c3b0e, 0 0 40px #1f6c3b22; }
+.cinemaResultHeader--error .cinemaResultIcon, .cinemaResultHeader--failed .cinemaResultIcon, .cinemaResultHeader--expired .cinemaResultIcon { color: #ff9aa6; background: #7e223333; border-color: #c0526380; }
+.cinemaResultHeader h1 { color: #fff; font-size: clamp(26px, 3vw, 38px); letter-spacing: -.035em; margin: 0 0 13px; }
+.cinemaResultHeader > p:last-child { color: #b6becc; font-size: 14px; line-height: 1.8; margin: 0; }
+.cinemaResultReceipt { position: relative; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 24px; padding: 24px 34px; background: #11131999; border-top: 1px solid #ffffff14; align-items: center; }
+.cinemaResultReceipt > div { min-width: 0; }
+.cinemaResultReceipt span { display: block; color: #aeb7c7; font-size: 12px; margin-bottom: 8px; }
+.cinemaResultReceipt strong { display: block; color: #fff; font-size: 15px; }
+.cinemaResultReceipt .cinemaOrderId { font-family: monospace; font-size: 13px; overflow-wrap: anywhere; }
+.cinemaResultReceipt > div:last-child { text-align: right; }
+.cinemaResultReceipt .cinemaPaidAmount { color: #8de3b9; font-size: 28px; letter-spacing: -.04em; }
+.cinemaResultTickets { margin-top: 38px; }
+.cinemaSectionHeading > a { flex-shrink: 0; }
+.cinemaArrivalNote { padding: 18px 20px; border-radius: 10px; border: 1px solid #323742; background: #1c243044; color: #aebacb; font-size: 13px; line-height: 1.7; }
+.cinemaResultActions { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+.cinemaResultPage :focus-visible { outline: 3px solid #ff9aa6; outline-offset: 4px; }
+@media (max-width: 600px) {
+    .cinemaResultPage { padding: 18px 16px 40px; }
+    .cinemaResultHeader { margin: 20px auto 28px; }
+    .cinemaResultReceipt { padding: 20px; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .cinemaResultReceipt > div:first-child { grid-column: 1/-1; }
+    .cinemaResultReceipt .cinemaPaidAmount { font-size: 24px; }
+    .cinemaSectionHeading { align-items: flex-start; flex-direction: column; gap: 8px; }
+    .cinemaResultActions { align-items: stretch; }
+    .cinemaResultActions > .cinemaActionPrimary, .cinemaResultActions > button { width: 100%; }
+}

@@ -12,4 +12,7 @@
 .counterPromotionApplied p { margin: 8px 0 0; color: #c1c5d0; font-size: .84rem; line-height: 1.6; }
 .counterPromotion :is(input, button):focus-visible { outline: 3px solid #ff9aa2; outline-offset: 3px; }
 .counterPromotion :disabled { opacity: .6; }
+.counterPromotion .promotionPointsConflict { padding: 12px; border: 1px solid #785d32; border-radius: 8px; background: #2c2518; color: #f3d093; font-size: .85rem; line-height: 1.6; }
+.pointsPayment .paymentPointsApplied { color: #a8dfbb; font-size: .85rem; }
+.pointsControl { flex-wrap: wrap; }
 @media (max-width: 560px) { .counterPromotionControl { flex-direction: column; } .counterPromotionControl > button { width: 100%; } }
