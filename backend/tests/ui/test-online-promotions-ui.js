@@ -60,6 +60,23 @@ try {
         if (await Booking.countDocuments() === 0) {
             const beforeSeats = (await Showtime.findOne()).seats.map(s => s.status);
             await page.getByRole('heading', { name: 'Mã khuyến mãi', exact: true }).waitFor();
+            const checkoutCode = page.getByRole('combobox', { name: 'Mã khuyến mãi', exact: true });
+            await checkoutCode.focus();
+            await page.getByRole('option').first().waitFor();
+            const firstCode = await page.getByRole('option').first().locator('strong').textContent();
+            await checkoutCode.press('ArrowDown'); await checkoutCode.press('Enter');
+            check(await checkoutCode.inputValue() === firstCode, 'Keyboard selects suggested code without applying or submitting');
+            check(await page.getByRole('combobox', { name: 'Mã khuyến mãi', exact: true }).getAttribute('aria-expanded') === 'false', 'Suggestion menu closes after selection');
+            await checkoutCode.fill('FOOD');
+            await page.getByRole('option', { name: /FOOD20/ }).click();
+            check(await checkoutCode.inputValue() === 'FOOD20', 'Pointer selects filtered code');
+            await checkoutCode.fill('');
+            await page.locator('.counterPromotion').screenshot({ path: path.join(artifacts, 'checkout-suggestions.png') });
+            await page.setViewportSize({ width: 390, height: 844 });
+            check(await page.locator('.counterPromotion').evaluate(el => el.scrollWidth <= el.clientWidth), 'Suggestion dropdown fits mobile');
+            await page.locator('.counterPromotion').screenshot({ path: path.join(artifacts, 'checkout-suggestions-mobile.png') });
+            await checkoutCode.press('Escape');
+            await page.setViewportSize({ width: 1440, height: 1000 });
             await page.getByRole('combobox', { name: 'Mã khuyến mãi', exact: true }).fill('INVALID');
             check(await page.getByRole('button', { name: 'Tạo đơn và chọn thanh toán', exact: true }).isDisabled(), 'Unapplied checkout code blocks order');
             let previewResponse = responseFor('/promotion-preview', 'POST');
@@ -122,7 +139,7 @@ try {
     stage = 'online promotion input, invalid draft and suggestions';
     const booking = await createOrder();
     await page.getByRole('heading', { name: 'Mã khuyến mãi', exact: true }).waitFor();
-    await page.waitForFunction(() => document.querySelectorAll('#counter-promotion-options option').length === 4);
+    await page.waitForFunction(() => document.querySelectorAll('#counter-promotion-options [role=option]').length === 4);
     check(await page.locator('.counterPromotion button[type=submit]').isDisabled(), 'Empty code cannot submit');
     await apply('UNKNOWN', 409); check(await page.locator('.paymentSubmit').isDisabled(), 'Unapplied code blocks payment');
     await page.getByRole('button', { name: 'Hủy thay đổi mã', exact: true }).click();

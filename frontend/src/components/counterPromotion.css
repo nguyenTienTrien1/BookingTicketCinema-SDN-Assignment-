@@ -1,10 +1,28 @@
-.counterPromotion fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
-.counterPromotion form label { display: block; margin-bottom: 10px; color: #d7dbe6; font-size: .9rem; font-weight: 600; }
+.counterPromotion fieldset { display: grid; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.counterPromotion form label { display: block; margin: 0; color: #d7dbe6; font-size: .9rem; font-weight: 600; }
+.counterPromotion .panelHeading { margin-bottom: 20px; }
+.counterPromotion .helperText { margin: 0; font-size: .85rem; line-height: 1.65; color: #aeb6c7; }
+.counterPromotion > .helperText { margin-top: 16px; }
 .counterPromotionPolicy { flex-shrink: 0; padding: 5px 9px; border: 1px solid #41313b; border-radius: 6px; color: #f0bac1; font-size: .75rem; }
-.counterPromotionControl { display: flex; gap: 12px; align-items: stretch; }
-.counterPromotionControl input { min-width: 0; width: 100%; flex: 1; min-height: 44px; padding: 12px; background: #0d1017; color: #f4f5f8; border: 1px solid #434b5e; border-radius: 8px; font: inherit; }
-.counterPromotionControl > button { flex-shrink: 0; min-height: 44px; }
+.counterPromotionControl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.counterPromotionInput { position: relative; min-width: 0; }
+.counterPromotion .counterPromotionControl .counterPromotionInput input { box-sizing: border-box; display: block; min-width: 0; width: 100%; height: 48px; margin: 0; padding: 12px 48px 12px 14px; background: #0d1017; color: #f4f5f8; border: 1px solid #434b5e; border-radius: 10px; font: inherit; }
+.counterPromotion .counterPromotionInput input:focus-visible { outline: none; border-color: #ff6b7d; box-shadow: 0 0 0 3px #ff6b7d24; }
+.counterPromotionControl > button { min-width: 146px; min-height: 48px; padding: 12px 18px; border: 1px solid #ed2446; border-radius: 10px; background: #df1235; color: white; font-weight: 700; line-height: 1.4; }
+.counterPromotionControl > button:hover:not(:disabled) { background: #f12245; }
+.counterPromotionControl > button:disabled { background: #252a34; border-color: #353b48; color: #929bad; cursor: not-allowed; opacity: 1; }
+.counterPromotion .counterPromotionToggle { position: absolute; top: 2px; right: 2px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #b9c1d1; }
+.counterPromotion .counterPromotionToggle:hover:not(:disabled) { background: #ffffff0a; color: white; }
+.counterPromotionOptions { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 30; max-height: 252px; overflow-y: auto; padding: 6px; background: #1a1f2b; border: 1px solid #454d60; border-radius: 12px; box-shadow: 0 14px 32px #0008; }
+.counterPromotionOptions[hidden] { display: none; }
+.counterPromotion .counterPromotionOptions > button { display: grid; gap: 5px; width: 100%; padding: 12px; text-align: left; white-space: normal; overflow-wrap: anywhere; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #e6eaf3; }
+.counterPromotion .counterPromotionOptions > button:is(:hover, [aria-selected=true]) { background: #30212d; border-color: #70404e; }
+.counterPromotionOptions strong { color: #ffacb9; font-size: .95rem; letter-spacing: .04em; }
+.counterPromotionOptions span { font-size: .83rem; line-height: 1.5; }
+.counterPromotionOptions small { color: #aeb6c7; font-size: .78rem; line-height: 1.5; }
 .counterPromotionActions { display: flex; gap: 16px; flex-wrap: wrap; }
+.counterPromotionActions:empty { display: none; }
+.counterPromotionActions button { min-height: 36px; }
 .counterPromotionApplied { margin-top: 18px; padding: 16px; background: #261b24; border: 1px solid #56323e; border-radius: 10px; overflow-wrap: anywhere; }
 .counterPromotionApplied > div { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .counterPromotionApplied strong { color: #ffb3bd; letter-spacing: .04em; }
@@ -15,4 +33,4 @@
 .counterPromotion .promotionPointsConflict { padding: 12px; border: 1px solid #785d32; border-radius: 8px; background: #2c2518; color: #f3d093; font-size: .85rem; line-height: 1.6; }
 .pointsPayment .paymentPointsApplied { color: #a8dfbb; font-size: .85rem; }
 .pointsControl { flex-wrap: wrap; }
-@media (max-width: 560px) { .counterPromotionControl { flex-direction: column; } .counterPromotionControl > button { width: 100%; } }
+@media (max-width: 560px) { .counterPromotionControl { grid-template-columns: minmax(0, 1fr); } .counterPromotionControl > button { width: 100%; } }

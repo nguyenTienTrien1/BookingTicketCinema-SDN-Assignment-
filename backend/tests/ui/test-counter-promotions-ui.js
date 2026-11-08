@@ -143,8 +143,9 @@ try {
   check((await Promotion.findById(free.id)).usedCount === 1 && (await Booking.findById(guestBooking._id)).user === null, 'Guest redemption keeps anonymous ownership');
   stage = 'Member history keeps the accepted promotion snapshot';
   const memberPage = await login('member'); await memberPage.goto(base + '/bookings');
+  await memberPage.locator('.historyPaymentDetails').filter({ hasText: 'Khuyến mãi (FOOD10)' }).first().locator('summary').click();
   await memberPage.getByText('Khuyến mãi (FOOD10)', { exact: true }).first().waitFor();
-  await memberPage.getByRole('link', { name: 'Xem vé QR', exact: true }).click(); await memberPage.locator('.issuedTicketQr').waitFor();
+  await memberPage.getByRole('link', { name: /Xem vé QR/ }).click(); await memberPage.getByRole('img', { name: /QR vé ghế/ }).waitFor();
   check(errors.length === 0, 'No browser runtime errors: ' + errors.join('; '));
   console.log(JSON.stringify({ result: 'passed', checks, artifacts, actualApiAndDatabase: true }));
 } catch (error) {
