@@ -14,6 +14,8 @@
     "test:movies": "node --test test_movies.js",
     "test:food-sales": "node --test test_food_sales.js",
     "test:catalogue": "node --test test_catalogue.js",
+    "test:food-images": "node --test test_food_images.js",
+    "test:food-images:ui": "node --test scripts/test-food-images-ui.js",
     "test:profile": "node --test test_profile.js",
     "test:password-reset": "node --test test_password_reset.js",
     "test:google-auth": "node --test test_google_auth.js",
@@ -37,7 +39,7 @@
     "test:ticket-design:ui": "node scripts/test-ticket-design-ui.js",
     "test:counter-age:ui": "node scripts/test-counter-age-ui.js",
     "test:revenue": "node --test test_revenue.js",
-    "test": "node --test test_accounts.js test_booking_history.js test_catalogue.js test_complete_uc.js test_counter_points.js test_counter_promotions.js test_online_promotions.js test_food_sales.js test_google_auth.js test_member_search.js test_movies.js test_password_reset.js test_profile.js test_regression.js test_revenue.js test_roles.js test_showtimes.js test_rooms.js test_tickets.js test_showtime_suggestions.js test_vnpay_return.js",
+    "test": "node --test test_accounts.js test_booking_history.js test_catalogue.js test_complete_uc.js test_counter_points.js test_counter_promotions.js test_online_promotions.js test_food_sales.js test_google_auth.js test_member_search.js test_movies.js test_password_reset.js test_profile.js test_regression.js test_revenue.js test_roles.js test_showtimes.js test_rooms.js test_tickets.js test_showtime_suggestions.js test_vnpay_return.js test_food_images.js",
     "db:local": "node scripts/local-db.js",
     "db:setup": "node scripts/local-db.js --import-current",
     "test:e2e": "node scripts/test-member-points-ui.js && node scripts/test-accounts-ui.js",
@@ -53,6 +55,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.19.3",
     "nodemailer": "^10.2.1",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.5"
   }
 }

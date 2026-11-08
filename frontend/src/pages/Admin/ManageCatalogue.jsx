@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueItem, deleteCatalogueItem } from '../../services/catalogueService';
+import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueItem, deleteCatalogueItem, uploadFoodImage, foodImageUrl } from '../../services/catalogueService';
 import './movies.css';
 import './catalogue.css';
 
@@ -86,7 +86,7 @@ function CatalogueList({ kind }) {
             <tbody>{result.items.map((item) => <tr key={item._id}>
               <td><strong>{item.name}</strong>{kind === 'promotions' && <p className="catalogueCode">{item.code}</p>}
                 <details><summary>Chi tiết</summary><p className="movieDescription">{item.description || 'Chưa có mô tả.'}</p>
-                  {kind === 'foods' ? <p className="movieMediaPath">Ảnh: {item.image || 'Chưa có'}</p> : <>
+                  {kind === 'foods' ? <>{item.image && <img className="catalogueFoodThumbnail" src={foodImageUrl(item.image)} alt={item.name} loading="lazy" />}<p className="movieMediaPath">Ảnh: {item.image || 'Chưa có'}</p></> : <>
                     <p>Đơn tối thiểu: {money(item.minOrder)}</p><p>Giảm tối đa: {item.maxDiscount === null ? 'Không giới hạn' : money(item.maxDiscount)}</p>
                     <p>Phạm vi: {{ food: 'F&B', ticket: 'Vé', all: 'Vé và F&B' }[item.scope]}</p>
                     <p>Cộng dồn: {item.stackable ? 'Cho phép' : 'Không cho phép'}</p>
@@ -122,6 +122,37 @@ function CatalogueForm({ kind, editing }) {
   const [reload, setReload] = useState(0);
   const submitting = useRef(false);
   const errorRef = useRef(null);
+  const fileInput = useRef(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imageError, setImageError] = useState('');
+  const [preview, setPreview] = useState('');
+
+  useEffect(() => {
+    if (kind !== 'foods') return;
+    if (imageFile) {
+      const url = URL.createObjectURL(imageFile);
+      setPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPreview(/^(https?:\/\/|\/(?!\/))/.test(form.image || '') ? foodImageUrl(form.image) : '');
+  }, [kind, imageFile, form.image]);
+
+  function chooseImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setImageError('Chọn ảnh JPG, PNG hoặc WebP, dung lượng tối đa 5 MB.');
+      event.target.value = '';
+      return;
+    }
+    setImageError('');
+    setImageFile(file);
+  }
+
+  function clearImageSelection() {
+    setImageFile(null); setImageError('');
+    if (fileInput.current) fileInput.current.value = '';
+  }
 
   useEffect(() => {
     if (!editing) return;
@@ -134,6 +165,8 @@ function CatalogueForm({ kind, editing }) {
         value: String(item.value), minOrder: String(item.minOrder), maxDiscount: item.maxDiscount === null ? '' : String(item.maxDiscount),
         scope: item.scope, stackable: String(item.stackable), startsAt: localDate(item.startsAt), endsAt: localDate(item.endsAt),
         usageLimit: item.usageLimit === null ? '' : String(item.usageLimit), active: item.active, usedCount: item.usedCount, version: item.__v });
+      setImageFile(null); setImageError('');
+      if (fileInput.current) fileInput.current.value = '';
       setLoaded(true);
     }).catch((err) => { if (!ignore) setError(err.message); })
       .finally(() => { if (!ignore) setLoading(false); });
@@ -147,11 +180,19 @@ function CatalogueForm({ kind, editing }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (submitting.current) return;
+    if (submitting.current || imageError) return;
     submitting.current = true; setSaving(true); setError('');
     try {
       let data;
-      if (kind === 'foods') data = { name: form.name, description: form.description, image: form.image, price: Number(form.price), stock: Number(form.stock), available: form.available, version: form.version };
+      if (kind === 'foods') {
+        let image = form.image;
+        if (imageFile) {
+          image = await uploadFoodImage(imageFile);
+          setForm((current) => ({ ...current, image }));
+          clearImageSelection();
+        }
+        data = { name: form.name, description: form.description, image, price: Number(form.price), stock: Number(form.stock), available: form.available, version: form.version };
+      }
       else data = { name: form.name, description: form.description, code: form.code, discountType: form.discountType, value: Number(form.value),
         minOrder: Number(form.minOrder), maxDiscount: form.discountType === 'percentage' && form.maxDiscount !== '' ? Number(form.maxDiscount) : null,
         scope: form.scope, stackable: form.stackable === 'true', startsAt: `${form.startsAt}:00+07:00`, endsAt: `${form.endsAt}:00+07:00`,
@@ -181,7 +222,17 @@ function CatalogueForm({ kind, editing }) {
         {kind === 'foods' ? <>
           <label htmlFor="food-price">Giá bán (VND) *<input id="food-price" name="price" type="number" required min={0} max={1000000000} step={1} value={form.price} onChange={change} /></label>
           <label htmlFor="food-stock">Tồn kho *<input id="food-stock" name="stock" type="number" required min={0} max={1000000000} step={1} value={form.stock} onChange={change} /><small>Số lượng hiện có; lưu lại sẽ cập nhật kho về số này.</small></label>
-          <label className="movieWide" htmlFor="food-image">Đường dẫn ảnh<input id="food-image" name="image" maxLength={2048} value={form.image} onChange={change} placeholder="https://… hoặc /images/foods/…" /></label>
+          <section className="movieWide foodImagePicker" aria-labelledby="food-image-heading">
+            <h2 id="food-image-heading">Ảnh sản phẩm</h2>
+            <input ref={fileInput} id="food-image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={chooseImage} />
+            <div className="foodImageActions"><button className="movieSecondary" type="button" onClick={() => fileInput.current.click()} aria-controls="food-image-file" aria-describedby="food-image-help">Chọn ảnh từ máy tính</button>
+              {(imageFile || imageError) && <button className="movieSecondary" type="button" onClick={clearImageSelection}>Bỏ chọn</button>}</div>
+            <p id="food-image-help">JPG, PNG hoặc WebP, tối đa 5 MB. Ảnh được tải lên khi bạn bấm Lưu.</p>
+            {imageFile && <p className="foodImageFilename" role="status">{imageFile.name} · {(imageFile.size / 1024).toFixed(0)} KB</p>}
+            {imageError && <p className="movieError" role="alert">{imageError}</p>}
+            {preview && <figure className="foodImagePreview"><img src={preview} alt="Xem trước ảnh sản phẩm" /><figcaption>{imageFile ? 'Ảnh đã chọn từ máy tính' : 'Ảnh hiện tại'}</figcaption></figure>}
+            <label htmlFor="food-image">Hoặc dùng đường dẫn ảnh<input id="food-image" name="image" maxLength={2048} value={form.image} disabled={Boolean(imageFile)} onChange={(event) => { setImageError(''); change(event); }} placeholder="https://… hoặc /images/foods/…" /></label>
+          </section>
           <label className="movieWide movieCheckbox" htmlFor="food-available"><input id="food-available" name="available" type="checkbox" checked={form.available} onChange={change} />Đang bán</label>
         </> : <>
           <label htmlFor="promotion-code">Mã khuyến mãi *<input id="promotion-code" name="code" required minLength={3} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9_\-]{2,39}" disabled={used} value={form.code} onChange={change} placeholder="CINEMA10" /><small>Mã được chuyển thành chữ in hoa khi lưu.</small></label>
@@ -201,7 +252,7 @@ function CatalogueForm({ kind, editing }) {
         </>}
       </div></fieldset>
       <div className="movieFormActions"><button className="movieSecondary" type="button" disabled={saving} onClick={() => navigate(`/admin/${kind}`)}>Hủy</button>
-        <button className="moviePrimary" type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu'}</button></div>
+        <button className="moviePrimary" type="submit" disabled={saving || Boolean(imageError)}>{saving ? (imageFile ? 'Đang tải ảnh…' : 'Đang lưu…') : 'Lưu'}</button></div>
     </form>}
   </div></main>;
 }

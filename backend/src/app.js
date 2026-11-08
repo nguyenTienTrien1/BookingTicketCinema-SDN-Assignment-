@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import movieRoutes from './routes/movieRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import foodRoutes from './routes/foodRoutes.js';
+import { serveImage } from './controllers/foodImageController.js';
 import counterRoutes from './routes/counterRoutes.js';
 import promotionRoutes from './routes/promotionRoutes.js';
 import foodSaleRoutes from './routes/foodSaleRoutes.js';
@@ -35,6 +36,7 @@ app.use(cors({
 // 2. Body parser & Cookie parser middlewares
 app.use(express.json());
 app.use(cookieParser());
+app.get('/api/uploads/foods/:filename', serveImage);
 
 // 3. Health check endpoint
 app.get('/api/health', (_req, res) => {

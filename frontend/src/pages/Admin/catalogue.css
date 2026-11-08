@@ -7,6 +7,15 @@
 .movieForm input:disabled, .movieForm select:disabled { opacity: .65; cursor: not-allowed; }
 .movieForm .movieWarning { margin-bottom: 24px; }
 .catalogueTable details p { max-width: 340px; overflow-wrap: anywhere; }
+.foodImagePicker { padding: 20px; background: #191d26; border: 1px dashed #454d60; border-radius: 10px; min-width: 0; }
+.foodImagePicker h2 { font-size: 14px; margin: 0 0 14px; }
+.foodImagePicker > p { color: #aeb6c8; font-size: 13px; line-height: 1.6; }
+.foodImageActions { display: flex; flex-wrap: wrap; gap: 10px; }
+.foodImageFilename { overflow-wrap: anywhere; }
+.foodImagePreview { margin: 18px 0; }
+.foodImagePreview img { display: block; max-width: 100%; width: 240px; height: 180px; object-fit: contain; background: #0c0e13; border-radius: 8px; }
+.foodImagePreview figcaption { color: #aeb6c8; font-size: 12px; margin-top: 8px; }
+.catalogueFoodThumbnail { display: block; width: 100px; height: 80px; object-fit: contain; margin-top: 12px; }
 @media (max-width: 600px) {
   .catalogueTabs a { flex: 1; padding: 10px; font-size: 13px; }
 }

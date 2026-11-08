@@ -151,6 +151,16 @@ Admin: `admin@cinema.com` / `admin123`
 
 ### UC-15: F&B and promotion configuration
 
+#### Choose F&B images from a computer
+
+The Add/Edit F&B form includes **Chọn ảnh từ máy tính**, a local preview and **Bỏ chọn** to keep the existing image. JPG, PNG and WebP files up to 5 MB are supported; static images are limited to 20 megapixels. Selecting or cancelling a file does not upload anything. **Lưu** uploads the selected image and saves its URL with the product. Manual URLs/local asset paths remain available.
+
+`POST /api/foods/images` accepts raw image bytes with the matching image Content-Type. It requires an active Admin session and the same trusted-origin rules as other Admin writes. The server checks file signatures and decodes/re-encodes with `sharp`, corrects orientation and fits the output inside 1600×1600 pixels. Unsupported, corrupt, animated, oversized or incorrectly labelled images are rejected. Responses contain `{ image: "/api/uploads/foods/<uuid>.webp" }`.
+
+Generated files are served through `/api/uploads/foods/:filename` and stored in `backend/uploads/foods/`, which Git ignores. Preserve this directory with the server's persistent storage/backups; uploaded files are not embedded in MongoDB or committed to the repository. Replacing an image keeps the previous file to avoid breaking shared or historical references. If validation fails after upload, the form retains the uploaded URL for retry instead of uploading the same selection again.
+
+Run `npm run test:food-images -w backend` for API validation/security/persistence tests, and `npm run test:food-images:ui -w backend` for file chooser, preview, save/reload/replace and cancellation checks. UI tests use the installed Edge browser by default (`E2E_BROWSER_CHANNEL` can select another Playwright-supported channel) and write a screenshot to `.local/qa/food-images/picker-mobile.png`. Both suites isolate their database and remove only their own uploaded test images.
+
 - In the Admin dashboard, choose **Quản lý F&B** or **Quản lý khuyến mãi**. Both lists support Add, details, Edit, Cancel, confirmed Delete, empty states and retry after retrieval failures.
 - F&B fields: name, description, image URL/local path, whole-VND price, integer stock and availability. Active names must be unique, ignoring case. Legacy items without stock can be edited to establish their starting inventory.
 - Open counter orders (pending, payment received or reconciliation) and unexpired pending ticket orders protect products from deletion. Such products cannot change price/availability or reduce stock; replenishment and descriptive edits are allowed. Completed counter receipts retain their original item names and prices.

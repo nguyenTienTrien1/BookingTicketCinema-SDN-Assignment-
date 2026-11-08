@@ -1,4 +1,5 @@
 node_modules/
+backend/uploads/
 .local/
 dist/
 .env
