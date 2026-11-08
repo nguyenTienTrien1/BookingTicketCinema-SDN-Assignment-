@@ -1,4 +1,8 @@
 import * as s from "../services/bookingService.js";
+export async function promotionPreview(req,res,next){try{
+ if(typeof req.body?.code!=='string'||!req.body.code.trim())return res.status(400).json({message:'Vui lòng nhập mã khuyến mãi.'});
+ res.set('Cache-Control','no-store').json(await s.previewMemberPromotion(req.body));
+}catch(e){next(e);}}
 export async function create(req, res, next) {
   try {
     res

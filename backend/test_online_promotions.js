@@ -43,6 +43,31 @@ test('Member online promotion pricing, authorization and atomic settlement', asy
     const points = (fix, value) => request('/bookings/' + fix.booking._id + '/points', fix.user, 'PATCH', { points: value });
     const payPoints = fix => request('/bookings/' + fix.booking._id + '/pay', fix.user, 'POST', { method: 'points' });
 
+    await t.test('checkout preview uses server prices without holding seats, reserving inventory or consuming promotion usage', async () => {
+        const show = await Showtime.create({ movie: movie.id, cinema: 'Preview Cinema', room: randomUUID(), price: 200000, startTime: new Date(Date.now() + 3600000), seats: [{ number: 'A1' }] });
+        const food = await Food.create({ name: 'Preview food', price: 25000, stock: 3, available: true });
+        const p = await promo();
+        const payload = { showtimeId: show.id, seats: ['A1'], foodItems: [{ food: food.id, quantity: 2 }], code: p.code.toLowerCase(), subtotal: 1, ticketPrice: 1, promotionDiscount: 999999 };
+        const before = await Booking.countDocuments();
+        const quote = await request('/bookings/promotion-preview', member, 'POST', payload);
+        assert.equal(quote.status, 200, JSON.stringify(quote.data));
+        assert.equal(quote.data.subtotal, 250000);
+        assert.equal(quote.data.promotionDiscount, 5000);
+        assert.equal(quote.data.promotion.code, p.code);
+        assert.equal(await Booking.countDocuments(), before);
+        assert.equal((await Showtime.findById(show.id)).seats[0].status, 'available');
+        assert.equal((await Food.findById(food.id)).stock, 3);
+        assert.equal((await Promotion.findById(p.id)).usedCount, 0);
+        for (const [actor, status] of [[null, 401], [employee, 403], [admin, 403]]) assert.equal((await request('/bookings/promotion-preview', actor, 'POST', payload)).status, status);
+        assert.equal((await request('/bookings/promotion-preview', member, 'POST', payload, { Origin: 'https://untrusted.example' })).status, 403);
+        assert.equal((await request('/bookings/promotion-preview', member, 'POST', payload, { 'Content-Type': 'text/plain' })).status, 415);
+        for (const code of ['', null, {}, '!bad']) assert.equal((await request('/bookings/promotion-preview', member, 'POST', { ...payload, code })).status, 400);
+        for (const changes of [{ seats: ['A1', 'A1'] }, { showtimeId: 'bad' }]) assert.equal((await request('/bookings/promotion-preview', member, 'POST', { ...payload, ...changes })).status, 400);
+        for (const changes of [{ seats: ['A2'] }, { foodItems: [{ food: food.id, quantity: 4 }] }, { code: 'UNKNOWN' }, { foodItems: [] }]) assert.equal((await request('/bookings/promotion-preview', member, 'POST', { ...payload, ...changes })).status, 409);
+        await Promotion.updateOne({ _id: p.id }, { active: false });
+        assert.equal((await request('/bookings/promotion-preview', member, 'POST', payload)).status, 409);
+    });
+
     await t.test('only an active Member may edit their own online order; Origin and JSON are enforced', async () => {
         const fix = await fixture(), p = await promo();
         for (const [actor, status] of [[null,401],[employee,403],[admin,403],[other,404]]) assert.equal((await apply(fix, p.code, actor)).status, status);

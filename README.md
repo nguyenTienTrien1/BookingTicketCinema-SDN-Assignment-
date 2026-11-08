@@ -79,6 +79,11 @@ Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` mo
 - Employee profiles keep the existing site header and profile forms. A responsive task panel groups counter ticket sales, Member lookup, check-in, online-order collection and food sales; tasks no longer appear as loose links beneath every page.
 - Run `npm run test:member-search -w backend` for API permissions and `npm run test:member-search:ui -w backend` for real-browser profile navigation, search/error states, role-specific fields and mobile layout. Tests use and remove dedicated temporary databases; UI screenshots are saved under `.local/qa/uc8/`.
 
+## Member promotion at booking confirmation
+- At step 5, **Xác nhận**, Members can enter/select, apply, recheck or remove a promotion before creating the booking. The summary shows campaign savings separately from Member points; exclusive codes require explicitly replacing selected points. Changing seats, showtime or food resets the quote.
+- `POST /api/bookings/promotion-preview` accepts `{ code, showtimeId, seats, foodItems }`. This Member-only, same-origin JSON endpoint uses current server prices without holding seats, creating an order or consuming promotion usage. Booking creation and settlement revalidate the selected code; the payment page retains it and supports later changes.
+- Verification: `npm run test:online-promotions -w backend`, `npm run test:online-promotions:ui -w backend` and `npm run build -w frontend`. Tests use temporary databases; screenshots are under `.local/qa/online-promotions/`.
+
 ## UC9.2 — Counter food and promotion checkout (NhaNTK)
 - Counter orders now support one promotion code, scoped minimums, fixed/percentage discounts, VND floor rounding, caps and optional stacking with Member points. Promotions are calculated before points. The existing `discount` field remains point redemption; `promotionDiscount` stores the separate campaign discount.
 - In the payment screen, use **Khuyến mãi tại quầy** to apply, remove or recheck a code. Food edits recalculate eligibility; unpaid drafts block payment until saved/cancelled. The receipt and Member history retain the accepted code and amount.

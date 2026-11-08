@@ -129,6 +129,17 @@ async function checkAge(movie, member, actor, guardian) {
       );
   }
 }
+// Read-only quote: use current catalogue prices without holding seats or consuming a code.
+export async function previewMemberPromotion({ showtimeId, seats, foodItems = [], code }) {
+ if (!mongoose.isObjectIdOrHexString(showtimeId) || !Array.isArray(seats) || !seats.length || seats.some(s => typeof s !== 'string') || new Set(seats).size !== seats.length) throw fail('Dữ liệu đặt vé không hợp lệ.');
+ const show = await Showtime.findById(showtimeId);
+ if (!show || show.cancelledAt || show.startTime <= new Date()) throw fail('Suất chiếu không còn mở bán.', 409);
+ if (seats.some(number => !show.seats.some(s => s.number === number && s.status === 'available' && (!s.condition || s.condition === 'Active')))) throw fail('Ghế vừa thay đổi. Vui lòng chọn lại.', 409);
+ const food = await foodSnapshot(foodItems, null);
+ const subtotal = show.price * seats.length + food.total;
+ const quote = await quoteCounterPromotion(code, { ticketPrice: show.price, seats, foodItems: food.items, subtotal, pointsUsed: 0 }, null);
+ return { subtotal, promotion: quote.promotion, promotionDiscount: quote.discount };
+}
 export async function createBooking(data) {
   return withScheduleWrite(function () {
     return createBookingWithGuard(data);

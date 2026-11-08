@@ -1,4 +1,6 @@
 import FoodPicker from '../../components/FoodPicker';
+import CounterPromotion from '../../components/CounterPromotion';
+import { api } from '../../services/api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createBooking } from '../../services/bookingService';
 import useMemberPoints from '../../hooks/useMemberPoints';
@@ -96,6 +98,11 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
     const memberPoints = useMemberPoints(user, setUser);
     const [pointsToUse, setPointsToUse] = useState('0');
     const [bookingBusy, setBookingBusy] = useState(false);
+    const [promotionQuote, setPromotionQuote] = useState(null);
+    const [promotionDirty, setPromotionDirty] = useState(false);
+    const [promotionBusy, setPromotionBusy] = useState(false);
+    const [promotionError, setPromotionError] = useState('');
+    const promotionRequest = useRef(0);
     const submitting = useRef(false);
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
@@ -136,7 +143,37 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
     }, [currentShowtime]);
 
     const subtotal = ticketSubtotal + foodSubtotal;
-    const { selectedPoints, pointsValid, discount } = memberPointsQuote(memberPoints.balance, subtotal, pointsToUse, memberPoints.step);
+    const cartKey = JSON.stringify([showtimeId, seat, food.map(item => [item._id, item.quantity, item.price]), ticketPrice]);
+    const activeQuote = promotionQuote?.cartKey === cartKey ? promotionQuote : null;
+    const promotionDiscount = activeQuote?.promotionDiscount || 0;
+    const pointsAllowed = !activeQuote?.promotion || activeQuote.promotion.stackable;
+    const pointsSubtotal = subtotal - promotionDiscount;
+    const { selectedPoints, pointsValid, discount } = memberPointsQuote(pointsAllowed ? memberPoints.balance : 0, pointsSubtotal, pointsToUse, memberPoints.step);
+    useEffect(() => {
+        promotionRequest.current++;
+        setPromotionQuote(null);
+        setPromotionDirty(false);
+        setPromotionBusy(false);
+        setPromotionError('');
+    }, [cartKey]);
+    async function applyPromotion(code, replacePoints = false) {
+        const request = ++promotionRequest.current;
+        setPromotionBusy(true);
+        setPromotionError('');
+        try {
+            const quote = await api('/bookings/promotion-preview', { method: 'POST', body: JSON.stringify({ code, showtimeId, seats: seat, foodItems: food.map(item => ({ food: item._id, quantity: item.quantity || 1 })) }) });
+            if (request !== promotionRequest.current) return;
+            if (quote.subtotal !== subtotal) throw new Error('Giá vé hoặc bắp nước đã thay đổi. Vui lòng tải lại trang để xác nhận giá mới.');
+            if (selectedPoints > 0 && !quote.promotion.stackable && !replacePoints) throw new Error('Mã này không dùng cùng điểm. Chọn Không dùng điểm rồi áp dụng lại mã.');
+            if (replacePoints) setPointsToUse('0');
+            setPromotionQuote({ ...quote, cartKey });
+            setPromotionDirty(false);
+        } catch (error) {
+            if (request === promotionRequest.current) setPromotionError(error.message);
+        } finally {
+            if (request === promotionRequest.current) setPromotionBusy(false);
+        }
+    }
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
         return showtimes.filter((s) => {
@@ -187,6 +224,10 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
 
     async function book() {
         if (submitting.current) return;
+        if (promotionBusy || promotionDirty || promotionError) {
+            setMsg('Vui lòng áp dụng mã hợp lệ hoặc hủy thay đổi mã trước khi tạo đơn.');
+            return;
+        }
         if (!user || !currentShowtime || !seat.length) {
             setMsg('Vui lòng đăng nhập, chọn suất chiếu và ít nhất một ghế.');
             return;
@@ -201,6 +242,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         setBookingBusy(true);
         try {
             const booking = await createBooking({
+                promotionCode: activeQuote?.promotion?.code || '',
                 points: selectedPoints,
                 showtimeId: currentShowtime._id,
                 seats: seat,
@@ -494,17 +536,26 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                                     <span>Tổng bắp nước</span>
                                     <strong>{foodSubtotal.toLocaleString()}₫</strong>
                                 </div>
+                                {promotionDiscount > 0 && <div className="summaryPriceRow memberPointsSummaryDiscount"><span>Khuyến mãi ({activeQuote.promotion.code})</span><strong>−{promotionDiscount.toLocaleString('vi-VN')}₫</strong></div>}
                                 {discount > 0 && <div className="summaryPriceRow memberPointsSummaryDiscount"><span>Giảm từ {selectedPoints} điểm</span><strong>−{discount.toLocaleString('vi-VN')}₫</strong></div>}
                             </div>
                             <div className="summaryTotal">
                                 <span>Tổng thanh toán</span>
-                                <strong>{(subtotal - discount).toLocaleString('vi-VN')}₫</strong>
+                                <strong>{(pointsSubtotal - discount).toLocaleString('vi-VN')}₫</strong>
                             </div>
                         </div>
-                        <MemberPointsPicker wallet={memberPoints} value={pointsToUse} onChange={setPointsToUse} subtotal={subtotal} busy={bookingBusy} />
+                        <CounterPromotion key={cartKey} heading="Mã khuyến mãi" booking={{ promotion: activeQuote?.promotion, promotionDiscount, pointsUsed: selectedPoints }} editable={true} disabled={bookingBusy || promotionBusy}
+                            onDraftChange={setPromotionDirty} onCancelDraft={() => setPromotionError('')}
+                            onApply={code => applyPromotion(code)} onReplacePoints={code => applyPromotion(code, true)}
+                            onRemove={() => { setPromotionQuote(null); setPromotionDirty(false); setPromotionError(''); }} />
+                        {promotionBusy && <p className="helperText" role="status">Đang kiểm tra mã khuyến mãi…</p>}
+                        {promotionError && <p className="error" role="alert">{promotionError}</p>}
+                        {promotionDirty && <p className="helperText" role="status">Mã vừa nhập chưa áp dụng. Chọn Áp dụng mã hoặc Hủy thay đổi mã.</p>}
+                        {!pointsAllowed && <p className="helperText">Mã này không dùng cùng điểm thành viên. Bỏ mã để sử dụng điểm.</p>}
+                        {pointsAllowed && <MemberPointsPicker wallet={memberPoints} value={pointsToUse} onChange={setPointsToUse} subtotal={pointsSubtotal} busy={bookingBusy || promotionBusy} />}
                         <p className="accountNotice">Thông tin khách hàng sẽ được lấy từ tài khoản của bạn. Không cần nhập lại.</p>
                         <p className="helperText">Nhân viên sẽ kiểm tra độ tuổi và điều kiện người giám hộ tại quầy trước khi vào xem phim.</p>
-                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy || !pointsValid || (selectedPoints > 0 && (memberPoints.refreshing || !!memberPoints.error))}>{bookingBusy ? 'Đang tạo đơn…' : 'Tạo đơn và chọn thanh toán'}</button>
+                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy || promotionBusy || promotionDirty || !!promotionError || !pointsValid || (selectedPoints > 0 && (memberPoints.refreshing || !!memberPoints.error))}>{bookingBusy ? 'Đang tạo đơn…' : 'Tạo đơn và chọn thanh toán'}</button>
                     </div>
                 )}
 
