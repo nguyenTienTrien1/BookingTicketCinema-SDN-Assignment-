@@ -1,9 +1,10 @@
 .foodCounterFields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .foodCounterFields legend { font-size: 20px; font-weight: 700; margin-bottom: 22px; }
-.foodCounterGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; }
-.foodCounterItem { border: 1px solid #383e4c; border-radius: 10px; padding: 18px; background: #191d26; }
-.foodCounterItem h2 { font-size: 17px; margin: 0 0 12px; }
-.foodCounterItem small { display: block; color: #b9c0d1; margin-bottom: 18px; }
+.foodCounterGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.foodCounterItem { min-width: 0; overflow: hidden; border: 1px solid #2d303a; border-radius: 16px; background: #15171e; transition: border-color .18s, box-shadow .18s; }
+.foodCounterItem.selected { border-color: #ed3654; box-shadow: 0 0 0 1px #ed365430; }
+.foodCounterItem h2 { font-size: 15px; line-height: 1.45; min-height: 38px; margin: 0; overflow-wrap: anywhere; }
+.foodCounterItem:hover { border-color: #72505a; }
 .foodCounterItem label, .foodPaymentForm > label { display: flex; flex-direction: column; gap: 10px; }
 .foodPaymentForm { max-width: 560px; margin-top: 24px; }
 .foodPaymentForm .foodConfirm { flex-direction: row; align-items: flex-start; line-height: 1.6; }
@@ -11,7 +12,118 @@
 .foodReceiptId { color: #b9c0d1; overflow-wrap: anywhere; }
 .movieAdmin input:disabled, .movieAdmin select:disabled { opacity: .65; cursor: not-allowed; }
 .movieAdmin .movieTable td:last-child .movieSecondary { margin: 0 4px 6px 0; }
+.foodCounterPage { background: radial-gradient(ellipse at 80% 0, #34121c40, transparent 48%), #090a0e; }
+.foodCounterPage .movieAdminShell { max-width: 1280px; }
+.foodCounterPage .staffBackButton { margin-bottom: 22px; font-size: .85rem; background: transparent; border: 1px solid #323540; color: #c1c6d4; }
+.foodCounterHero { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 30px; margin-bottom: 24px; border: 1px solid #51303b; border-radius: 20px; background: linear-gradient(115deg, #26171e, #17151d 65%, #36202a); overflow: hidden; }
+.foodCounterHero .movieEyebrow { margin: 0 0 14px; color: #ff768f; font-size: 11px; font-weight: 800; letter-spacing: .18em; }
+.foodCounterHero h1 { font-size: clamp(25px, 3vw, 32px); line-height: 1.2; letter-spacing: -.03em; margin: 0 0 10px; }
+.foodCounterHero h1 > span { color: #e9a8b6; }
+.foodCounterHero p { color: #b6afbb; line-height: 1.6; font-size: .85rem; margin: 0 0 12px; }
+.foodCounterStaff { display: inline-flex; align-items: center; gap: 8px; color: #d6d0db; background: #ffffff08; border: 1px solid #ffffff12; padding: 7px 12px; border-radius: 8px; font-size: .78rem; }
+.foodCounterStaff > span { color: #78c49d; font-size: 9px; }
+.foodCounterHeroArt { position: relative; flex: 0 0 235px; height: 155px; }
+.foodCounterHeroArt::before { content: ''; position: absolute; inset: 5px 20px; background: #ff40692b; border-radius: 50%; filter: blur(30px); }
+.foodCounterHeroArt img { position: absolute; width: 110px; height: 138px; object-fit: cover; border-radius: 12px; box-shadow: 0 16px 28px #0005; }
+.foodCounterHeroArt img:first-child { left: 15px; top: 5px; transform: rotate(-9deg); }
+.foodCounterHeroArt img:nth-child(2) { right: 5px; top: 15px; transform: rotate(9deg); }
+.foodCounterHeroArt > span { position: absolute; bottom: -2px; left: 40px; padding: 9px 18px; border: 1px solid #ed86984d; border-radius: 20px; background: #281b23; color: #ffc3ce; font-size: 10px; font-weight: 800; letter-spacing: .18em; }
+.foodCounterSteps { display: flex; gap: 26px; padding: 0; margin: 0 0 30px; list-style: none; }
+.foodCounterSteps li { display: flex; align-items: center; gap: 9px; font-size: .8rem; color: #777e90; }
+.foodCounterSteps li > span { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; border: 1px solid #383c49; font-size: .75rem; }
+.foodCounterSteps .active { color: #f7c0cd; }
+.foodCounterSteps .active > span { background: #c91836; border-color: #c91836; color: white; }
+.foodCounterLayout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 26px; align-items: start; }
+.foodCounterMenu { min-width: 0; }
+.foodCounterMenuHeading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+.foodCounterMenuHeading h2 { font-size: 20px; margin: 0 0 5px; }
+.foodCounterMenuHeading p { margin: 0; font-size: .8rem; color: #8f98ab; }
+.foodCounterSearch { display: flex; align-items: center; gap: 9px; border: 1px solid #343845; border-radius: 10px; padding: 0 12px; background: #14161d; color: #8f98ab; max-width: 260px; }
+.foodCounterPage .foodCounterSearch input { min-width: 0; width: 100%; padding: 11px 0; min-height: 42px; background: transparent; border: 0; font-size: .82rem; }
+.foodCounterSearch:focus-within { border-color: #ed6880; box-shadow: 0 0 0 2px #ed688025; }
+.foodCounterPhoto { position: relative; background: radial-gradient(ellipse at center, #30313c, #1d1f28); padding: 16px 16px 5px; }
+.foodCounterPhoto > img { display: block; width: 100%; height: 150px; object-fit: contain; border-radius: 9px; transition: transform .2s; }
+.foodCounterItem:hover .foodCounterPhoto > img { transform: scale(1.035); }
+.foodCounterStock { position: absolute; left: 10px; top: 10px; padding: 5px 8px; border-radius: 6px; background: #132e25f2; color: #a5dfbc; font-size: 10px; font-weight: 600; }
+.foodCounterStock.low { background: #3f2b15f2; color: #f1c475; }
+.foodCounterStock.empty { background: #292c35f2; color: #b3b7c3; }
+.foodCounterChosen { position: absolute; right: 10px; top: 10px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; color: white; background: #d71e42; font-size: 13px; }
+.foodCounterItem.soldOut .foodCounterPhoto > img { opacity: .45; filter: grayscale(.7); }
+.foodCounterItemBody { padding: 14px; }
+.foodCounterPrice { display: flex; align-items: baseline; gap: 5px; margin: 12px 0 16px; color: #ff8ea4; font-size: 18px; font-weight: 750; }
+.foodCounterPrice small { color: #959caf; font-size: 11px; font-weight: 400; }
+.foodCounterStepper { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 6px; }
+.foodCounterStepper > button { width: 36px; height: 38px; padding: 0; border: 1px solid #424655; border-radius: 8px; background: #252936; color: white; font-size: 22px; }
+.foodCounterStepper > button:last-child:not(:disabled) { background: #bd1736; border-color: #d72b4c; }
+.foodCounterPage .foodCounterStepper input { min-width: 0; min-height: 38px; height: 38px; padding: 6px 2px; text-align: center; border-color: #363b48; border-radius: 8px; appearance: textfield; -moz-appearance: textfield; }
+.foodCounterStepper input::-webkit-inner-spin-button, .foodCounterStepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.foodCounterCart { position: sticky; top: 24px; min-width: 0; padding: 22px; border: 1px solid #3c333e; border-radius: 16px; background: linear-gradient(160deg, #1e1b25, #14161d); }
+.foodCounterCartHeading { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid #34323e; }
+.foodCounterCartHeading h2 { font-size: 16px; margin: 0; }
+.foodCounterCartHeading > span { white-space: nowrap; font-size: .7rem; color: #ffadbf; background: #57223755; padding: 5px 8px; border-radius: 6px; }
+.foodCounterCartEmpty { text-align: center; padding: 42px 0 30px; color: #737c91; }
+.foodCounterCartEmpty svg { display: block; margin: 0 auto 18px; }
+.foodCounterCartEmpty strong { color: #c4c9d4; font-size: .9rem; }
+.foodCounterCartEmpty p { font-size: .78rem; line-height: 1.7; }
+.foodCounterCartItems { list-style: none; padding: 0; margin: 0; }
+.foodCounterCartItems li { display: flex; gap: 10px; align-items: center; padding: 16px 0; border-bottom: 1px solid #34323e; }
+.foodCounterCartItems img { width: 48px; height: 52px; border-radius: 7px; object-fit: contain; background: #292b35; flex-shrink: 0; }
+.foodCounterCartItems li > div { min-width: 0; flex: 1; display: grid; gap: 6px; }
+.foodCounterCartItems strong { font-size: .8rem; overflow-wrap: anywhere; }
+.foodCounterCartItems li > div span { font-size: .75rem; color: #b1a8bb; }
+.foodCounterCartItems button { flex-shrink: 0; background: transparent; border: 0; color: #929aad; font-size: 22px; padding: 7px; }
+.foodCounterCartTotal { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 22px 0 12px; }
+.foodCounterCartTotal > span { font-size: .85rem; color: #b4bbcb; }
+.foodCounterCartTotal strong { color: #ff91a9; font-size: 23px; }
+.foodCounterCartHint { color: #9099ad; font-size: .74rem; line-height: 1.7; margin-bottom: 20px; }
+.foodCounterCart > .moviePrimary { width: 100%; white-space: normal; }
+.foodCounterEmpty { color: #a9b0c2; padding: 48px 20px; text-align: center; border: 1px dashed #343845; border-radius: 14px; }
+.foodCounterAvailability { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: .8rem; color: #b6bfd2; cursor: pointer; }
+.foodCounterAvailability input { width: 16px; height: 16px; accent-color: #d82549; }
+.foodCounterReceiptProduct { display: flex; align-items: center; gap: 12px; }
+.foodCounterReceiptProduct img { width: 48px; height: 48px; object-fit: contain; background: #252832; border-radius: 8px; flex-shrink: 0; }
+.foodCounterPage :is(button, input):focus-visible { outline: 2px solid #ff97ae; outline-offset: 3px; }
+.foodCounterPage .foodCounterSearch input:focus-visible { outline: none; box-shadow: none; }
+.foodCounterHero.compact { padding: 18px 26px; margin-bottom: 20px; }
+.foodCounterHero.compact .movieEyebrow { margin-bottom: 8px; }
+.foodCounterHero.compact h1 { font-size: 24px; margin-bottom: 10px; }
+.foodCounterHero.compact .foodCounterHeroArt { display: none; }
+.foodCounterCheckout { min-width: 0; margin-top: 22px; }
+.foodCounterCheckout.awaitingCash { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 28px; align-items: start; }
+.foodCounterOrderSummary { min-width: 0; }
+.foodCounterReceipt .foodReceiptTable { min-width: 0; }
+.foodCounterReceipt .foodReceiptTable th, .foodCounterReceipt .foodReceiptTable td { padding: 15px 10px; }
+.foodCounterReceipt .foodPaymentForm { min-width: 0; max-width: none; margin: 0; padding: 22px; background: #1d1a23; border: 1px solid #543440; border-radius: 14px; }
+.foodPaymentForm h3 { margin: 0 0 18px; font-size: 18px; }
+.foodAmountDue { display: grid; gap: 8px; padding-bottom: 20px; margin-bottom: 22px; border-bottom: 1px solid #413440; }
+.foodAmountDue > span { color: #c4b4c0; font-size: .85rem; }
+.foodAmountDue strong { color: #ff9eb2; font-size: clamp(29px, 3vw, 38px); line-height: 1.15; overflow-wrap: anywhere; }
+.foodCounterPage .foodPaymentForm #cash-received { font-size: 20px; font-weight: 650; min-height: 54px; padding: 12px 14px; }
+.foodCounterPage #cash-received[aria-invalid=true] { border-color: #ed956e; }
+.foodCashShortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+.foodCashShortcuts button { min-height: 38px; padding: 8px 10px; background: #26242f; border: 1px solid #49404f; border-radius: 8px; color: #c9bfce; font: inherit; font-size: .74rem; }
+.foodCashShortcuts button[aria-pressed=true] { background: #512535; border-color: #ef718e; color: #ffe2e9; }
+.foodCashFeedback { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: #15161c; border: 1px solid #383644; border-radius: 10px; margin-bottom: 22px; color: #a7a9ba; font-size: .85rem; }
+.foodCashFeedback strong { font-size: 20px; white-space: nowrap; }
+.foodCashFeedback.insufficient { border-color: #765038; background: #322319; color: #ffc096; }
+.foodCashFeedback.sufficient { border-color: #345844; background: #172a21; color: #ade4c1; }
+.foodCounterPage .foodConfirm { gap: 10px; font-size: .85rem; color: #d2c9d5; }
+.foodCounterPage .foodConfirm input { accent-color: #df3155; }
+.foodPaymentForm .movieFormActions { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; padding-top: 20px; }
+.foodPaymentForm .movieFormActions > button { width: 100%; white-space: normal; }
+.foodPaymentForm .moviePrimary { order: -1; min-height: 48px; }
+.foodCashNote { margin: 14px 0 0; color: #a89aac; text-align: center; font-size: .74rem; line-height: 1.6; }
+@media (max-width: 1000px) { .foodCounterCheckout.awaitingCash { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .foodCounterItem, .foodCounterPhoto > img { transition: none; } }
+@media (max-width: 1050px) { .foodCounterLayout { grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; } .foodCounterGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .foodCounterLayout { grid-template-columns: minmax(0, 1fr); } .foodCounterCart { position: static; } .foodCounterHero { padding: 24px; } .foodCounterHeroArt { flex-basis: 180px; height: 180px; } .foodCounterHeroArt img { width: 104px; height: 142px; } .foodCounterHeroArt > span { left: 5px; font-size: 8px; } }
 @media (max-width: 600px) {
+  .foodCounterHero { padding: 22px; } .foodCounterHero h1 { font-size: 27px; } .foodCounterHeroArt { display: none; }
+  .foodCounterSteps { gap: 12px; } .foodCounterSteps li { gap: 6px; font-size: 10px; } .foodCounterSteps li > span { width: 22px; height: 22px; flex-shrink: 0; }
+  .foodCounterMenuHeading { align-items: stretch; } .foodCounterSearch { width: 100%; max-width: none; }
+  .foodCounterGrid { gap: 10px; } .foodCounterPhoto { padding: 12px 8px 4px; } .foodCounterPhoto > img { height: 130px; }
+  .foodCounterItemBody { padding: 11px; } .foodCounterItem h2 { font-size: 13px; min-height: 40px; } .foodCounterPrice { font-size: 16px; flex-wrap: wrap; gap: 3px; }
+  .foodCounterStepper { grid-template-columns: 30px minmax(0, 1fr) 30px; gap: 4px; } .foodCounterStepper > button { width: 30px; }
   .foodReceiptTable { min-width: 0; }
   .foodReceiptTable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .foodReceiptTable tbody, .foodReceiptTable tr { display: block; }
