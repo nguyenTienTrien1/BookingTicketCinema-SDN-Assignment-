@@ -10,6 +10,7 @@ import RevenueEntry from '../models/RevenueEntry.js';
 import { transaction, domainError as fail } from './transaction.js';
 import { withScheduleWrite } from './showtimeService.js';
 import { quoteCounterPromotion, consumeCounterPromotion } from './counterPromotionService.js';
+import { orphanSeatMessage } from '../../../shared/seatSelection.mjs';
 export const POINT_VALUE = 1000;
 export function validatePoints(points, subtotal, balance) {
  const step = Number(process.env.POINT_REDEEM_STEP || 100);
@@ -70,6 +71,8 @@ async function createBookingWithGuard({ userId, showtimeId, seats, foodItems = [
   const member = userId ? await User.findOne({ _id: userId, role: 'member', status: { $in: ['Active','active'] } }).session(session) : null;
   if (userId && !member) throw fail('Không tìm thấy Member đang hoạt động.');
   await checkAge(movie, member, counterEmployee, guardianConfirmed);
+  const seatError = orphanSeatMessage(show.seats, seats);
+  if (seatError) throw fail(seatError, 409);
   const food = await foodSnapshot(foodItems, session);
   const subtotal = show.price * seats.length + food.total;
   validatePoints(points, subtotal, member?.memberPoints || 0);

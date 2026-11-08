@@ -2,6 +2,7 @@ import FoodPicker from '../../components/FoodPicker';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCounterBooking, searchMembers } from '../../services/counterService';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
+import { isAvailableSeat, orphanSeatMessage } from '../../../../shared/seatSelection.mjs';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
 import usDead from '../../assets/posters/all_of_us_are_dead.jpg';
@@ -86,10 +87,6 @@ function getPoster(movie) {
     const title = String(movie.title || '').trim().toLowerCase();
     const source = posterMap[title] || posterMap[title.replace(/[^a-z0-9\s]/g, '').trim()] || movie.poster;
     return source || '';
-}
-
-function isAvailableSeat(seat) {
-    return seat.status === 'available' && (!seat.condition || seat.condition === 'Active');
 }
 
 function classificationLabel(movie) {
@@ -248,6 +245,14 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
             setMsg(availabilityError || 'Vui lòng chọn ít nhất một ghế còn khả dụng.');
             setStep(2);
             return false;
+        }
+        if (targetStep > 2) {
+            const seatError = orphanSeatMessage(currentShowtime.seats, seat);
+            if (seatError) {
+                setMsg(seatError);
+                setStep(2);
+                return false;
+            }
         }
         if (targetStep > 3) {
             if (customerType === 'member' && !selectedMember) {
@@ -452,6 +457,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                             <div><span className="legendSeat chosen"></span>Đang chọn</div>
                         </div>
                         <div className="screen">MÀN HÌNH</div>
+                        <p className="helperText">Không tạo ghế trống lẻ giữa hàng. Được phép chừa một ghế ở đầu/cuối hàng.</p>
                         <div className="seats">
                             {currentShowtime.seats?.map((s) => {
                                 let seatClass = 'seat';

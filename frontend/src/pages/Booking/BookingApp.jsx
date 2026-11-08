@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createBooking } from '../../services/bookingService';
 import useMemberPoints from '../../hooks/useMemberPoints';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
+import { orphanSeatMessage } from '../../../../shared/seatSelection.mjs';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
 import usDead from '../../assets/posters/all_of_us_are_dead.jpg';
@@ -145,44 +146,11 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
         });
     }
 
-    function isSeatInvalid(seatNumber) {
-        const allSeats = currentShowtime?.seats || [];
-        const usableSeats = allSeats
-            .filter((s) => s.status === 'available' && (!s.condition || s.condition === 'Active'))
-            .map((s) => s.number)
-            .sort((a, b) => a - b);
-
-        const selectedSeats = [...seat, seatNumber].sort((a, b) => a - b);
-        const remainingSeats = usableSeats.filter((number) => !selectedSeats.includes(number));
-
-        for (const number of remainingSeats) {
-            const index = usableSeats.indexOf(number);
-            const left = usableSeats[index - 1];
-            const right = usableSeats[index + 1];
-
-            if (index === 0 || index === usableSeats.length - 1) {
-                const hasOtherSeat = index === 0 ? selectedSeats.includes(right) : selectedSeats.includes(left);
-                if (hasOtherSeat) return true;
-            }
-
-            if (left !== undefined && right !== undefined && selectedSeats.includes(left) && selectedSeats.includes(right)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     function handleSeatClick(s) {
         if (s.status !== 'available' || (s.condition && s.condition !== 'Active')) return;
 
         if (seat.includes(s.number)) {
             setSeat((prev) => prev.filter((x) => x !== s.number));
-            return;
-        }
-
-        if (isSeatInvalid(s.number)) {
-            setMsg('Không thể chừa một ghế ở giữa hoặc ở đầu hàng.');
             return;
         }
 
@@ -202,7 +170,16 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
             setMsg('Vui lòng chọn ít nhất một ghế.');
             return;
         }
+        if (step >= 2 && !validateSeats()) return;
         setStep((prev) => Math.min(prev + 1, flowSteps.length - 1));
+    }
+
+    function validateSeats() {
+        const seatError = orphanSeatMessage(currentShowtime?.seats || [], seat);
+        if (!seatError) return true;
+        setMsg(seatError);
+        setStep(2);
+        return false;
     }
 
     function goBack() {
@@ -215,6 +192,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
             setMsg('Vui lòng đăng nhập, chọn suất chiếu và ít nhất một ghế.');
             return;
         }
+        if (!validateSeats()) return;
 
         if (!pointsValid || (selectedPoints > 0 && (memberPoints.refreshing || memberPoints.error))) {
             setMsg('Vui lòng kiểm tra số dư và chọn số điểm nguyên không âm, không vượt mức tối đa.');
@@ -424,6 +402,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                             <div><span className="legendSeat chosen"></span>Đang chọn</div>
                         </div>
                         <div className="screen">MÀN HÌNH</div>
+                        <p className="helperText">Không tạo ghế trống lẻ giữa hàng. Được phép chừa một ghế ở đầu/cuối hàng.</p>
                         <div className="seats">
                             {currentShowtime.seats?.map((s) => {
                                 let seatClass = 'seat';
