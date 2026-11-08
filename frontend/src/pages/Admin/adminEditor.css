@@ -1,0 +1,54 @@
+.adminEditorPage .movieFormShell { max-width: 1180px; }
+.adminEditorPage .movieAdminHeading { padding: 22px 0 0; margin-bottom: 24px; }
+.adminEditorPage .movieAdminHeading h1 { font-size: clamp(27px, 3vw, 36px); }
+.adminEditorForm.moviePanel { overflow: visible; }
+.adminEditorLayout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+.adminEditorMain, .adminEditorAside { min-width: 0; }
+.adminEditorAside { display: grid; gap: 18px; }
+.adminSectionHeading { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; padding-top: 20px; margin: 4px 0 0; border-top: 1px solid #303440; }
+.adminSectionHeading.first { border: 0; padding-top: 0; margin-top: 0; }
+.adminSectionHeading > span { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border: 1px solid #603445; border-radius: 8px; background: #38212c; color: #fba5bd; font-size: 11px; font-weight: 700; }
+.adminSectionHeading h2 { margin: 0; font-size: 16px; }
+.adminEditorPage .movieFormGrid { gap: 18px; }
+.adminEditorPage .movieFormGrid label { line-height: 1.5; }
+.adminEditorPage .movieCheckbox { padding: 14px 16px; background: #1b1d26; border: 1px solid #353a48; border-radius: 10px; }
+.adminLiveCard { padding: 22px; border: 1px solid #4c3341; border-radius: 14px; background: linear-gradient(145deg, #271c28, #171b25); overflow: hidden; min-width: 0; }
+.adminPreviewEyebrow { margin: 0 0 14px; font-size: 10px; font-weight: 750; letter-spacing: .12em; color: #f4a8be; }
+.adminLiveCard h3 { margin: 16px 0 8px; font-size: 21px; line-height: 1.4; overflow-wrap: anywhere; }
+.adminPreviewImage { display: block; width: 100%; height: 200px; object-fit: contain; background: #10131b; border: 1px solid #343a49; border-radius: 10px; }
+.adminPreviewDescription { font-size: .82rem; line-height: 1.65; color: #aeb7cc; white-space: pre-wrap; overflow-wrap: anywhere; }
+.adminPreviewPrice { margin: 16px 0; font-size: 27px; color: #ffa2b9; font-weight: 750; }
+.adminPreviewBadge { display: inline-block; padding: 5px 9px; background: #1e3c2f; color: #b8e5cd; border-radius: 6px; font-size: 11px; }
+.adminPreviewBadge.paused { background: #3a3030; color: #dec2b5; }
+.adminPreviewFacts { margin: 18px 0 0; }
+.adminPreviewFacts > div { display: grid; gap: 6px; padding: 13px 0; border-top: 1px solid #3a3342; }
+.adminPreviewFacts dt { color: #95a2ba; font-size: .76rem; }
+.adminPreviewFacts dd { margin: 0; color: #e0dce8; font-size: .85rem; line-height: 1.5; overflow-wrap: anywhere; }
+.adminCouponCode { display: block; padding: 13px; margin: 16px 0; border: 1px dashed #8a5267; border-radius: 8px; color: #ffb7cb; font-family: monospace; font-size: 20px; letter-spacing: .1em; overflow-wrap: anywhere; }
+.adminEditorPage .adminMediaUrl { border-top: 1px solid #363a47; padding-top: 12px; margin-top: 14px; }
+.adminMediaUrl > summary { cursor: pointer; color: #b2bfd6; padding: 8px 0; font-size: .8rem; }
+.adminMediaUrl > label { margin-top: 10px; }
+.adminEditorPage .foodImagePicker { padding: 18px; border-style: solid; background: #151820; }
+.adminEditorPage .movieImagePicker { padding: 16px; gap: 12px; display: grid; grid-template-columns: 88px minmax(0, 1fr); }
+.adminEditorPage .movieImagePicker > h3 { grid-column: 1 / -1; }
+.adminEditorPage .movieImagePicker > .movieFormHint { grid-column: 2; font-size: 11px; }
+.adminEditorPage .movieImagePicker .movieImageActions { grid-column: 2; align-content: start; align-items: flex-start; }
+.adminEditorPage .movieImagePicker > .movieImagePreview { grid-column: 1; grid-row: 2 / span 2; margin: 0; padding: 7px; display: flex; align-items: center; justify-content: center; min-height: 125px; font-size: 11px; text-align: center; color: #98a5bd; }
+.adminEditorPage .movieImagePicker > .adminMediaUrl, .adminEditorPage .movieImagePicker > .movieError { grid-column: 1 / -1; }
+.adminEditorPage .movieImageActions > button { font-size: .78rem; padding: 10px 12px; white-space: normal; }
+.adminEditorPage .movieImagePreview img { max-height: 125px; }
+.adminEditorPage .movieImagePicker-poster .movieImagePreview img { width: 75px; }
+.adminEditorPage .movieImagePicker .movieImageFilename { font-size: 11px; }
+.adminMovieSummary { padding: 18px; }
+.adminMovieSummary h3 { margin: 8px 0; font-size: 18px; }
+.adminMovieSummary .adminPreviewDescription { margin: 8px 0; }
+.adminMovieSummary .adminPreviewFacts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.adminMovieSummary .adminPreviewFacts dd { font-size: .78rem; }
+.adminEditorPage .movieFormActions { position: sticky; bottom: 0; z-index: 8; margin: 28px -28px -28px; padding: 16px 28px; border: 1px solid #393442; border-width: 1px 0 0; border-radius: 0 0 14px 14px; background: #191922f5; box-shadow: 0 -8px 24px #0002; align-items: center; }
+.adminSaveHint { margin-right: auto; color: #a6afc3; font-size: .8rem; }
+.movieAdmin.adminEditorPage :is(input:not([type=checkbox]), textarea, select):focus-visible { outline: none; border-color: #f27999; box-shadow: 0 0 0 3px #f279991c; }
+.adminEditorPage .adminFieldError { color: #ffb5c5; font-size: .75rem; line-height: 1.5; }
+.adminEditorPage :is(input, select, textarea):user-invalid { border-color: #e97791; }
+.adminEditorPage .movieFormHint { line-height: 1.6; }
+@media (max-width: 900px) { .adminEditorLayout { grid-template-columns: minmax(0, 1fr); } .adminEditorAside { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adminLiveCard { grid-column: 1 / -1; } .adminPreviewImage { max-width: 300px; margin: auto; } }
+@media (max-width: 600px) { .adminEditorPage .movieFormGrid { grid-template-columns: minmax(0, 1fr); } .adminEditorAside { grid-template-columns: minmax(0, 1fr); } .adminEditorPage .movieFormActions { margin: 24px -20px -20px; padding: 14px 20px; gap: 10px; } .adminSaveHint { width: 100%; font-size: .73rem; } .adminEditorPage .movieFormActions > button { flex: 1; min-width: 0; white-space: normal; padding: 11px 14px; } }

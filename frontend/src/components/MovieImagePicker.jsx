@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { movieImageUrl } from '../services/movieService';
+import FormFieldError from './FormFieldError';
 
-export default function MovieImagePicker({ kind, value, file, error, onFile, onUrl }) {
+export default function MovieImagePicker({ kind, value, file, error, fieldError, onFile, onUrl }) {
   const input = useRef(null);
   const [preview, setPreview] = useState('');
   const title = kind === 'poster' ? 'Poster' : 'Banner';
@@ -20,9 +21,10 @@ export default function MovieImagePicker({ kind, value, file, error, onFile, onU
       {(file || error) && <button className="movieSecondary" type="button" onClick={() => { onFile(null); input.current.value = ''; }}>Bỏ chọn {kind}</button>}
     </div>
     {error && <p className="movieError" role="alert">{error}</p>}
-    {preview && <div className="movieImagePreview"><img src={preview} alt={'Xem trước ' + kind} onError={event => { event.currentTarget.style.display = 'none'; }} onLoad={event => { event.currentTarget.style.display = ''; }} /></div>}
-    <label htmlFor={'movie-' + kind}>Hoặc nhập đường dẫn {kind}
+    <div className="movieImagePreview">{preview ? <img src={preview} alt={'Xem trước ' + kind} onError={event => { event.currentTarget.style.display = 'none'; }} onLoad={event => { event.currentTarget.style.display = ''; }} /> : <span>Chưa chọn ảnh</span>}</div>
+    <details className="adminMediaUrl"><summary>Hoặc nhập đường dẫn {kind}</summary><label htmlFor={'movie-' + kind}>Đường dẫn {kind}
       <input id={'movie-' + kind} name={kind} value={value} onChange={onUrl} disabled={!!file} required={kind === 'poster' && !file} maxLength={2048} placeholder={'https://… hoặc /images/' + kind + 's/…'} />
-    </label>
+      <FormFieldError error={fieldError} />
+    </label></details>
   </section>;
 }

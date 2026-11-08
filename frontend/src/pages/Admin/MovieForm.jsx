@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { addMovie, getAdminMovie, updateMovie, uploadMovieImage } from '../../services/movieService';
 import MovieImagePicker from '../../components/MovieImagePicker';
+import FormFieldError, { useFieldErrors } from '../../components/FormFieldError';
 import './movies.css';
+import './adminEditor.css';
 
 const initialForm = {
   title: '', description: '', genre: '', duration: '', classification: '',
@@ -23,6 +25,7 @@ export default function MovieForm({ editing = false }) {
   const [imageErrors, setImageErrors] = useState({});
   const submitting = useRef(false);
   const errorRef = useRef(null);
+  const { fieldErrors, onInvalid, onChange } = useFieldErrors();
 
   useEffect(() => {
     if (!editing) return;
@@ -90,14 +93,14 @@ export default function MovieForm({ editing = false }) {
   }
 
   return (
-    <main className="movieAdmin">
+    <main className="movieAdmin adminEditorPage">
       <div className="movieAdminShell movieFormShell">
         <Link className="movieBack" to="/admin/movies">← Danh sách phim</Link>
         <header className="movieAdminHeading"><div><p className="movieEyebrow">CINEMA+ / DANH MỤC PHIM</p>
           <h1>{editing ? 'Cập nhật phim' : 'Thêm phim mới'}</h1><p>{editing ? 'Chỉnh sửa thông tin phim trong danh mục.' : 'Nhập thông tin phim trước khi thiết lập suất chiếu.'}</p></div></header>
         {loading && <p role="status">Đang tải thông tin phim…</p>}
         {editing && error && !loaded && <div className="movieError" role="alert">{error}<button className="movieSecondary" onClick={() => setReload(reload + 1)}>Tải lại</button></div>}
-        {!loading && loaded && <form className="moviePanel movieForm" onSubmit={handleSubmit}>
+        {!loading && loaded && <form className="moviePanel movieForm adminEditorForm" onSubmit={handleSubmit} onInvalidCapture={onInvalid} onChangeCapture={onChange}>
           {error && <p className="movieError" role="alert" tabIndex={-1} ref={errorRef}>{error}</p>}
           {editing && <button className="movieSecondary" type="button" disabled={saving} onClick={() => {
             if (window.confirm('Tải lại sẽ bỏ các thay đổi chưa lưu. Tiếp tục?')) setReload(reload + 1);
@@ -106,16 +109,18 @@ export default function MovieForm({ editing = false }) {
           <p className="movieFormHint">Các trường có dấu * là bắt buộc.</p>
           <fieldset disabled={saving}>
             <legend className="movieSrOnly">{editing ? 'Thông tin phim cần cập nhật' : 'Thông tin phim mới'}</legend>
-            <div className="movieFormGrid">
+            <div className="adminEditorLayout"><div className="movieFormGrid adminEditorMain">
+              <div className="adminSectionHeading first"><span>01</span><h2>Thông tin phim</h2></div>
               <label className="movieWide" htmlFor="movie-title">Tên phim *
-                <input id="movie-title" name="title" disabled={hasShowtimes} value={form.title} onChange={handleChange} required maxLength={200} autoFocus /></label>
+                <input id="movie-title" name="title" disabled={hasShowtimes} value={form.title} onChange={handleChange} required maxLength={200} autoFocus /><FormFieldError error={fieldErrors['movie-title']} /></label>
               <label className="movieWide" htmlFor="movie-description">Mô tả *
-                <textarea id="movie-description" name="description" value={form.description} onChange={handleChange} required maxLength={5000} rows={5} /></label>
+                <textarea id="movie-description" name="description" value={form.description} onChange={handleChange} required maxLength={5000} rows={4} /><FormFieldError error={fieldErrors['movie-description']} /></label>
               <label className="movieWide" htmlFor="movie-genre">Thể loại *
                 <input id="movie-genre" name="genre" value={form.genre} onChange={handleChange} required maxLength={509} aria-describedby="genre-help" placeholder="Action, Adventure" />
-                <small id="genre-help">Tối đa 10 thể loại, phân cách bằng dấu phẩy.</small></label>
+                <small id="genre-help">Tối đa 10 thể loại, phân cách bằng dấu phẩy.</small><FormFieldError error={fieldErrors['movie-genre']} /></label>
+              <div className="adminSectionHeading"><span>02</span><h2>Phân loại & phát hành</h2></div>
               <label htmlFor="movie-duration">Thời lượng (phút) *
-                <input id="movie-duration" type="number" name="duration" disabled={hasShowtimes} value={form.duration} onChange={handleChange} required min={1} max={1440} step={1} /></label>
+                <input id="movie-duration" type="number" name="duration" disabled={hasShowtimes} value={form.duration} onChange={handleChange} required min={1} max={1440} step={1} /><FormFieldError error={fieldErrors['movie-duration']} /></label>
               <label htmlFor="movie-classification">Phân loại phim *
                 <select id="movie-classification" name="classification" disabled={hasShowtimes} value={form.classification} onChange={handleChange} required>
                   <option value="">Chọn phân loại</option>
@@ -125,18 +130,22 @@ export default function MovieForm({ editing = false }) {
                   <option value="T16">T16 — Từ 16 tuổi</option>
                   <option value="T18">T18 — Từ 18 tuổi</option>
                   <option value="C">C — Không được phép phổ biến</option>
-                </select></label>
+                </select><FormFieldError error={fieldErrors['movie-classification']} /></label>
               {form.classification === 'C' && <p className="movieWide movieWarning">Phim loại C không được phép phổ biến hoặc bán vé.</p>}
               <label htmlFor="movie-release">Ngày khởi chiếu *
-                <input id="movie-release" type="date" name="releaseDate" disabled={hasShowtimes} value={form.releaseDate} onChange={handleChange} required min="1900-01-01" max="9999-12-31" /></label>
+                <input id="movie-release" type="date" name="releaseDate" disabled={hasShowtimes} value={form.releaseDate} onChange={handleChange} required min="1900-01-01" max="9999-12-31" /><FormFieldError error={fieldErrors['movie-release']} /></label>
               <label htmlFor="movie-rating">Điểm đánh giá (0–10)
-                <input id="movie-rating" type="number" name="rating" value={form.rating} onChange={handleChange} required min={0} max={10} step="any" /></label>
-              {['poster', 'banner'].map(kind => <MovieImagePicker key={kind} kind={kind} value={form[kind]} file={imageFiles[kind]} error={imageErrors[kind]} onFile={file => chooseImage(kind, file)} onUrl={handleChange} />)}
+                <input id="movie-rating" type="number" name="rating" value={form.rating} onChange={handleChange} required min={0} max={10} step="any" /><FormFieldError error={fieldErrors['movie-rating']} /></label>
               <label className="movieWide movieCheckbox" htmlFor="movie-featured">
-                <input id="movie-featured" type="checkbox" name="featured" checked={form.featured} onChange={handleChange} />Đánh dấu phim nổi bật</label>
-            </div>
+                <input id="movie-featured" type="checkbox" name="featured" checked={form.featured} onChange={handleChange} />Đánh dấu phim nổi bật<FormFieldError error={fieldErrors['movie-featured']} /></label>
+            </div><aside className="adminEditorAside" aria-label="Hình ảnh và xem trước phim">
+              <section className="adminLiveCard adminMovieSummary"><p className="adminPreviewEyebrow">XEM TRƯỚC THÔNG TIN</p><h3>{form.title || 'Tên phim'}</h3><p className="adminPreviewDescription">{form.genre || 'Chưa chọn thể loại'}</p><span className="adminPreviewBadge">{form.classification || 'Chưa phân loại'}</span><dl className="adminPreviewFacts"><div><dt>Thời lượng · Đánh giá</dt><dd>{form.duration || '—'} phút · {form.rating || '0'}/10</dd></div><div><dt>Ngày khởi chiếu</dt><dd>{form.releaseDate || 'Chưa chọn ngày'}</dd></div></dl></section>
+              <div className="adminSectionHeading"><span>03</span><h2>Hình ảnh phim</h2></div>
+              {['poster', 'banner'].map(kind => <MovieImagePicker key={kind} kind={kind} value={form[kind]} file={imageFiles[kind]} error={imageErrors[kind]} fieldError={fieldErrors['movie-' + kind]} onFile={file => chooseImage(kind, file)} onUrl={handleChange} />)}
+            </aside></div>
           </fieldset>
           <div className="movieFormActions">
+            <span className="adminSaveHint">Kiểm tra thông tin và hình ảnh trước khi lưu.</span>
             <button className="movieSecondary" type="button" disabled={saving} onClick={() => navigate('/admin/movies')}>Hủy</button>
             <button className="moviePrimary" type="submit" disabled={saving || Object.values(imageErrors).some(Boolean)}>{saving ? 'Đang lưu…' : 'Lưu phim'}</button>
           </div>

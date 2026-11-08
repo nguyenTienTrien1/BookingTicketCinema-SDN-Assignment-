@@ -3,6 +3,10 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueItem, deleteCatalogueItem, uploadFoodImage, foodImageUrl } from '../../services/catalogueService';
 import './movies.css';
 import './catalogue.css';
+import './adminEditor.css';
+import FormFieldError, { useFieldErrors } from '../../components/FormFieldError';
+import { foodImage } from '../../components/FoodPicker';
+import placeholder from '../../assets/foods/placeholder.svg';
 
 const money = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 const dateText = (value) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
@@ -126,6 +130,7 @@ function CatalogueForm({ kind, editing }) {
   const [imageFile, setImageFile] = useState(null);
   const [imageError, setImageError] = useState('');
   const [preview, setPreview] = useState('');
+  const { fieldErrors, onInvalid, onChange, resetFieldErrors } = useFieldErrors();
 
   useEffect(() => {
     if (kind !== 'foods') return;
@@ -134,7 +139,7 @@ function CatalogueForm({ kind, editing }) {
       setPreview(url);
       return () => URL.revokeObjectURL(url);
     }
-    setPreview(/^(https?:\/\/|\/(?!\/))/.test(form.image || '') ? foodImageUrl(form.image) : '');
+    setPreview(/^(https?:\/\/|\/(?!\/))/.test(form.image || '') ? foodImage({ image: form.image, name: form.name }) : '');
   }, [kind, imageFile, form.image]);
 
   function chooseImage(event) {
@@ -177,7 +182,6 @@ function CatalogueForm({ kind, editing }) {
     const { name, type, value, checked } = event.target;
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   }
-
   async function submit(event) {
     event.preventDefault();
     if (submitting.current || imageError) return;
@@ -204,24 +208,26 @@ function CatalogueForm({ kind, editing }) {
   }
 
   const used = kind === 'promotions' && form.usedCount > 0;
-  return <main className="movieAdmin"><div className="movieAdminShell movieFormShell">
+  return <main className="movieAdmin adminEditorPage"><div className="movieAdminShell movieFormShell">
     <Link className="movieBack" to={`/admin/${kind}`}>← Danh sách {label(kind)}</Link>
     <header className="movieAdminHeading"><div><p className="movieEyebrow">CINEMA+ / QUẢN TRỊ DANH MỤC</p>
       <h1>{editing ? 'Cập nhật' : 'Thêm'} {label(kind)}</h1>
       <p>{kind === 'foods' ? 'Thông tin sản phẩm, giá bán và số lượng thực tế trong kho.' : 'Chọn rõ phạm vi và chính sách áp dụng của chương trình.'}</p></div></header>
     {loading && <p role="status">Đang tải thông tin…</p>}
     {error && !loaded && <div className="movieError" role="alert">{error} <button className="movieSecondary" onClick={() => setReload(reload + 1)}>Tải lại</button></div>}
-    {!loading && loaded && <form className="moviePanel movieForm" onSubmit={submit}>
+    {!loading && loaded && <form className="moviePanel movieForm adminEditorForm" onSubmit={submit} onInvalidCapture={onInvalid} onChangeCapture={onChange}>
       {error && <p className="movieError" ref={errorRef} tabIndex={-1} role="alert">{error}</p>}
       {editing && <button className="movieSecondary" type="button" disabled={saving} onClick={() => { if (window.confirm('Bỏ thay đổi chưa lưu và tải lại dữ liệu?')) setReload(reload + 1); }}>Tải lại dữ liệu</button>}
       <p className="movieFormHint">Các trường có dấu * là bắt buộc.{kind === 'promotions' && ' Thời gian theo giờ Việt Nam (UTC+7).'}</p>
       {used && <p className="movieWarning">Đã có {form.usedCount} lượt dùng. Mã, loại giảm, mức giảm và phạm vi được khóa để giữ lịch sử.</p>}
-      <fieldset disabled={saving}><legend className="movieSrOnly">Thông tin {label(kind)}</legend><div className="movieFormGrid">
-        <label className="movieWide" htmlFor="catalogue-name">Tên {label(kind)} *<input id="catalogue-name" name="name" required maxLength={kind === 'foods' ? 100 : 120} value={form.name} onChange={change} autoFocus /></label>
-        <label className="movieWide" htmlFor="catalogue-description">Mô tả<textarea id="catalogue-description" name="description" maxLength={2000} value={form.description} onChange={change} rows={3} /></label>
+      <fieldset disabled={saving}><legend className="movieSrOnly">Thông tin {label(kind)}</legend><div className="adminEditorLayout"><div className="movieFormGrid adminEditorMain">
+        <div className="adminSectionHeading first"><span>01</span><h2>Thông tin {kind === 'foods' ? 'sản phẩm' : 'chương trình'}</h2></div>
+        <label className="movieWide" htmlFor="catalogue-name">Tên {label(kind)} *<input id="catalogue-name" name="name" required maxLength={kind === 'foods' ? 100 : 120} value={form.name} onChange={change} autoFocus /><FormFieldError error={fieldErrors['catalogue-name']} /></label>
+        <label className="movieWide" htmlFor="catalogue-description">Mô tả<textarea id="catalogue-description" name="description" maxLength={2000} value={form.description} onChange={change} rows={3} /><FormFieldError error={fieldErrors['catalogue-description']} /></label>
         {kind === 'foods' ? <>
-          <label htmlFor="food-price">Giá bán (VND) *<input id="food-price" name="price" type="number" required min={0} max={1000000000} step={1} value={form.price} onChange={change} /></label>
-          <label htmlFor="food-stock">Tồn kho *<input id="food-stock" name="stock" type="number" required min={0} max={1000000000} step={1} value={form.stock} onChange={change} /><small>Số lượng hiện có; lưu lại sẽ cập nhật kho về số này.</small></label>
+          <div className="adminSectionHeading"><span>02</span><h2>Giá bán & tồn kho</h2></div>
+          <label htmlFor="food-price">Giá bán (VND) *<input id="food-price" name="price" type="number" required min={0} max={1000000000} step={1} value={form.price} onChange={change} /><FormFieldError error={fieldErrors['food-price']} /></label>
+          <label htmlFor="food-stock">Tồn kho *<input id="food-stock" name="stock" type="number" required min={0} max={1000000000} step={1} value={form.stock} onChange={change} /><small>Số lượng hiện có; lưu lại sẽ cập nhật kho về số này.</small><FormFieldError error={fieldErrors['food-stock']} /></label>
           <section className="movieWide foodImagePicker" aria-labelledby="food-image-heading">
             <h2 id="food-image-heading">Ảnh sản phẩm</h2>
             <input ref={fileInput} id="food-image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={chooseImage} />
@@ -230,29 +236,41 @@ function CatalogueForm({ kind, editing }) {
             <p id="food-image-help">JPG, PNG hoặc WebP, tối đa 5 MB. Ảnh được tải lên khi bạn bấm Lưu.</p>
             {imageFile && <p className="foodImageFilename" role="status">{imageFile.name} · {(imageFile.size / 1024).toFixed(0)} KB</p>}
             {imageError && <p className="movieError" role="alert">{imageError}</p>}
-            {preview && <figure className="foodImagePreview"><img src={preview} alt="Xem trước ảnh sản phẩm" /><figcaption>{imageFile ? 'Ảnh đã chọn từ máy tính' : 'Ảnh hiện tại'}</figcaption></figure>}
-            <label htmlFor="food-image">Hoặc dùng đường dẫn ảnh<input id="food-image" name="image" maxLength={2048} value={form.image} disabled={Boolean(imageFile)} onChange={(event) => { setImageError(''); change(event); }} placeholder="https://… hoặc /images/foods/…" /></label>
+            <details className="adminMediaUrl"><summary>Hoặc dùng đường dẫn ảnh</summary><label htmlFor="food-image">Đường dẫn ảnh<input id="food-image" name="image" maxLength={2048} value={form.image} disabled={Boolean(imageFile)} onChange={(event) => { setImageError(''); change(event); }} placeholder="https://… hoặc /images/foods/…" /><FormFieldError error={fieldErrors['food-image']} /></label></details>
           </section>
-          <label className="movieWide movieCheckbox" htmlFor="food-available"><input id="food-available" name="available" type="checkbox" checked={form.available} onChange={change} />Đang bán</label>
+          <label className="movieWide movieCheckbox" htmlFor="food-available"><input id="food-available" name="available" type="checkbox" checked={form.available} onChange={change} />Đang bán<FormFieldError error={fieldErrors['food-available']} /></label>
         </> : <>
-          <label htmlFor="promotion-code">Mã khuyến mãi *<input id="promotion-code" name="code" required minLength={3} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9_\-]{2,39}" disabled={used} value={form.code} onChange={change} placeholder="CINEMA10" /><small>Mã được chuyển thành chữ in hoa khi lưu.</small></label>
+          <div className="adminSectionHeading"><span>02</span><h2>Mức giảm & điều kiện</h2></div>
+          <label htmlFor="promotion-code">Mã khuyến mãi *<input id="promotion-code" name="code" required minLength={3} maxLength={40} pattern="[A-Za-z0-9][A-Za-z0-9_\-]{2,39}" disabled={used} value={form.code} onChange={change} placeholder="CINEMA10" /><small>Mã được chuyển thành chữ in hoa khi lưu.</small><FormFieldError error={fieldErrors['promotion-code']} /></label>
           <label htmlFor="promotion-type">Loại giảm *<select id="promotion-type" name="discountType" required disabled={used} value={form.discountType} onChange={change}>
-            <option value="">Chọn loại giảm</option><option value="percentage">Phần trăm (%)</option><option value="fixed">Số tiền cố định (VND)</option></select></label>
-          <label htmlFor="promotion-value">Mức giảm *<input id="promotion-value" name="value" type="number" required min={1} max={form.discountType === 'percentage' ? 100 : 1000000000} step={1} disabled={used} value={form.value} onChange={change} /></label>
-          <label htmlFor="promotion-min">Giá trị đơn tối thiểu (VND) *<input id="promotion-min" name="minOrder" type="number" required min={0} max={1000000000} step={1} value={form.minOrder} onChange={change} /></label>
-          {form.discountType === 'percentage' && <label htmlFor="promotion-cap">Giảm tối đa (VND)<input id="promotion-cap" name="maxDiscount" type="number" min={1} max={1000000000} step={1} value={form.maxDiscount} onChange={change} /><small>Để trống nếu không giới hạn.</small></label>}
+            <option value="">Chọn loại giảm</option><option value="percentage">Phần trăm (%)</option><option value="fixed">Số tiền cố định (VND)</option></select><FormFieldError error={fieldErrors['promotion-type']} /></label>
+          <label htmlFor="promotion-value">Mức giảm {form.discountType === 'percentage' ? '(%)' : form.discountType === 'fixed' ? '(VND)' : ''} *<input id="promotion-value" name="value" type="number" required min={1} max={form.discountType === 'percentage' ? 100 : 1000000000} step={1} disabled={used} value={form.value} onChange={change} /><FormFieldError error={fieldErrors['promotion-value']} /></label>
+          <label htmlFor="promotion-min">Giá trị đơn tối thiểu (VND) *<input id="promotion-min" name="minOrder" type="number" required min={0} max={1000000000} step={1} value={form.minOrder} onChange={change} /><FormFieldError error={fieldErrors['promotion-min']} /></label>
+          {form.discountType === 'percentage' && <label htmlFor="promotion-cap">Giảm tối đa (VND)<input id="promotion-cap" name="maxDiscount" type="number" min={1} max={1000000000} step={1} value={form.maxDiscount} onChange={change} /><small>Để trống nếu không giới hạn.</small><FormFieldError error={fieldErrors['promotion-cap']} /></label>}
           <label htmlFor="promotion-scope">Phạm vi áp dụng *<select id="promotion-scope" name="scope" required disabled={used} value={form.scope} onChange={change}>
-            <option value="">Chọn phạm vi</option><option value="food">F&B</option><option value="ticket">Vé</option><option value="all">Vé và F&B</option></select></label>
-          <label htmlFor="promotion-stacking">Cộng dồn khuyến mãi *<select id="promotion-stacking" name="stackable" required value={form.stackable} onChange={change}>
-            <option value="">Chọn chính sách</option><option value="false">Không cho cộng dồn</option><option value="true">Cho phép cộng dồn</option></select></label>
-          <label htmlFor="promotion-start">Bắt đầu (giờ VN) *<input id="promotion-start" name="startsAt" type="datetime-local" required step={60} value={form.startsAt} onChange={change} /></label>
-          <label htmlFor="promotion-end">Kết thúc (giờ VN) *<input id="promotion-end" name="endsAt" type="datetime-local" required step={60} value={form.endsAt} onChange={change} /></label>
-          <label htmlFor="promotion-limit">Giới hạn tổng số lượt dùng<input id="promotion-limit" name="usageLimit" type="number" min={Math.max(1, form.usedCount || 0)} max={1000000000} step={1} value={form.usageLimit} onChange={change} /><small>Để trống nếu không giới hạn. Số lượt đã dùng do hệ thống ghi nhận.</small></label>
-          <label className="movieWide movieCheckbox" htmlFor="promotion-active"><input id="promotion-active" name="active" type="checkbox" checked={form.active} onChange={change} />Kích hoạt chương trình</label>
+            <option value="">Chọn phạm vi</option><option value="food">F&B</option><option value="ticket">Vé</option><option value="all">Vé và F&B</option></select><FormFieldError error={fieldErrors['promotion-scope']} /></label>
+          <label htmlFor="promotion-stacking">Dùng cùng điểm thành viên *<select id="promotion-stacking" name="stackable" required value={form.stackable} onChange={change}>
+            <option value="">Chọn chính sách</option><option value="false">Không dùng cùng điểm</option><option value="true">Được dùng cùng điểm</option></select><small>Mỗi đơn chỉ dùng một mã khuyến mãi.</small><FormFieldError error={fieldErrors['promotion-stacking']} /></label>
+          <div className="adminSectionHeading"><span>03</span><h2>Thời hạn & số lượt dùng</h2></div>
+          <label htmlFor="promotion-start">Bắt đầu (giờ VN) *<input id="promotion-start" name="startsAt" type="datetime-local" required step={60} value={form.startsAt} onChange={change} /><FormFieldError error={fieldErrors['promotion-start']} /></label>
+          <label htmlFor="promotion-end">Kết thúc (giờ VN) *<input id="promotion-end" name="endsAt" type="datetime-local" required min={form.startsAt || undefined} step={60} value={form.endsAt} onChange={change} /><FormFieldError error={fieldErrors['promotion-end']} /></label>
+          <label htmlFor="promotion-limit">Giới hạn tổng số lượt dùng<input id="promotion-limit" name="usageLimit" type="number" min={Math.max(1, form.usedCount || 0)} max={1000000000} step={1} value={form.usageLimit} onChange={change} /><small>Để trống nếu không giới hạn. Số lượt đã dùng do hệ thống ghi nhận.</small><FormFieldError error={fieldErrors['promotion-limit']} /></label>
+          <label className="movieWide movieCheckbox" htmlFor="promotion-active"><input id="promotion-active" name="active" type="checkbox" checked={form.active} onChange={change} />Kích hoạt chương trình<FormFieldError error={fieldErrors['promotion-active']} /></label>
         </>}
-      </div></fieldset>
-      <div className="movieFormActions"><button className="movieSecondary" type="button" disabled={saving} onClick={() => navigate(`/admin/${kind}`)}>Hủy</button>
-        <button className="moviePrimary" type="submit" disabled={saving || Boolean(imageError)}>{saving ? (imageFile ? 'Đang tải ảnh…' : 'Đang lưu…') : 'Lưu'}</button></div>
+      </div><aside className="adminEditorAside" aria-label="Xem trước cấu hình"><section className="adminLiveCard">
+        <p className="adminPreviewEyebrow">{kind === 'foods' ? 'XEM TRƯỚC SẢN PHẨM' : 'TÓM TẮT KHUYẾN MÃI'}</p>
+        {kind === 'foods' ? <><img className="adminPreviewImage" src={preview || placeholder} alt="Xem trước ảnh sản phẩm" onError={event => { if (event.currentTarget.src !== new URL(placeholder, window.location.href).href) event.currentTarget.src = placeholder; }} /><h3>{form.name || 'Tên sản phẩm'}</h3><p className="adminPreviewDescription">{form.description || 'Mô tả sản phẩm sẽ hiển thị tại đây.'}</p><p className="adminPreviewPrice">{money(Number(form.price) || 0)}</p><span className={'adminPreviewBadge' + (!form.available ? ' paused' : '')}>{form.available ? 'Đang bán' : 'Ngừng bán'}</span><dl className="adminPreviewFacts"><div><dt>Tồn kho sau khi lưu</dt><dd>{form.stock || '0'} sản phẩm</dd></div></dl></> : <><h3>{form.name || 'Tên chương trình'}</h3><span className="adminCouponCode">{form.code.trim().toUpperCase() || 'MÃ KHUYẾN MÃI'}</span><p className="adminPreviewPrice">{form.value ? `Giảm ${form.discountType === 'percentage' ? form.value + '%' : form.discountType === 'fixed' ? money(Number(form.value)) : '—'}` : 'Chọn mức giảm'}</p><p className="adminPreviewDescription">{form.description || 'Thông tin chương trình sẽ hiển thị tại đây.'}</p><dl className="adminPreviewFacts">
+          <div><dt>Phạm vi áp dụng</dt><dd>{{ food: 'Đồ ăn & thức uống', ticket: 'Vé xem phim', all: 'Vé và F&B' }[form.scope] || 'Chưa chọn phạm vi'}</dd></div>
+          <div><dt>Giá trị tối thiểu của phần được giảm</dt><dd>{money(Number(form.minOrder) || 0)}</dd></div>
+          {form.discountType === 'percentage' && <div><dt>Giảm tối đa</dt><dd>{form.maxDiscount ? money(Number(form.maxDiscount)) : 'Không giới hạn'}</dd></div>}
+          <div><dt>Điểm thành viên</dt><dd>{form.stackable === 'true' ? 'Được dùng cùng điểm' : form.stackable === 'false' ? 'Không dùng cùng điểm' : 'Chưa chọn chính sách'}</dd></div>
+          <div><dt>Hiệu lực · Giờ Việt Nam</dt><dd>{form.startsAt ? form.startsAt.replace('T', ' · ') : 'Chưa chọn ngày bắt đầu'}<br />đến {form.endsAt ? form.endsAt.replace('T', ' · ') : 'chưa chọn ngày kết thúc'}</dd></div>
+          <div><dt>Lượt dùng</dt><dd>{form.usageLimit ? `Tối đa ${form.usageLimit} lượt` : 'Không giới hạn'}{used ? ` · Đã dùng ${form.usedCount}` : ''}</dd></div>
+          <div><dt>Trạng thái sau khi lưu</dt><dd>{form.active ? 'Bật khi đủ điều kiện áp dụng' : 'Tạm ngưng'}</dd></div>
+        </dl><p className="adminPreviewDescription">Mỗi đơn dùng 1 mã. Điều kiện được kiểm tra lại khi áp dụng và thanh toán.</p></>}
+      </section></aside></div></fieldset>
+      <div className="movieFormActions"><span className="adminSaveHint">Kiểm tra thông tin trước khi lưu.</span><button className="movieSecondary" type="button" disabled={saving} onClick={() => navigate(`/admin/${kind}`)}>Hủy</button>
+        <button className="moviePrimary" type="submit" disabled={saving || Boolean(imageError)}>{saving ? (imageFile ? 'Đang tải ảnh…' : 'Đang lưu…') : kind === 'foods' ? 'Lưu F&B' : 'Lưu khuyến mãi'}</button></div>
     </form>}
   </div></main>;
 }
