@@ -4,14 +4,19 @@ import { listCatalogue, getCatalogueItem, createCatalogueItem, updateCatalogueIt
 import './movies.css';
 import './catalogue.css';
 import './adminEditor.css';
+import { vietnamToday, shiftDay, readPromotionWindow, promotionWindowPayload, switchPromotionWindow, displayDay } from '../../utils/promotionWindow';
 import FormFieldError, { useFieldErrors } from '../../components/FormFieldError';
 import { foodImage } from '../../components/FoodPicker';
 import placeholder from '../../assets/foods/placeholder.svg';
 
 const money = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 const dateText = (value) => new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-const localDate = (value) => new Date(new Date(value).getTime() + 7 * 3600000).toISOString().slice(0, 16);
 const label = (kind) => kind === 'foods' ? 'F&B' : 'khuyến mãi';
+
+function PromotionDates({ item }) {
+  const window = readPromotionWindow(item.startsAt, item.endsAt);
+  return window.specificTime ? <PromotionDates item={item} /> : <>Từ {displayDay(window.startsAt)}<br />đến hết {displayDay(window.endsAt)}</>;
+}
 
 function promotionState(item) {
   if (!item.active) return 'Tạm ngưng';
@@ -118,7 +123,9 @@ function CatalogueForm({ kind, editing }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', description: '', image: '', price: '', stock: '0', available: true,
-    code: '', discountType: '', value: '', minOrder: '0', maxDiscount: '', scope: '', stackable: '', startsAt: '', endsAt: '', usageLimit: '', active: true });
+    code: '', discountType: '', value: '', minOrder: '0', maxDiscount: '', scope: '', stackable: '', startsAt: vietnamToday(), endsAt: vietnamToday(), usageLimit: '', active: true });
+  const [specificTime, setSpecificTime] = useState(false);
+  const originalWindow = useRef(null);
   const [loading, setLoading] = useState(editing);
   const [loaded, setLoaded] = useState(!editing);
   const [saving, setSaving] = useState(false);
@@ -166,10 +173,14 @@ function CatalogueForm({ kind, editing }) {
     getCatalogueItem(kind, id).then((item) => {
       if (ignore) return;
       if (kind === 'foods') setForm({ name: item.name, description: item.description || '', image: item.image || '', price: String(item.price), stock: String(item.stock), available: item.available, version: item.__v });
-      else setForm({ name: item.name, description: item.description, code: item.code, discountType: item.discountType,
+      else {
+        const window = readPromotionWindow(item.startsAt, item.endsAt);
+        originalWindow.current = window; setSpecificTime(window.specificTime);
+        setForm({ name: item.name, description: item.description, code: item.code, discountType: item.discountType,
         value: String(item.value), minOrder: String(item.minOrder), maxDiscount: item.maxDiscount === null ? '' : String(item.maxDiscount),
-        scope: item.scope, stackable: String(item.stackable), startsAt: localDate(item.startsAt), endsAt: localDate(item.endsAt),
+        scope: item.scope, stackable: String(item.stackable), startsAt: window.startsAt, endsAt: window.endsAt,
         usageLimit: item.usageLimit === null ? '' : String(item.usageLimit), active: item.active, usedCount: item.usedCount, version: item.__v });
+      }
       setImageFile(null); setImageError('');
       if (fileInput.current) fileInput.current.value = '';
       setLoaded(true);
@@ -182,6 +193,18 @@ function CatalogueForm({ kind, editing }) {
     const { name, type, value, checked } = event.target;
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   }
+  function chooseDuration(days) {
+    resetFieldErrors();
+    const today = vietnamToday();
+    setSpecificTime(false);
+    setForm(current => ({ ...current, startsAt: today, endsAt: shiftDay(today, days - 1) }));
+  }
+  function toggleSpecificTime(checked) {
+    resetFieldErrors();
+    setForm(current => ({ ...current, ...switchPromotionWindow(current, checked) }));
+    setSpecificTime(checked);
+  }
+
   async function submit(event) {
     event.preventDefault();
     if (submitting.current || imageError) return;
@@ -199,7 +222,7 @@ function CatalogueForm({ kind, editing }) {
       }
       else data = { name: form.name, description: form.description, code: form.code, discountType: form.discountType, value: Number(form.value),
         minOrder: Number(form.minOrder), maxDiscount: form.discountType === 'percentage' && form.maxDiscount !== '' ? Number(form.maxDiscount) : null,
-        scope: form.scope, stackable: form.stackable === 'true', startsAt: `${form.startsAt}:00+07:00`, endsAt: `${form.endsAt}:00+07:00`,
+        scope: form.scope, stackable: form.stackable === 'true', ...promotionWindowPayload(form, specificTime, originalWindow.current),
         usageLimit: form.usageLimit === '' ? null : Number(form.usageLimit), active: form.active, version: form.version };
       const result = editing ? await updateCatalogueItem(kind, id, data) : await createCatalogueItem(kind, data);
       navigate(`/admin/${kind}`, { replace: true, state: { message: `${editing ? 'Đã cập nhật' : 'Đã thêm'} “${result.name}”.` } });
@@ -252,8 +275,11 @@ function CatalogueForm({ kind, editing }) {
           <label htmlFor="promotion-stacking">Dùng cùng điểm thành viên *<select id="promotion-stacking" name="stackable" required value={form.stackable} onChange={change}>
             <option value="">Chọn chính sách</option><option value="false">Không dùng cùng điểm</option><option value="true">Được dùng cùng điểm</option></select><small>Mỗi đơn chỉ dùng một mã khuyến mãi.</small><FormFieldError error={fieldErrors['promotion-stacking']} /></label>
           <div className="adminSectionHeading"><span>03</span><h2>Thời hạn & số lượt dùng</h2></div>
-          <label htmlFor="promotion-start">Bắt đầu (giờ VN) *<input id="promotion-start" name="startsAt" type="datetime-local" required step={60} value={form.startsAt} onChange={change} /><FormFieldError error={fieldErrors['promotion-start']} /></label>
-          <label htmlFor="promotion-end">Kết thúc (giờ VN) *<input id="promotion-end" name="endsAt" type="datetime-local" required min={form.startsAt || undefined} step={60} value={form.endsAt} onChange={change} /><FormFieldError error={fieldErrors['promotion-end']} /></label>
+          <div className="movieWide promotionDateSettings"><p>Mặc định áp dụng từ đầu ngày bắt đầu đến hết ngày kết thúc, theo giờ Việt Nam.</p><div className="promotionDatePresets" role="group" aria-label="Chọn nhanh thời hạn">{[[1, 'Hôm nay'], [7, '7 ngày'], [30, '30 ngày']].map(([days, title]) => <button key={days} type="button" aria-pressed={!specificTime && form.startsAt === vietnamToday() && form.endsAt === shiftDay(vietnamToday(), days - 1)} onClick={() => chooseDuration(days)}>{title}</button>)}</div><label className="promotionTimeToggle" htmlFor="promotion-specific-time"><input id="promotion-specific-time" type="checkbox" checked={specificTime} onChange={event => toggleSpecificTime(event.target.checked)} />Thiết lập giờ cụ thể</label>
+            {editing && originalWindow.current?.specificTime && specificTime && <small>Chương trình đang dùng giờ cụ thể. Giữ nguyên nếu bạn không thay đổi thời gian.</small>}
+          </div>
+          <label htmlFor="promotion-start">{specificTime ? 'Bắt đầu (giờ VN)' : 'Ngày bắt đầu'} *<input id="promotion-start" name="startsAt" type={specificTime ? 'datetime-local' : 'date'} required max={specificTime ? '9999-12-31T23:59' : '9999-12-30'} step={specificTime ? 60 : 1} value={form.startsAt} onChange={change} /><FormFieldError error={fieldErrors['promotion-start']} /></label>
+          <label htmlFor="promotion-end">{specificTime ? 'Kết thúc (giờ VN)' : 'Ngày kết thúc'} *<input id="promotion-end" name="endsAt" type={specificTime ? 'datetime-local' : 'date'} required min={form.startsAt || undefined} max={specificTime ? '9999-12-31T23:59' : '9999-12-30'} step={specificTime ? 60 : 1} value={form.endsAt} onChange={change} />{!specificTime && <small>Có hiệu lực hết ngày này, không cần chọn giờ.</small>}<FormFieldError error={fieldErrors['promotion-end']} /></label>
           <label htmlFor="promotion-limit">Giới hạn tổng số lượt dùng<input id="promotion-limit" name="usageLimit" type="number" min={Math.max(1, form.usedCount || 0)} max={1000000000} step={1} value={form.usageLimit} onChange={change} /><small>Để trống nếu không giới hạn. Số lượt đã dùng do hệ thống ghi nhận.</small><FormFieldError error={fieldErrors['promotion-limit']} /></label>
           <label className="movieWide movieCheckbox" htmlFor="promotion-active"><input id="promotion-active" name="active" type="checkbox" checked={form.active} onChange={change} />Kích hoạt chương trình<FormFieldError error={fieldErrors['promotion-active']} /></label>
         </>}
@@ -264,7 +290,7 @@ function CatalogueForm({ kind, editing }) {
           <div><dt>Giá trị tối thiểu của phần được giảm</dt><dd>{money(Number(form.minOrder) || 0)}</dd></div>
           {form.discountType === 'percentage' && <div><dt>Giảm tối đa</dt><dd>{form.maxDiscount ? money(Number(form.maxDiscount)) : 'Không giới hạn'}</dd></div>}
           <div><dt>Điểm thành viên</dt><dd>{form.stackable === 'true' ? 'Được dùng cùng điểm' : form.stackable === 'false' ? 'Không dùng cùng điểm' : 'Chưa chọn chính sách'}</dd></div>
-          <div><dt>Hiệu lực · Giờ Việt Nam</dt><dd>{form.startsAt ? form.startsAt.replace('T', ' · ') : 'Chưa chọn ngày bắt đầu'}<br />đến {form.endsAt ? form.endsAt.replace('T', ' · ') : 'chưa chọn ngày kết thúc'}</dd></div>
+          <div><dt>Hiệu lực · Giờ Việt Nam</dt><dd>{form.startsAt ? `Từ ${displayDay(form.startsAt)}${specificTime ? ' · ' + form.startsAt.slice(11) : ''}` : 'Chưa chọn ngày bắt đầu'}<br />{form.endsAt ? `${specificTime ? 'đến' : 'đến hết ngày'} ${displayDay(form.endsAt)}${specificTime ? ' · ' + form.endsAt.slice(11) : ''}` : 'Chưa chọn ngày kết thúc'}</dd></div>
           <div><dt>Lượt dùng</dt><dd>{form.usageLimit ? `Tối đa ${form.usageLimit} lượt` : 'Không giới hạn'}{used ? ` · Đã dùng ${form.usedCount}` : ''}</dd></div>
           <div><dt>Trạng thái sau khi lưu</dt><dd>{form.active ? 'Bật khi đủ điều kiện áp dụng' : 'Tạm ngưng'}</dd></div>
         </dl><p className="adminPreviewDescription">Mỗi đơn dùng 1 mã. Điều kiện được kiểm tra lại khi áp dụng và thanh toán.</p></>}

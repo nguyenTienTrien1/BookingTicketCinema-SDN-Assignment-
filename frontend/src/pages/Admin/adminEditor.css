@@ -50,5 +50,13 @@
 .adminEditorPage .adminFieldError { color: #ffb5c5; font-size: .75rem; line-height: 1.5; }
 .adminEditorPage :is(input, select, textarea):user-invalid { border-color: #e97791; }
 .adminEditorPage .movieFormHint { line-height: 1.6; }
+.promotionDateSettings { padding: 16px; background: #191b24; border: 1px solid #363c4b; border-radius: 10px; }
+.promotionDateSettings > p { margin: 0 0 14px; color: #aebad0; font-size: .8rem; line-height: 1.6; }
+.promotionDatePresets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.promotionDatePresets button { min-height: 38px; padding: 8px 14px; border: 1px solid #474150; background: #252330; border-radius: 8px; color: #c7c3d4; font: inherit; font-size: .8rem; }
+.promotionDatePresets button[aria-pressed=true] { border-color: #de718f; color: #ffd2e0; background: #4b2435; }
+.adminEditorPage .promotionTimeToggle { display: flex; flex-direction: row; align-items: center; gap: 10px; font-size: .85rem; }
+.promotionTimeToggle input { width: 17px; height: 17px; accent-color: #df355c; }
+.promotionDateSettings > small { display: block; margin-top: 10px; }
 @media (max-width: 900px) { .adminEditorLayout { grid-template-columns: minmax(0, 1fr); } .adminEditorAside { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adminLiveCard { grid-column: 1 / -1; } .adminPreviewImage { max-width: 300px; margin: auto; } }
 @media (max-width: 600px) { .adminEditorPage .movieFormGrid { grid-template-columns: minmax(0, 1fr); } .adminEditorAside { grid-template-columns: minmax(0, 1fr); } .adminEditorPage .movieFormActions { margin: 24px -20px -20px; padding: 14px 20px; gap: 10px; } .adminSaveHint { width: 100%; font-size: .73rem; } .adminEditorPage .movieFormActions > button { flex: 1; min-width: 0; white-space: normal; padding: 11px 14px; } }
