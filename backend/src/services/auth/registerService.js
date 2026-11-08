@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import User from '../../models/User.js';
+import User from "../../models/users/User.js";
 import { sendVerificationEmail } from '../email/emailService.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

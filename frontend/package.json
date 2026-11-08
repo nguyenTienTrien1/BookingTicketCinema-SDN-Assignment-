@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test test_permissions.js test_home.js test_member_points.js"
+    "test": "node --test ../backend/tests/frontend/test_permissions.js ../backend/tests/frontend/test_home.js ../backend/tests/frontend/test_member_points.js"
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import User from '../../models/User.js';
+import User from "../../models/users/User.js";
 
 const GENERIC_AUTH_ERROR = 'Email hoặc mật khẩu không chính xác.';
 const DUMMY_HASH = '$2a$10$e8wM53zB6v0qG6/kF4g8/e6Q5dY8Z8t2b1a0.d9e8f7g6h5i4j3k2';

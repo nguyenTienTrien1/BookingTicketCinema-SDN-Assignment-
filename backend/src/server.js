@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import app from './app.js'; import { connectDatabase } from './config/db.js'; import { expireBookings } from './services/bookingService.js';
+import app from './app.js'; import { connectDatabase } from './config/db.js'; import { expireBookings } from "./services/bookings/bookingService.js";
 const port = process.env.PORT || 3000;
 await connectDatabase();
 const server = app.listen(port, () => console.log('API running at http://localhost:' + port));

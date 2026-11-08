@@ -1,6 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
-import User from '../../models/User.js';
+import User from "../../models/users/User.js";
 import { authenticate, createSession } from './loginService.js';
 
 export const googleClient = new OAuth2Client();

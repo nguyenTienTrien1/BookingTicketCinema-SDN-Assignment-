@@ -1,23 +1,23 @@
-import paymentRoutes from './routes/paymentRoutes.js';
+import paymentRoutes from "./routes/payments/paymentRoutes.js";
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import authRoutes from './routes/auth/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import movieRoutes from './routes/movieRoutes.js';
-import bookingRoutes from './routes/bookingRoutes.js';
-import foodRoutes from './routes/foodRoutes.js';
-import { serveImage } from './controllers/foodImageController.js';
-import counterRoutes from './routes/counterRoutes.js';
-import promotionRoutes from './routes/promotionRoutes.js';
-import foodSaleRoutes from './routes/foodSaleRoutes.js';
-import memberRoutes from './routes/memberRoutes.js';
-import revenueRoutes from './routes/revenueRoutes.js';
-import ticketRoutes from './routes/ticketRoutes.js';
+import userRoutes from "./routes/users/userRoutes.js";
+import movieRoutes from "./routes/movies/movieRoutes.js";
+import bookingRoutes from "./routes/bookings/bookingRoutes.js";
+import foodRoutes from "./routes/catalogue/foodRoutes.js";
+import { serveImage } from "./controllers/catalogue/foodImageController.js";
+import counterRoutes from "./routes/bookings/counterRoutes.js";
+import promotionRoutes from "./routes/catalogue/promotionRoutes.js";
+import foodSaleRoutes from "./routes/catalogue/foodSaleRoutes.js";
+import memberRoutes from "./routes/users/memberRoutes.js";
+import revenueRoutes from "./routes/revenue/revenueRoutes.js";
+import ticketRoutes from "./routes/bookings/ticketRoutes.js";
 
-import showtimeRoutes from './routes/showtimeRoutes.js';
-import roomRoutes from './routes/roomRoutes.js';
+import showtimeRoutes from "./routes/cinema/showtimeRoutes.js";
+import roomRoutes from "./routes/cinema/roomRoutes.js";
 
 import { verifyToken } from './middleware/auth/verifyToken.js';
 import { requireRole } from './middleware/auth/requireRole.js';

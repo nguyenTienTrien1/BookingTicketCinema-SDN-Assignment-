@@ -1,5 +1,27 @@
 # BookingTicketCinema-SDN-Assignment
 
+## Test organization
+
+All application tests are collected under `backend/tests/`:
+
+- `api/`: backend API and database regression tests.
+- `ui/`: Playwright browser tests for the frontend and backend together.
+- `frontend/`: frontend utility and permission tests.
+- `support/`: shared test helpers, including the local SMTP receiver.
+- `legacy/`: the older manual authentication test script, excluded from the default suite.
+
+Existing commands still work: `npm test -w backend`, `npm test -w frontend`, `npm run test:rooms:e2e -w backend`, and the other `test:*` scripts. Browser screenshots remain under `.local/qa/`. Tests use temporary databases; transactional tests need a MongoDB replica set.
+
+## Login and Google setup
+
+Members sign in at `/login` and open the customer homepage. Admins and Employees sign in at `/admin/login` and open `/admin/dashboard` or `/employee/dashboard`; staff cannot open customer movie/booking pages or use personal booking APIs.
+
+For Google sign-in, configure the same Web Client ID as `GOOGLE_CLIENT_ID` in `backend/.env` and `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Add the exact frontend origin, such as `http://localhost:5173`, to the Web client's Authorized JavaScript origins in Google Cloud, then restart both servers. No Google Client Secret is required. Google only signs in existing linked Members and never recreates a deleted account. Members link Google in Profile using their current password and a Google account with the same email; successful linking keeps the current browser signed in.
+
+## VNPay Sandbox setup
+
+Configure `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `VNPAY_URL`, `VNPAY_RETURN_URL`, `CLIENT_URL` and `CORS_ORIGIN` in `backend/.env`. The Sandbox payment URL is `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`. Use `/api/payments/vnpay/return` as the return endpoint and `/api/payments/vnpay/ipn` as the IPN endpoint on a publicly reachable HTTPS backend. Keep merchant credentials in the private environment file. Tickets require a verified matching payment confirmation; a browser's success claim is never payment evidence.
+
 ## Add showtimes: manual or automatic suggestions
 - Open **Quản lý suất chiếu → Thêm suất chiếu** (`/admin/showtimes`) and choose **Thêm thủ công** or **Đề xuất tự động**. Manual add/edit keeps the existing room selector and validation.
 - Automatic mode takes movie, cinema, start/end dates, opening/closing times and ticket price. It has no room selector. The server chooses valid Active rooms with usable seats in the selected cinema, finds the earliest available gaps and balances equal-time choices between rooms. Existing schedules and their 15-minute cleanup intervals are checked, including legacy name-only room references.
@@ -23,13 +45,13 @@
 - The existing single-Node schedule write guard is shared by room writes, scheduling and booking creation so a local seat claim cannot interleave with the protection check/save. Conditional room versions additionally prevent lost Admin updates. This retains the current application's single-process deployment assumption; multiple independent API workers require a shared database lock/transaction protocol before scaling. Booking/payment transactions still require the repository's existing MongoDB replica-set setup; room CRUD itself works on standalone MongoDB.
 - Tests: `npm run test:rooms -w backend` (HTTP/Mongoose + real holds/cash settlement), `npm run test:rooms:e2e -w backend` (real login, APIs, MongoDB, bulk editing, Cancel, Review, conflict after preview, desktop/tablet/mobile), `npm test -w backend`, `npm run build`. Browser tests use the existing Playwright dependency and `E2E_BROWSER_CHANNEL=chrome` or `msedge`; screenshots are in `.local/qa/rooms`. Tests create and remove only their unique temporary databases.
 - Local Windows test setup: set `MONGOD_BINARY` to the installed `mongod.exe` when it is not on PATH, then run `npm run db:local -w backend`. In the test shell set `MONGODB_URI=mongodb://127.0.0.1:27019/booking_cinema?replicaSet=cinemaLocal` and `NODE_ENV=test`. The full existing suite also needs `ENABLE_PAYMENT_SIMULATION=true` for its explicit payment-simulation tests; this flag is not used by room management and must not be enabled in production. The task does not repoint or modify your existing `.env` database.
-- Implemented using the existing React/Express/Mongoose MVC structure and `SDN302_AI_Coding_Rules.md`, with no new packages. `ui-ux-pro-max` guidance was applied to native selection controls, accessible labels/pressed states, keyboard focus, derived selection state and responsive layout while reusing `movies.css`. UC-14/14.1 text was checked against the linked requirements document; image-only diagrams were not independently verified.
+- Implemented using the existing React/Express/Mongoose MVC structure and project coding conventions, with no new packages. `ui-ux-pro-max` guidance was applied to native selection controls, accessible labels/pressed states, keyboard focus, derived selection state and responsive layout while reusing `movies.css`. UC-14/14.1 text was checked against the linked requirements document; image-only diagrams were not independently verified.
 
-Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` models, showtime/booking services, app routes, room import, package test scripts and `test_rooms.js`/`scripts/test-rooms-e2e.js`; frontend `ManageRooms.jsx`, `ConfigureSeats.jsx`, `SeatLayoutEditor.jsx`, `rooms.css`, room service, routes/Admin navigation, scheduling room refresh, booking seat controls and public availability helper.
+Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` models, showtime/booking services, app routes, room import, package test scripts and `backend/tests/api/test_rooms.js`/`backend/tests/ui/test-rooms-e2e.js`; frontend `ManageRooms.jsx`, `ConfigureSeats.jsx`, `SeatLayoutEditor.jsx`, `rooms.css`, room service, routes/Admin navigation, scheduling room refresh, booking seat controls and public availability helper.
 
 ## UC-19: Forgot Password backend
 
-- Follows `SDN302_AI_Coding_Rules.md` and the UC-19, BR-1, BR-7 and BR-11 text in the linked requirements document. Activity/Sequence/Communication diagrams embedded as images have not been independently verified.
+- Follows project coding conventions and the UC-19, BR-1, BR-7 and BR-11 text in the linked requirements document. Activity/Sequence/Communication diagrams embedded as images have not been independently verified.
 - Public endpoints: `POST /api/auth/forgot-password` with `{ email }`; `GET /api/auth/reset-password/verify?token=...`; `POST /api/auth/reset-password` with `{ token, newPassword, confirmPassword }`. Only Active/active Members are eligible. Pending, inactive, banned and staff accounts receive the same generic request acknowledgement as unknown emails. Password validation matches the current policy: at least 6 characters, non-blank, at most 72 UTF-8 bytes; confirmation must match exactly.
 - A 32-byte random token is sent only by email. User stores `passwordResetTokenHash` (SHA-256), `passwordResetExpiresAt`, `passwordResetUsedAt`, `passwordResetRequestedAt`, and the issuing `passwordResetTokenVersion`, all excluded from normal queries. Successful reset sets the bcrypt hash and consumes the token in one conditional document update; concurrent/replayed/expired links cannot succeed. No MongoDB replica set or multi-document transaction is needed. A newer request replaces the previous link; ordinary password changes also invalidate outstanding links through `tokenVersion`.
 - **Additional technical decisions, not confirmed UC-19 business rules:** default expiry is **30 minutes**, configurable with `PASSWORD_RESET_TTL_MINUTES` (positive whole minutes). Reset increments `tokenVersion` to revoke existing JWTs, does not automatically sign in, and preserves existing BR-7 lockouts. It does not modify role, profile, points or bookings.
@@ -41,7 +63,7 @@ Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` mo
 - Frontend recovery services now call these three endpoints using the existing Axios client. Invalid/expired/used links return the code `RESET_LINK_INVALID`, so the UI offers a new link; network, rate-limit and server failures remain retryable errors. Success states require an explicit successful backend response.
 
 ## UC-16.1 / UC-16.2: Revenue dashboard and CSV report
-- Based on `docs/RDS-SWD391-Assignment.docx` (UC-16, UC-16.1, UC-16.2; BR-11, BR-13, BR-14) and `SDN302_AI_Coding_Rules.md`.
+- Based on `docs/RDS-SWD391-Assignment.docx` (UC-16, UC-16.1, UC-16.2; BR-11, BR-13, BR-14) and project coding conventions.
 - Sign in as Admin, choose **Thống kê doanh thu** or open `/admin/revenue`. Filter an inclusive date range (up to 366 days), source, payment method, and daily/monthly grouping. Empty periods show zeros; failed calculations show an error without partial totals.
 - Confirmed reporting convention: CSV with UTF-8 BOM for Excel, VND, `Asia/Ho_Chi_Minh` (UTC+07:00). Payments belong to their confirmation date and refunds to their completion date. `payments = gross - discounts + fees - points`; `net = payments - refunds`. `points` is the redeemed VND value, not the number of points, and is not counted as cash. Fees are included in money collected. A refund-only period may have negative net revenue.
 - **Current source coverage:** finalized `FoodSale` cash receipts with confirmation, matching line totals and received cash/change are included. Pending, cancelled, reconciliation, and unconfirmed sales are excluded. Ticket revenue (including food bundled with a ticket) comes only from trusted `RevenueEntry` settlement/refund records. Existing `Booking.status = paid`, `paymentStatus = paid`, browser returns and mock payments are not proof and are never automatically converted into receipts. No historical ticket revenue or refunds are guessed from current catalogue prices or mutable booking timestamps.
@@ -50,7 +72,7 @@ Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` mo
 - A verified full refund creates a separate `kind: refund` entry for the original `booking`, method and entire cash `amount`, with `originalReference` pointing to its payment and the refund's actual confirmation date/evidence. Do not modify/remove the original payment. Unique booking/kind and reference indexes prevent duplicate final records; unconfirmed/failed refunds create no entry. Reporting rejects mismatched originals, partial cash refunds and invalid amount breakdowns.
 - `POST /api/revenue/reports` takes `{ from, to, source, method, groupBy }` and returns a server-owned snapshot. `source`: `all|tickets|food`; `method`: `all|cash|vnpay|momo|credit-card|points`; `groupBy`: `day|month`. Both dates are `YYYY-MM-DD`. Confirmed entries and arrival timestamps are bounded by `dataTimestamp`.
 - `POST /api/revenue/reports/:id/export` takes the same filters and returns a complete CSV from that stored result, without recalculating transactions. Only the creating Admin can export it; changed filters require refreshing, and snapshots expire after 30 minutes. CSV includes filters, timezone, data/export timestamps, basis, source coverage, totals, source breakdown and each period. All endpoints verify active Admin sessions; JSON/Origin checks protect requests, responses use `no-store`, and report creation/export log acting Admin and report IDs.
-- Uses existing Express/Mongoose/React and a native SVG chart with a visible data table; no additional packages. New files: revenue route/controller/service, `RevenueEntry` and `RevenueReport` models, Admin page/CSS, frontend service, and `backend/test_revenue.js`.
+- Uses existing Express/Mongoose/React and a native SVG chart with a visible data table; no additional packages. New files: revenue route/controller/service, `RevenueEntry` and `RevenueReport` models, Admin page/CSS, frontend service, and `backend/tests/api/test_revenue.js`.
 - Checks: `npm run test:revenue -w backend`, `npm test -w backend`, `npm run build`. Integration tests create/remove their own unique temporary database and leave cinema data unchanged.
 
 ## UC-7.2 QR tickets and UC-10/10.1 Check-in (NhaNTK)
@@ -88,7 +110,7 @@ Changed files: backend room route/controller/service, `CinemaRoom`/`Showtime` mo
 - Counter orders now support one promotion code, scoped minimums, fixed/percentage discounts, VND floor rounding, caps and optional stacking with Member points. Promotions are calculated before points. The existing `discount` field remains point redemption; `promotionDiscount` stores the separate campaign discount.
 - In the payment screen, use **Khuyến mãi tại quầy** to apply, remove or recheck a code. Food edits recalculate eligibility; unpaid drafts block payment until saved/cancelled. The receipt and Member history retain the accepted code and amount.
 - Final settlement atomically rechecks and consumes campaign usage with the existing stock/point/seat/ticket transaction. A campaign edit, expired code or exhausted last usage rejects settlement without partial effects; a paid retry reuses the original result.
-- API: `PATCH /api/counter/bookings/:id/promotion` with `{ "code": "FOOD10" }`; an empty string removes it. Active staff ownership, JSON and Origin checks apply. See [UC9.2 rules and integration](docs/UC9.2_COUNTER_PROMOTIONS.md).
+- API: `PATCH /api/counter/bookings/:id/promotion` with `{ "code": "FOOD10" }`; an empty string removes it. Active staff ownership, JSON and Origin checks apply.
 - Run `npm run test:counter-promotions -w backend` and `npm run test:counter-promotions:ui -w backend` with a replica set. Tests use isolated temporary databases; browser screenshots are saved under `.local/qa/uc92/`.
 
 ## UC9.3 — Counter payment and reconciliation (NhaNTK)
@@ -120,7 +142,7 @@ For a fresh clone with no `.env`, setup creates it from `.env.example` with rand
 
 On subsequent runs (including after reboot), run `npm run setup:local` before starting the backend; it reuses the replica set and existing configured data. `.env`, `.env.setup-tmp`, `.local` database files and private backups are ignored by Git. Commit source code, scripts and `.env.example`, never local data or credentials.
 
-Payment supports verified cash and zero-amount settlement, with optional VNPay Sandbox integration and explicitly labelled development simulation. See [payment setup](docs/PAYMENT_SETUP.md) and the UC9.3 contract above for configuration and reconciliation.
+Payment supports verified cash and zero-amount settlement, with optional VNPay Sandbox integration and explicitly labelled development simulation. See [VNPay Sandbox setup](#vnpay-sandbox-setup) and the UC9.3 contract above for configuration and reconciliation.
 
 ## Run frontend
 In a second terminal at the repository root, run `npm run dev:frontend` and open `http://localhost:5173`.

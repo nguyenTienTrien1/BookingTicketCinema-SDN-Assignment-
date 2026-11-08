@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import User from '../../models/User.js';
+import User from "../../models/users/User.js";
 import { sendPasswordResetEmail } from '../email/emailService.js';
 
 export const RESET_REQUEST_MESSAGE = 'Nếu email đủ điều kiện tồn tại, hướng dẫn đặt lại mật khẩu sẽ được gửi.';

@@ -1,4 +1,4 @@
-import {activateStaff} from '../../services/staffService.js';
+import {activateStaff} from "../../services/users/staffService.js";
 import { Router } from 'express';
 import { login, logout, getCurrentUser } from '../../controllers/auth/loginController.js';
 import { adminLogin } from '../../controllers/auth/adminLoginController.js';
@@ -7,7 +7,7 @@ import { verifyToken } from '../../middleware/auth/verifyToken.js';
 import { forgotPassword, verifyPasswordReset, resetPassword } from '../../controllers/auth/passwordResetController.js';
 import { createPasswordResetLimiter } from '../../middleware/auth/passwordResetRateLimit.js';
 import * as google from '../../controllers/auth/googleAuthController.js';
-import { protectProfileWrite } from '../../controllers/profileController.js';
+import { protectProfileWrite } from "../../controllers/users/profileController.js";
 import { requireRole } from '../../middleware/auth/requireRole.js';
 
 const router = Router();
