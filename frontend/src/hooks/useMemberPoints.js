@@ -3,7 +3,7 @@ import { getProfile } from '../services/profileService';
 
 export default function useMemberPoints(user, setUser) {
     const memberId = user?.role === 'member' ? user._id : null;
-    const [step,setStep]=useState(100);
+    const [step,setStep]=useState(1);
     const [balance, setBalance] = useState(Number(user?.memberPoints || 0));
     const [refreshing, setRefreshing] = useState(!!memberId);
     const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function useMemberPoints(user, setUser) {
             const profile = await getProfile();
             if (request !== revision.current || profile._id !== memberId) return;
             setBalance(profile.memberPoints);
-            setStep(profile.pointRedeemStep||100);
+            setStep(profile.pointRedeemStep||1);
             setUser((current) => current?._id === memberId
                 ? { ...current, memberPoints: profile.memberPoints }
                 : current);

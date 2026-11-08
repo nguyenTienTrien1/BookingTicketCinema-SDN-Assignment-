@@ -16,6 +16,10 @@ import Booking from './src/models/Booking.js';
 import PaymentAttempt from './src/models/PaymentAttempt.js';
 import {expireBookings} from './src/services/bookingService.js';
 import {signature} from './src/services/vnpayService.js';
+import {inviteStaff} from './src/services/staffService.js';
+// Existing pending invitations remain usable; new POST /users provisioning is
+// covered through real loopback SMTP in test_accounts.js.
+process.env.SMTP_HOST='';process.env.GMAIL_USER='';
 
 test('Nine UC completion against transactional MongoDB',async t=>{
  const dbName='uc_complete_'+randomUUID().replaceAll('-','');
@@ -138,8 +142,8 @@ test('Nine UC completion against transactional MongoDB',async t=>{
   assert.equal((await request('/payments/bookings/'+b._id+'/cash',employee,'POST',{receivedAmount:1})).status,403);
   assert.equal((await request('/payments/bookings/'+b._id+'/cash',employee,'POST',{method:'demo',receivedAmount:b.total})).status,200);
  });
- await t.test('staff invite is hashed, pending, single-use and recipient chooses the password',async()=>{
-  const email=randomUUID()+'@staff.test';const created=await request('/users',admin,'POST',{fullName:'New staff',email,role:'employee',password:'AdminMustNotSetThis'});assert.equal(created.status,201);assert.equal(created.data.user.status,'Pending Activation');assert.equal(created.data.password,undefined);
+ await t.test('legacy staff invite is hashed, pending, single-use and recipient chooses the password',async()=>{
+  const email=randomUUID()+'@staff.test';const created={data:await inviteStaff({fullName:'New staff',email,role:'employee'},admin.id)};assert.equal(created.data.user.status,'Pending Activation');assert.equal(created.data.password,undefined);
   assert.equal((await request('/auth/login',null,'POST',{email,password:'AdminMustNotSetThis'})).status,401);
   const token=new URL(created.data.activationLink,'http://localhost').searchParams.get('token');const u=await User.findById(created.data.user._id).select('+staffActivationHash');assert.equal(u.staffActivationHash,createHash('sha256').update(token).digest('hex'));
   assert.equal((await request('/auth/activate-staff',null,'POST',{token,password:'Recipient123',confirmPassword:'Recipient123'})).status,200);
@@ -147,7 +151,7 @@ test('Nine UC completion against transactional MongoDB',async t=>{
   assert.equal((await request('/auth/login',null,'POST',{email,password:'Recipient123'})).status,200);
  });
  await t.test('expired invitation can be renewed, old link is invalid and status cannot bypass activation',async()=>{
-  const r=await request('/users',admin,'POST',{fullName:'Expired staff',email:randomUUID()+'@staff.test',role:'employee'});const id=r.data.user._id,token=new URL(r.data.activationLink,'http://localhost').searchParams.get('token');await User.updateOne({_id:id},{$set:{staffActivationExpires:new Date(Date.now()-1000)}});
+  const r={data:await inviteStaff({fullName:'Expired staff',email:randomUUID()+'@staff.test',role:'employee'},admin.id)};const id=r.data.user._id,token=new URL(r.data.activationLink,'http://localhost').searchParams.get('token');await User.updateOne({_id:id},{$set:{staffActivationExpires:new Date(Date.now()-1000)}});
   assert.equal((await request('/auth/activate-staff',null,'POST',{token,password:'Recipient123',confirmPassword:'Recipient123'})).status,400);
   assert.equal((await request('/users/'+id+'/status',admin,'PATCH',{status:'Active',expectedStatus:'Pending Activation'})).status,400);
   const renewed=await request('/users/'+id+'/invitation',admin,'POST',{});assert.equal(renewed.status,200);assert.notEqual(renewed.data.activationLink,r.data.activationLink);

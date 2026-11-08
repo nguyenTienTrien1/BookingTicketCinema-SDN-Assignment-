@@ -41,17 +41,27 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
   async function fixture({ offset = 5, proof = true, paid = true, classification = 'P', ageLimit = 0 } = {}) {
     const movie = await Movie.create({ title: 'Ticket ' + randomUUID(), classification, ageLimit });
     const bookingId = new mongoose.Types.ObjectId();
-    const showtime = await Showtime.create({ movie: movie._id, cinema: 'Cinema+', room: 'Room 1', price: 80000,
-      startTime: new Date(Date.now() + offset * 60000), seats: ['A1', 'A2'].map((number) => ({ number, status: paid ? 'booked' : 'held', bookingId,
-        holdUntil: paid ? null : new Date(Date.now() + 600000) })) });
-    const booking = await Booking.create({ _id: bookingId, user: member._id, showtime: showtime._id, seats: ['A1', 'A2'], subtotal: 160000, total: 160000,
+    const showtime = await Showtime.create({
+      movie: movie._id, cinema: 'Cinema+', room: 'Room 1', price: 80000,
+      startTime: new Date(Date.now() + offset * 60000), seats: ['A1', 'A2'].map((number) => ({
+        number, status: paid ? 'booked' : 'held', bookingId,
+        holdUntil: paid ? null : new Date(Date.now() + 600000)
+      }))
+    });
+    const booking = await Booking.create({
+      _id: bookingId, user: member._id, showtime: showtime._id, seats: ['A1', 'A2'], subtotal: 160000, total: 160000,
       status: paid ? 'paid' : 'pending', paymentStatus: paid ? 'paid' : 'unpaid', paymentMethod: proof ? 'vnpay' : 'mock',
       paymentRef: proof ? 'PROVIDER-' + randomUUID() : 'PAY-' + Date.now(), expiresAt: new Date(Date.now() + 600000),
-      ...(paid ? { ticketMode: proof ? 'verified' : 'demo',
+      ...(paid ? {
+        ticketMode: proof ? 'verified' : 'demo',
         ticketContext: { startTime: showtime.startTime, movieTitle: movie.title, cinema: showtime.cinema, room: showtime.room, classification, ageLimit },
-        tickets: ['A1', 'A2'].map(seat => ({ seat, reference: 'CT-' + randomUUID().replaceAll('-', '').toUpperCase(), status: 'issued', issuedAt: new Date() })) } : {}) });
-    if (proof && paid) await RevenueEntry.create({ booking: booking._id, kind: 'payment', reference: booking.paymentRef, method: 'vnpay',
-      evidence: 'provider-confirmation', confirmedAt: new Date(), gross: 160000, amount: 160000 });
+        tickets: ['A1', 'A2'].map(seat => ({ seat, reference: 'CT-' + randomUUID().replaceAll('-', '').toUpperCase(), status: 'issued', issuedAt: new Date() }))
+      } : {})
+    });
+    if (proof && paid) await RevenueEntry.create({
+      booking: booking._id, kind: 'payment', reference: booking.paymentRef, method: 'vnpay',
+      evidence: 'provider-confirmation', confirmedAt: new Date(), gross: 160000, amount: 160000
+    });
     return { booking, showtime, movie };
   }
   const ownedPath = (booking) => `/bookings/${booking._id}/tickets`;
@@ -146,8 +156,10 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
     await RevenueEntry.deleteMany({ booking: unverified.booking._id });
     assert.deepEqual((await issue(unverified)).tickets, []);
     const refunded = await fixture();
-    await RevenueEntry.create({ booking: refunded.booking._id, kind: 'refund', reference: 'REFUND-' + randomUUID(), originalReference: refunded.booking.paymentRef,
-      method: 'vnpay', evidence: 'provider-confirmation', confirmedAt: new Date(), amount: 160000 });
+    await RevenueEntry.create({
+      booking: refunded.booking._id, kind: 'refund', reference: 'REFUND-' + randomUUID(), originalReference: refunded.booking.paymentRef,
+      method: 'vnpay', evidence: 'provider-confirmation', confirmedAt: new Date(), amount: 160000
+    });
     assert.deepEqual((await issue(refunded)).tickets, []);
     const cancelled = await fixture();
     await Booking.updateOne({ _id: cancelled.booking._id }, { $set: { status: 'cancelled' } });
@@ -245,7 +257,7 @@ test('UC-7.2 QR tickets and UC-10/10.1 single-use check-in', async (t) => {
 
   await t.test('payment, classification and selected seat must still match when check-in is saved', async () => {
     for (const change of [{ paymentRef: 'CHANGED-PAYMENT' }, { total: 1 }, { 'ticketContext.classification': 'T18' },
-      { 'ticketContext.room': 'Another Room' }, { seats: ['A2'] }]) {
+    { 'ticketContext.room': 'Another Room' }, { seats: ['A2'] }]) {
       const fix = await fixture();
       const ref = (await issue(fix)).tickets[0].reference;
       const original = Booking.findOneAndUpdate;

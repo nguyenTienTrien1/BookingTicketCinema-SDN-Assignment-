@@ -1,57 +1,49 @@
-import {api} from '../../services/api';
-import {Link} from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { getUsers, updateStatus } from '../../services/userService';
+import { getUsers, updateAccount, resendCredentials } from '../../services/userService';
 import { translateAccountStatus, translateRole } from '../../utils/uiText';
+import { useAuth } from '../../context/AuthContext';
+import AccountFields from './AccountFields';
+import './adminAccounts.css';
 
-const statuses = ['Active', 'Deactivated', 'Banned'];
+const normalizeStatus = value => ({ active: 'Active', inactive: 'Deactivated', blocked: 'Banned', Inactive: 'Deactivated' })[value] || value;
+const draft = user => ({ fullName: user.fullName, email: user.email, phone: user.phone || '', role: user.role, status: normalizeStatus(user.status) });
 
-export default function UpdateAccount({ setMsg }) {
-    const [users, setUsers] = useState([]);
-    const [invite,setInvite]=useState(null);
-
+export default function UpdateAccount({ initialAccountId }) {
+    const { user: actor, setUser } = useAuth();
+    const [users, setUsers] = useState([]), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState(''), [query, setQuery] = useState(''), [role, setRole] = useState(''), [selected, setSelected] = useState(null), [form, setForm] = useState(null);
+    function edit(user) { setSelected(user); setForm(draft(user)); setError(''); setMessage(''); }
     useEffect(() => {
-        getUsers().then(setUsers).catch((error) => setMsg(error.message));
-    }, [setMsg]);
-
-    async function change(user, status) {
-        if (!window.confirm('Xác nhận đổi trạng thái từ ' + user.status + ' sang ' + status + '?')) return;
-        try {
-            const updated = await updateStatus(user._id, status, user.status);
-            setUsers((current) => current.map((item) => item._id === user._id ? updated : item));
-            setMsg('Đã cập nhật trạng thái tài khoản.');
-        } catch (error) {
-            setMsg(error.message);
-        }
+        let active = true;
+        getUsers().then(data => { if (!active) return; setUsers(data); const user = data.find(item => item._id === initialAccountId); if (user) edit(user); }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, [initialAccountId]);
+    async function reload() {
+        setLoading(true); setError('');
+        try { const data = await getUsers(); setUsers(data); if (selected) { const fresh = data.find(item => item._id === selected._id); if (fresh) edit(fresh); else { setSelected(null); setForm(null); } } } catch (e) { setError(e.message); } finally { setLoading(false); }
     }
-
-    return (
-        <section className="page">
-            <h2>Cập nhật trạng thái tài khoản</h2>
-            {invite&&<p>{invite.message} {invite.activationLink&&<Link to={invite.activationLink}>Mở lời mời local</Link>}</p>}
-            <div className="adminList">
-                {users.map((user) => (
-                    <div className="adminRow" key={user._id}>
-                        <div>
-                            <b>{user.fullName}</b>
-                            <span>{user.email} · {translateRole(user.role)}</span>
-                        </div>
-                        {user.status==='Pending Activation'&&<button type="button" onClick={async()=>{try{setInvite(await api('/users/'+user._id+'/invitation',{method:'POST',body:'{}'}));}catch(e){setMsg(e.message);}}}>Gửi lại lời mời</button>}
-                        <select
-                            aria-label={`Trạng thái tài khoản ${user.fullName}`}
-                            value={({ active: 'Active', inactive: 'Deactivated', blocked: 'Banned', Inactive: 'Deactivated' })[user.status] || user.status}
-                            onChange={(event) => change(user, event.target.value)}
-                        >
-                            <option value="Pending Activation" disabled>Chờ kích hoạt nhân sự</option>
-                            <option value="Pending Verification" disabled>Chờ xác thực email</option>
-                            {statuses.map((status) => (
-                                <option value={status} key={status}>{translateAccountStatus(status)}</option>
-                            ))}
-                        </select>
-                    </div>
-                ))}
-                {!users.length && <p>Chưa có tài khoản nào.</p>}
-            </div>
-        </section>
-    );
+    function replace(user) { setUsers(current => current.map(item => item._id === user._id ? user : item)); if (user._id === actor?._id) setUser(current => ({ ...current, ...user })); }
+    async function save(event) {
+        event.preventDefault(); if (busy) return;
+        setBusy(true); setError(''); setMessage('');
+        try { const updated = await updateAccount(selected._id, { ...form, version: selected.__v || 0, expectedStatus: selected.status }); replace(updated); setSelected(null); setForm(null); setMessage('Đã lưu thay đổi tài khoản.'); } catch (e) { setError(e.message); } finally { setBusy(false); }
+    }
+    async function resend(user) {
+        if (busy) return; setBusy(true); setError(''); setMessage('');
+        try { const result = await resendCredentials(user._id); replace(result.user); if (selected?._id === user._id) { setSelected(result.user); setForm(draft(result.user)); } if (result.emailSent) setMessage(result.message); else setError(result.message); } catch (e) { setError(e.message); } finally { setBusy(false); }
+    }
+    const filtered = users.filter(user => (!role || user.role === role) && `${user.fullName} ${user.email} ${user.phone || ''}`.toLowerCase().includes(query.trim().toLowerCase()));
+    return <section className="accountAdminPage" aria-labelledby="update-account-title">
+        <header className="accountPageHeading"><div><p className="accountEyebrow">NHÂN SỰ & THÀNH VIÊN</p><h2 id="update-account-title">Cập nhật tài khoản</h2><p>Tìm tài khoản, chỉnh sửa thông tin và lưu thay đổi trực tiếp.</p></div><button type="button" className="ghost" disabled={busy || loading} onClick={reload}>Làm mới danh sách</button></header>
+        {error && <p className="accountAlert error" role="alert">{error}</p>}{message && <p className="accountAlert success" role="status">{message}</p>}
+        <div className={'accountManageLayout' + (selected ? ' editing' : '')}><div className="accountDirectory">
+            <div className="accountToolbar"><label>Tìm tài khoản<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Họ tên, email hoặc điện thoại" /></label><label>Lọc vai trò<select value={role} onChange={event => setRole(event.target.value)}><option value="">Tất cả vai trò</option><option value="admin">Quản trị viên</option><option value="employee">Nhân viên</option><option value="member">Thành viên</option></select></label></div>
+            <p className="accountCount" aria-live="polite">{loading ? 'Đang tải tài khoản…' : `${filtered.length} tài khoản`}</p>
+            <div className="accountUserList">{!loading && filtered.map(user => <article className={'accountUserRow' + (selected?._id === user._id ? ' selected' : '')} key={user._id}>
+                <span className="accountAvatar" aria-hidden="true">{user.fullName?.charAt(0).toUpperCase()}</span><div className="accountUserInfo"><h3>{user.fullName}{user._id === actor?._id && <small> · Bạn</small>}</h3><p>{user.email}</p><small>{translateRole(user.role)}{user.phone ? ` · ${user.phone}` : ''}</small><span className={'accountStatus ' + (['Active', 'active'].includes(user.status) ? 'active' : 'inactive')}>{user.status === 'Pending Activation' && user.credentialsEmailStatus ? user.credentialsEmailStatus === 'sending' ? 'Đang gửi email' : 'Chờ gửi lại email' : translateAccountStatus(user.status)}</span></div>
+                <div className="accountRowActions"><button type="button" className="ghost" disabled={busy || user.credentialsEmailStatus === 'sending'} aria-label={`Chỉnh sửa ${user.email}`} onClick={() => edit(user)}>Chỉnh sửa</button>{user.status === 'Pending Activation' && <button type="button" className="accountInlineButton" disabled={busy} onClick={() => resend(user)}>Gửi lại email</button>}</div>
+            </article>)}{!loading && filtered.length === 0 && <p className="accountEmpty">Không có tài khoản phù hợp.</p>}</div>
+        </div>{selected && form && <form className="accountFormCard accountEditCard" onSubmit={save}><div className="accountCardHeading"><div><p className="accountEyebrow">CHỈNH SỬA</p><h3>{selected.fullName}</h3></div><button type="button" className="accountInlineButton" disabled={busy} onClick={() => { setSelected(null); setForm(null); }}>Đóng</button></div>
+            <fieldset disabled={busy || loading}><AccountFields editing form={form} setForm={setForm} /><label className="accountStatusField" htmlFor="staff-status">Trạng thái<select id="staff-status" value={form.status} onChange={event => setForm(current => ({ ...current, status: event.target.value }))}>{selected.status.startsWith('Pending') && <option value={selected.status} disabled>{translateAccountStatus(selected.status)}</option>}<option value="Active" disabled={selected.status.startsWith('Pending')}>Đang hoạt động</option><option value="Deactivated">Ngừng hoạt động</option><option value="Banned">Đã khóa</option></select></label>
+            {selected.status.startsWith('Pending') && <p className="accountFieldHint">Tài khoản cần nhận email đăng nhập hoặc hoàn tất xác minh trước khi hoạt động.</p>}<div className="accountFormActions"><button type="button" className="ghost" disabled={busy} onClick={() => { setSelected(null); setForm(null); }}>Hủy</button><button type="submit" className="primary">{busy ? 'Đang lưu…' : 'Lưu thay đổi'}</button></div></fieldset></form>}</div>
+    </section>;
 }

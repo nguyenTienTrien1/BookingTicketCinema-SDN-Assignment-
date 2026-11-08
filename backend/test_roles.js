@@ -99,7 +99,7 @@ test('Role permissions from RDS: Guest, Member, Employee, Admin', async (t) => {
   await t.test('admin cannot grant member-only points to staff or create members through staff provisioning', async () => {
     assert.equal((await request('/users/' + users.employee.id + '/points', users.admin, 'PATCH', { points: 10 })).status, 400);
     assert.equal((await request('/users', users.admin, 'POST', { fullName: 'Invalid', email: 'invalid@roles.test', role: 'member', password: 'password123' })).status, 400);
-    assert.equal((await request('/users', users.admin, 'POST', { fullName: 'Staff', email: 'new@roles.test', role: 'employee', password: 'password123', status: 'Banned' })).status, 201);
+    assert.equal((await request('/users', users.admin, 'POST', { fullName: 'Staff', email: 'new@roles.test', role: 'employee', password: 'password123', status: 'Banned' })).status, 400);
   });
   await t.test('self-disable is denied and deactivated sessions stay revoked after reactivation', async () => {
     assert.equal((await request('/users/' + users.admin.id + '/status', users.admin, 'PATCH', { status: 'Banned' })).status, 403);

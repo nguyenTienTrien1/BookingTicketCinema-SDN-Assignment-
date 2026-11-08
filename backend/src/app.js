@@ -42,7 +42,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // 4. Authentication routes
-app.get('/api/config',(_req,res)=>res.json({pointValue:1000,pointRedeemStep:Number(process.env.POINT_REDEEM_STEP||100)}));
+app.get('/api/config',(_req,res)=>res.json({pointValue:1000,pointRedeemStep:Number(process.env.POINT_REDEEM_STEP||1)}));
 app.use('/api/auth', authRoutes);
 
 // 5. Protected Dashboard Endpoints (Section 15 Requirements)

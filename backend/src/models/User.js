@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
     verifiedAge: { type: Number, min: 0, default: null },
     ageVerifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     staffActivationHash: { type: String, select: false }, staffActivationExpires: Date,
+    credentialsEmailStatus: { type: String, enum: ['sending', 'sent', 'failed'] },
+    credentialsEmailAttemptAt: Date,
+    credentialsEmailSentAt: Date,
+    credentialsEmailRequestId: { type: String, select: false },
     statusHistory: { type: [{ before: String, after: String, actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: Date }], select: false, default: [] },
     redemptionEntries: { type: [{ booking: mongoose.Schema.Types.ObjectId, delta: Number, at: Date }], select: false, default: [] },
     gender: {

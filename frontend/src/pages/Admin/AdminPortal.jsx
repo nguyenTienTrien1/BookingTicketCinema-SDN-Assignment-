@@ -22,7 +22,7 @@ const TAB_TITLES = {
   promotions: "Chương trình khuyến mãi",
   revenue: "Báo cáo doanh thu",
   "create-account": "Tạo tài khoản nhân sự",
-  "update-status": "Trạng thái tài khoản",
+  "update-status": "Cập nhật tài khoản",
   "adjust-points": "Điều chỉnh điểm thưởng",
   counter: "Bán vé & Thu tiền tại quầy",
   members: "Tra cứu thành viên",
@@ -46,6 +46,7 @@ export default function AdminPortal({
   };
 
   const [activeTab, setActiveTab] = useState(resolveTab(initialTab));
+  const [managedAccountId, setManagedAccountId] = useState(null);
 
   useEffect(() => {
     if (initialTab && initialTab !== "account" && initialTab !== "overview") {
@@ -304,7 +305,7 @@ export default function AdminPortal({
               <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            <span>Trạng thái tài khoản</span>
+            <span>Cập nhật tài khoản</span>
           </button>
 
           <button
@@ -496,14 +497,14 @@ export default function AdminPortal({
           {/* TAB: TẠO TÀI KHOẢN */}
           {activeTab === "create-account" && (
             <div className="adminSubPanel">
-              <CreateAccount />
+              <CreateAccount onManage={account => { setManagedAccountId(account._id); switchTab('update-status'); }} />
             </div>
           )}
 
           {/* TAB: TRẠNG THÁI TÀI KHOẢN */}
           {activeTab === "update-status" && (
             <div className="adminSubPanel">
-              <UpdateAccount setMsg={setMsg} />
+              <UpdateAccount initialAccountId={managedAccountId} />
             </div>
           )}
 

@@ -1,10 +1,38 @@
-import {inviteStaff} from './staffService.js';
+import mongoose from 'mongoose';
+import { createStaffAccount, validateAccountFields } from './staffCredentialsService.js';
 import SystemLock from '../models/SystemLock.js';
 import {transaction,domainError as fail} from './transaction.js';
 import User from '../models/User.js';
 import { authenticate } from './auth/loginService.js';
 
-export const createAccount = inviteStaff;
+export const createAccount = createStaffAccount;
+
+export async function updateAccount(id, data, actorId) {
+ if (!mongoose.isObjectIdOrHexString(id)) throw fail('Mã tài khoản không hợp lệ.');
+ const fields = validateAccountFields(data);
+ if (Object.keys(data).some(key => !['fullName','email','phone','role','status','version','expectedStatus'].includes(key))) throw fail('Thông tin cập nhật chứa trường không được phép.');
+ if (!Number.isSafeInteger(data.version) || data.version < 0 || typeof data.expectedStatus !== 'string' || !['member','employee','admin'].includes(data.role) || !['Active','Deactivated','Banned','Pending Activation','Pending Verification'].includes(data.status)) throw fail('Vai trò, trạng thái hoặc phiên bản tài khoản không hợp lệ.');
+ await SystemLock.updateOne({_id:'account-status'},{$setOnInsert:{version:0}},{upsert:true});
+ return transaction(async session => {
+  await SystemLock.updateOne({_id:'account-status'},{$inc:{version:1}},{session});
+  const actor = await User.findOne({_id:actorId,role:'admin',status:{$in:['Active','active']}}).session(session);
+  if (!actor) throw fail('Phiên Admin không còn hợp lệ.',403);
+  const user = await User.findById(id).select('+staffActivationHash').session(session);
+  if (!user) throw fail('Không tìm thấy tài khoản.',404);
+  if ((user.__v || 0) !== data.version || user.status !== data.expectedStatus || user.credentialsEmailStatus === 'sending') throw fail('Tài khoản đã thay đổi hoặc đang gửi email. Tải lại rồi lưu lại thông tin.',409);
+  if ((user.role === 'member') !== (data.role === 'member')) throw fail('Không chuyển đổi giữa tài khoản thành viên và tài khoản nhân sự.');
+  if (String(id) === String(actorId) && (data.role !== 'admin' || data.status !== 'Active')) throw fail('Không được tự khóa hoặc hạ quyền Admin đang sử dụng.',403);
+  if (data.status.startsWith('Pending') && data.status !== user.status) throw fail('Không thể tự đưa tài khoản vào trạng thái chờ xác minh.');
+  if (data.status === 'Active' && (user.status.startsWith('Pending') || user.staffActivationHash || user.verificationToken || user.credentialsEmailStatus && user.credentialsEmailStatus !== 'sent')) throw fail('Tài khoản phải nhận email đăng nhập hoặc hoàn tất xác minh trước khi hoạt động.');
+  if (user.role === 'admin' && ['Active','active'].includes(user.status) && (data.role !== 'admin' || data.status !== 'Active') && await User.countDocuments({role:'admin',status:{$in:['Active','active']}}).session(session) <= 1) throw fail('Không được khóa hoặc hạ quyền Admin cuối cùng.',409);
+  const update = { $set: { ...fields, role:data.role, status:data.status, statusUpdatedBy:actorId }, $inc: { __v:1 } };
+  if (data.role !== user.role || data.status !== user.status && data.status !== 'Active') update.$inc.tokenVersion = 1;
+  if (data.status !== user.status) update.$push = { statusHistory: {before:user.status,after:data.status,actor:actorId,at:new Date()} };
+  const updated = await User.findOneAndUpdate({_id:id,__v:user.__v},update,{new:true,runValidators:true,session});
+  if (!updated) throw fail('Tài khoản vừa thay đổi. Hãy tải lại và thử lại.',409);
+  return safeUser(updated);
+ });
+}
 
 export async function login(email, password) {
   const result = await authenticate(email, password);
@@ -21,10 +49,10 @@ export async function updateStatus(id,status,actorId,expectedStatus) {
   const user=await User.findById(id).select('+statusHistory +staffActivationHash').session(session);if(!user)return null;
   if(user.status!==expectedStatus)throw fail('Trạng thái đã thay đổi. Tải lại để xác nhận.',409);
   if(target!=='Active'&&String(id)===String(actorId))throw fail('Không được tự khóa Admin đang sử dụng.',403);
-  if(target==='Active'&&(user.status.startsWith('Pending')||user.staffActivationHash||user.verificationToken||user.statusHistory.some(h=>h.before?.startsWith('Pending'))))throw fail('Tài khoản phải hoàn tất kích hoạt, không thể bỏ qua bằng đổi trạng thái.');
+  if(target==='Active'&&(user.status.startsWith('Pending')||user.staffActivationHash||user.verificationToken||user.credentialsEmailStatus&&user.credentialsEmailStatus!=='sent'||user.statusHistory.some(h=>h.before?.startsWith('Pending'))))throw fail('Tài khoản phải hoàn tất kích hoạt, không thể bỏ qua bằng đổi trạng thái.');
   if(user.role==='admin'&&target!=='Active'&&['Active','active'].includes(user.status)&&await User.countDocuments({role:'admin',status:{$in:['Active','active']}}).session(session)<=1)throw fail('Không được khóa Admin cuối cùng.',409);
   if(user.status===target)return safeUser(user);
-  const before=user.status;user.status=target;user.statusUpdatedBy=actorId;if(target!=='Active')user.tokenVersion=(user.tokenVersion||0)+1;
+  const before=user.status;user.status=target;user.statusUpdatedBy=actorId;user.__v=(user.__v||0)+1;if(target!=='Active')user.tokenVersion=(user.tokenVersion||0)+1;
   user.statusHistory.push({before,after:target,actor:actorId,at:new Date()});await user.save({session});return safeUser(user);
  });
 }
@@ -98,7 +126,7 @@ function safeUser(user) {
     'failedLoginAttempts', 'lockUntil', 'passwordResetTokenHash',
     'passwordResetExpiresAt', 'passwordResetUsedAt', 'passwordResetRequestedAt',
     'passwordResetTokenVersion', 'pointAdjustments', 'staffActivationHash',
-    'staffActivationExpires', 'statusHistory', 'redemptionEntries'
+    'staffActivationExpires', 'statusHistory', 'redemptionEntries', 'credentialsEmailRequestId'
   ]) delete result[field];
   return result;
 }

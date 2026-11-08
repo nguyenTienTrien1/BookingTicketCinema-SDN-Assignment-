@@ -157,10 +157,17 @@ test('API authorization and booking regression', async (t) => {
     assert.equal((await request('/users/' + other.id + '/points', member, 'PATCH', { points: 100 })).status, 403);
   });
   await t.test('admin responses omit credentials and invalid points are rejected', async () => {
-    const created = await request('/users', admin, 'POST', { fullName: 'Staff', email: 'staff@test.local', password: 'password123', role: 'employee', memberPoints: 999 });
+    assert.equal((await request('/users', admin, 'POST', { fullName: 'Staff', email: 'staff@test.local', password: 'password123', role: 'employee', memberPoints: 999 })).status, 400);
+    // Exercise missing SMTP without contacting any configured external inbox.
+    const saved = Object.fromEntries(['SMTP_HOST','SMTP_USER','SMTP_PASS','GMAIL_USER','GMAIL_APP_PASS'].map(key => [key,process.env[key]]));
+    for (const key of Object.keys(saved)) delete process.env[key];
+    let created;
+    try { created = await request('/users', admin, 'POST', { fullName: 'Staff', email: 'staff@test.local', role: 'employee' }); }
+    finally { for (const [key,value] of Object.entries(saved)) if(value === undefined) delete process.env[key]; else process.env[key]=value; }
     assert.equal(created.status, 201);
     assert.equal(created.data.password, undefined);
     assert.equal(created.data.user.status, 'Pending Activation');
+    assert.equal(created.data.emailSent, false);
     assert.equal((await User.findById(created.data.user._id)).memberPoints, 0);
     assert.equal((await request('/users/' + member.id + '/points', admin, 'PATCH', { points: 'bad' })).status, 400);
     assert.equal((await request('/users/bad/status', admin, 'PATCH', { status: 'Active' })).status, 400);

@@ -25,7 +25,7 @@ export default function CinemaMain() {
   const [showtimes, setShowtimes] = useState([]);
   const [foods, setFoods] = useState([]);
   const [pointsPolicy, setPointsPolicy] = useState({
-    pointRedeemStep: 100,
+    pointRedeemStep: 1,
     pointValue: 1000,
   });
   const [dataLoading, setDataLoading] = useState(true);

@@ -3,7 +3,7 @@
 ## Phạm vi đã thống nhất
 
 - Thanh toán là **giả lập**, không thu tiền thật. VNPay giả lập và tiền mặt giả lập có nhãn rõ trên giao diện.
-- Chỉ dùng điểm để giảm tiền, không tự tích điểm. Một điểm giảm 1.000đ; theo BR-4, mặc định đổi theo **bội số 100**. `POINT_REDEEM_STEP` cho phép cấu hình bước đổi; điều chỉnh thủ công không bị ràng buộc theo bước này.
+- Chỉ dùng điểm để giảm tiền, không tự tích điểm. Một điểm giảm 1.000đ; mặc định dùng **từng điểm** (`POINT_REDEEM_STEP=1`), ví dụ 20 điểm giảm 20.000đ. Đây là thay đổi theo yêu cầu trải nghiệm dùng điểm; nếu cần chế độ BR-4 đổi theo bội số 100, đặt `POINT_REDEEM_STEP=100` rồi khởi động lại backend. Điều chỉnh thủ công không bị ràng buộc theo bước đổi.
 - Admin và Employee được bán vé tại quầy. Employee xử lý đơn quầy của mình; Admin có thể hỗ trợ đơn quầy khác. Khách vãng lai không cần tài khoản hay thông tin cá nhân.
 - Các thay đổi này thay thế những khác biệt tương ứng trong báo cáo rà soát ban đầu.
 
@@ -17,8 +17,8 @@
 | Payment Process | Transaction nhiều collection cho điểm + kho + ghế + receipt + ticket. Chống thanh toán lặp, receipt một lần, rollback toàn bộ khi lỗi, không phát hành vé cho thất bại/hết hạn. Tiền mặt từ đơn online phải do nhân viên xác nhận số tiền đúng |
 | Apply Member Point | Số nguyên theo bước cấu hình, không vượt số dư/giá trị đơn, cho sửa/bỏ khi pending, recheck khi hoàn tất, ghi redemption ledger, nhánh points-only riêng cho 0đ không tạo giao dịch gateway/cash |
 | Payment via VNPay | **VNPay giả lập theo yêu cầu mới**: thử thất bại hoặc thành công, thất bại không trừ điểm/kho, thành công phát hành QR. Không yêu cầu merchant hoặc tiền thật cho luồng demo |
-| Create Account | Admin tạo Employee/Admin ở Pending Activation, không tự đặt mật khẩu sử dụng lại, token kích hoạt được hash và có hạn 24 giờ, người nhận tự đặt mật khẩu, chỉ dùng một lần, gửi lại lời mời cho tài khoản chờ kích hoạt |
-| Update Account Status | Xác nhận/hủy trên UI, gửi trạng thái đã xem để kiểm tra stale, audit trước/sau/người thực hiện/thời gian, thu hồi token, chặn bỏ qua kích hoạt và tự khóa, transaction có khóa chung bảo vệ Admin cuối khi thao tác đồng thời |
+| Create Account | Admin tạo Employee/Admin với mật khẩu ngẫu nhiên riêng, lưu bcrypt hash, gửi thông tin qua SMTP thật. Chỉ Active sau khi SMTP chấp nhận; lỗi gửi giữ Pending Activation và có Gửi lại email. Không trả mật khẩu qua API hoặc giao diện |
+| Update Account | Sửa họ tên, email, điện thoại, vai trò nhân sự và trạng thái; Lưu thay đổi trực tiếp không mở hộp xác nhận. Kiểm tra phiên bản/trạng thái gốc, email trùng, thu hồi phiên khi khóa/hạ quyền, chặn tự khóa/hạ quyền và bảo vệ Admin cuối bằng transaction |
 | Adjust Member Points | Admin-only/Member-only, delta có lý do và preview, không âm, kiểm tra số dư cũ, request ID chống lặp, balance và audit cùng atomic update, xem 20 điều chỉnh mới nhất |
 
 Mỗi ghế có một mã vé riêng và QR PNG thực, được lưu trong booking sau finalization. Vé xuất hiện trên màn hình kết quả và lịch sử Member. API quầy có thể tra cứu mã vé đã phát hành; đây không phải mở rộng toàn bộ UC Check-in/Refund.
@@ -49,7 +49,7 @@ npm run dev:frontend
 4. Đơn 0đ xác nhận bằng điểm, không đi qua gateway/cash.
 5. Hoặc Member chọn tiền mặt, đưa mã đơn cho nhân viên. Nhân viên tra cứu trên Nghiệp vụ quầy, nhập đúng số tiền và xác nhận giả lập trước hạn. Màn hình Member tự cập nhật kết quả.
 6. Tại quầy có thể chọn Guest để không lưu tên/email/điện thoại, hoặc tìm Member nếu muốn dùng điểm.
-7. Admin tạo nhân sự. Chưa có SMTP thì UI báo chưa gửi được thư và có liên kết kích hoạt dành riêng bản local. SMTP hoạt động sẽ gửi lời mời; production không trả liên kết/token trong JSON.
+7. Admin mở Tạo tài khoản, nhập thông tin nhân sự rồi chọn Tạo tài khoản và gửi email. Người nhận dùng mật khẩu ngẫu nhiên trong email để đăng nhập và đổi mật khẩu trong Hồ sơ. Nếu SMTP lỗi hoặc chưa cấu hình, UI báo rõ và cho Gửi lại email; không có mật khẩu/link kích hoạt trên UI. Cập nhật tài khoản cho sửa và lưu trực tiếp, không hiện hộp xác nhận.
 
 ## Kiểm thử lặp lại được
 

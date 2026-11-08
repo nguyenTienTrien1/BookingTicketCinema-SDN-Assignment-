@@ -1810,6 +1810,89 @@ button {
     margin: 12px 0 0;
 }
 
+.counterAgeCheck { margin: 24px 0 18px; padding: 20px; border: 1px solid #80643a; border-radius: 12px; background: #292319; }
+.counterAgeHeading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.counterAgeHeading h4 { margin: 0; color: #ffe0a3; font-size: 1rem; }
+.counterAgeCheck > p { margin: 12px 0; color: #d4c6ad; font-size: .88rem; line-height: 1.6; }
+.counterAgeCheck label { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid #6b5838; border-radius: 8px; background: #1b1915; cursor: pointer; line-height: 1.6; }
+.counterAgeCheck input[type=checkbox] { flex: 0 0 20px; width: 20px; height: 20px; margin: 3px 0 0; padding: 0; accent-color: #e50914; cursor: pointer; }
+.counterAgeCheck input:focus-visible { outline: 2px solid #ffe0a3; outline-offset: 4px; }
+.counterAgeCheck .counterAgeHint { margin-bottom: 0; color: #ffdb92; font-size: .82rem; }
+.counterAgeCheck.confirmed { border-color: #3c7353; background: #17271d; }
+.counterAgeCheck.confirmed .counterAgeHeading h4, .counterAgeCheck.confirmed .counterAgeHint { color: #9ce5b8; }
+.counterAgeCheck.confirmed label { border-color: #40644a; background: #152019; }
+.counterBooking .primary.full:disabled { opacity: .5; cursor: not-allowed; }
+
+.memberPointsCard {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px solid #384839;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #18231b, #12171b 65%);
+}
+.memberPointsHeading, .memberPointsInputRow, .memberPointsFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+.memberPointsHeading h3 { margin: 0 0 6px; font-size: 1.15rem; }
+.memberPointsHeading p, .memberPointsHint, .memberPointsFooter small { color: #abb8b0; font-size: .85rem; line-height: 1.6; }
+.memberPointsHeading p { margin: 0; }
+.memberPointsBalance { text-align: right; flex-shrink: 0; }
+.memberPointsBalance > span { display: block; color: #abb8b0; font-size: .78rem; margin-bottom: 3px; }
+.memberPointsBalance strong { color: #b8f28b; font-size: 1.65rem; }
+.memberPointsBalance small { font-size: .8rem; font-weight: 400; }
+.memberPointsChoices { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+.memberPointsChoices button {
+    flex: 1 1 120px;
+    padding: 14px 12px;
+    border: 1px solid #3a4540;
+    border-radius: 10px;
+    color: #f3f6f4;
+    background: #1c2420;
+    text-align: left;
+}
+.memberPointsChoices strong, .memberPointsChoices span { display: block; }
+.memberPointsChoices strong { font-size: .95rem; }
+.memberPointsChoices span { margin-top: 5px; color: #abb8b0; font-size: .8rem; }
+.memberPointsChoices button.selected { border-color: #b8f28b; background: #293c27; box-shadow: inset 0 0 0 1px #b8f28b; }
+.memberPointsChoices button.selected strong { color: #c8f7a6; }
+.memberPointsChoices button:hover:not(:disabled), .memberPointsMax:hover:not(:disabled) { border-color: #b8f28b; }
+.memberPointsField { flex: 1; min-width: 0; }
+.memberPointsField label { display: block; margin-bottom: 8px; font-size: .85rem; font-weight: 600; }
+.memberPointsInput { display: flex; align-items: center; border: 1px solid #455149; border-radius: 9px; background: #101713; }
+.memberPointsInput:focus-within { border-color: #b8f28b; outline: 2px solid #b8f28b55; outline-offset: 2px; }
+.memberPointsInput input { width: 100%; min-width: 0; border: 0; background: transparent; color: #fff; padding: 12px 14px; font-size: 1rem; outline: none; box-shadow: none; }
+.memberPointsInput > span { padding-right: 14px; color: #abb8b0; font-size: .85rem; }
+.memberPointsMax { align-self: flex-end; min-height: 45px; padding: 10px 16px; border: 1px solid #526445; border-radius: 9px; background: #293c27; color: #c8f7a6; font-weight: 600; }
+.memberPointsHint { margin: 9px 0; }
+.memberPointsError { color: #ffb7ad; font-size: .85rem; line-height: 1.5; margin: 10px 0; }
+.memberPointsApplied { color: #c8f7a6; font-size: .85rem; line-height: 1.5; margin: 12px 0; }
+.memberPointsSavings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; padding: 16px 0; border-top: 1px solid #354239; border-bottom: 1px solid #354239; }
+.memberPointsSavings span { display: block; margin-bottom: 6px; color: #abb8b0; font-size: .85rem; }
+.memberPointsSavings strong { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.memberPointsSavings > div:first-child strong, .memberPointsSummaryDiscount strong { color: #b8f28b; }
+.memberPointsSavings > div:last-child { text-align: right; }
+.memberPointsFooter { margin-top: 12px; gap: 12px; }
+.memberPointsFooter button { flex-shrink: 0; padding: 8px 0 8px 8px; border: 0; background: transparent; color: #c8f7a6; font-size: .8rem; text-decoration: underline; text-underline-offset: 3px; }
+.memberPointsCard button:focus-visible { outline: 2px solid #c8f7a6; outline-offset: 3px; }
+.memberPointsCard button:disabled, .memberPointsCard input:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 600px) {
+    .memberPointsCard { padding: 18px 14px; }
+    .memberPointsHeading { align-items: flex-start; gap: 10px; }
+    .memberPointsHeading h3 { font-size: 1rem; }
+    .memberPointsBalance strong { font-size: 1.4rem; }
+    .memberPointsChoices { gap: 8px; }
+    .memberPointsChoices button { flex-basis: calc(50% - 8px); }
+    .memberPointsInputRow { flex-wrap: wrap; gap: 10px; }
+    .memberPointsField { flex-basis: 100%; }
+    .memberPointsMax { width: 100%; }
+    .memberPointsFooter { flex-wrap: wrap; gap: 0; }
+    .memberPointsFooter button { padding-left: 0; }
+    .memberPointsSavings strong { font-size: 1.15rem; }
+}
+
 .paymentError {
     margin: 16px 0 0;
     padding: 11px 13px;

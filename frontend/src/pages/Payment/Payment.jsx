@@ -3,6 +3,7 @@ import {api} from '../../services/api';
 import FoodPicker, {foodImage} from '../../components/FoodPicker';
 import {translateFoodName} from '../../utils/uiText';
 import useMemberPoints from '../../hooks/useMemberPoints';
+import { memberPointsQuote } from '../../utils/memberPoints';
 import {Link} from 'react-router-dom';
 import CounterPromotion from '../../components/CounterPromotion';
 const money=value=>Number(value||0).toLocaleString('vi-VN')+'đ';
@@ -31,12 +32,11 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  const path=counter?(collectionOnly?'/payments/bookings/':'/counter/bookings/')+booking._id:'/bookings/'+booking._id;
  const deadline=Math.min(new Date(booking.expiresAt).getTime(),new Date(booking.showtime?.startTime||booking.expiresAt).getTime());
  const remaining=Math.max(0,Math.ceil((deadline-clock)/1000));
- const pointStep=counter?(pointsPolicy?.pointRedeemStep||100):wallet.step;
+ const pointStep=counter?(pointsPolicy?.pointRedeemStep||1):wallet.step;
  const balance=counter?Number(booking.user?.memberPoints||0):wallet.balance;
  const pointsAllowed=!booking.promotion||booking.promotion.stackable;
- const maxPoints=pointsAllowed?Math.floor(Math.min(balance,Math.floor((booking.subtotal-(booking.promotionDiscount||0))/1000))/pointStep)*pointStep:0;
+ const {maxPoints,pointsValid:validPoints}=memberPointsQuote(pointsAllowed?balance:0,booking.subtotal-(booking.promotionDiscount||0),points,pointStep);
  const pointsDirty=Number(points)!==booking.pointsUsed;
- const validPoints=points!==''&&Number.isSafeInteger(Number(points))&&Number(points)>=0&&Number(points)<=maxPoints&&Number(points)%pointStep===0;
  const editable=booking.status==='pending'&&remaining>0&&!booking.activePayment&&!paymentUncertain;
  const canEditOrder=editable&&!collectionOnly&&(!counter||user.role==='admin'||String(booking.counterEmployee)===String(user._id));
  const validCash=received.trim()!==''&&Number.isSafeInteger(Number(received))&&Number(received)>=booking.total;
@@ -53,7 +53,7 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  }
  const post=(suffix,body,method='POST')=>api(path+suffix,{method,body:JSON.stringify(body)});
  const pay=()=>perform(async()=>{
-  const chosen=booking.total===0?'points':method;
+  const chosen=booking.total===0?'points':counter?method:'vnpay';
   let result;
   try { result=await post('/pay',{method:chosen,receivedAmount:chosen==='cash'?Number(received):0,confirmedTotal:booking.total}); }
   catch(error){if(counter&&chosen==='cash'&&(!error.status||error.status>=500))setPaymentUncertain(true);throw error;}
@@ -61,17 +61,15 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
    if(!counter){window.location.assign(result.paymentUrl);return;}
    setGatewayUrl(result.paymentUrl);sync(result.booking);setNotice('Mở VNPay để khách thanh toán. Chờ máy chủ xác nhận kết quả.');return;
   }
-  if(chosen==='cash'&&!counter){sync(result.booking);setNotice(result.message+' Mã đơn: '+booking._id);}
-  else {sync(result);if(result.status==='paid'){setNotice('');setMsg('Thanh toán thành công.');if(!counter)wallet.refresh();}else setNotice('Khoản thu đã được lưu và đang cần đối soát. Không thu tiền lần nữa.');}
+  sync(result);if(result.status==='paid'){setNotice('');setMsg('Thanh toán thành công.');if(!counter)wallet.refresh();}else setNotice('Khoản thu đã được lưu và đang cần đối soát. Không thu tiền lần nữa.');
  });
  let submitLabel = 'Thanh toán qua VNPay Sandbox';
  if (busy) submitLabel = 'Đang xử lý…';
  else if (booking.total === 0) submitLabel = booking.promotion ? 'Xác nhận đơn 0đ' : 'Xác nhận thanh toán bằng điểm';
  else if (counter && method === 'vnpay') submitLabel = 'Tạo thanh toán VNPay';
  else if (counter) submitLabel = change > 0 ? 'Xác nhận thu tiền và trả tiền thừa' : 'Xác nhận thu tiền tại quầy';
- else if (method === 'cash') submitLabel = notice ? 'Đang chờ thanh toán tại quầy' : 'Xác nhận trả tại quầy';
  return <section className="page paymentPage"><div className="payment checkoutPayment">
- <header className="paymentHeading"><div><p className="bookingEyebrow">CINEMA+ / HOÀN TẤT ĐẶT VÉ</p><h2>{booking.status==='paid'?'Đã hoàn tất đơn':'Xác nhận đơn vé'}</h2><p>Kiểm tra thông tin trước khi hoàn tất đặt vé.</p></div><span className="simulationBadge">VNPay Sandbox / Thanh toán tại quầy</span></header>
+ <header className="paymentHeading"><div><p className="bookingEyebrow">CINEMA+ / HOÀN TẤT ĐẶT VÉ</p><h2>{booking.status==='paid'?'Đã hoàn tất đơn':'Xác nhận đơn vé'}</h2><p>Kiểm tra thông tin trước khi hoàn tất đặt vé.</p></div><span className="simulationBadge">{counter?'VNPay Sandbox / Thanh toán tại quầy':'VNPay Sandbox'}</span></header>
  {error&&<p className="paymentError" role="alert">{error}</p>}{notice&&booking.status==='pending'&&<p className="paymentNotice" role="status">{notice}</p>}
  {booking.paymentIssue&&<p className="paymentError" role="alert">{booking.paymentIssue}</p>}
  {(booking.activePayment||paymentUncertain)&&<section className="paymentNotice" aria-label="Giao dịch đang xử lý">
@@ -95,11 +93,11 @@ export default function Payment({user,setUser,pending,setPending,foods=[],points
  <p className="receiptDiscount"><span>Giảm từ {booking.pointsUsed} điểm</span><b>−{money(booking.discount)}</b></p></div><div className="receiptTotal"><span>{booking.status==='paid'?'Đã thanh toán ':'Tổng thanh toán'}</span><strong>{money(booking.total)}</strong></div>
  {booking.cashReceived!=null&&<div className="receiptLines"><p><span>Khách đưa</span><b>{money(booking.cashReceived)}</b></p><p><span>Tiền thừa đã trả</span><b>{money(booking.change)}</b></p></div>}
  {editable&&<>
- {booking.total>0&&<fieldset className="paymentMethods"><legend>Phương thức thanh toán</legend><label className={method==='vnpay'?'selected':''}><input type="radio" name="paymentMethod" value="vnpay" checked={method==='vnpay'} disabled={busy} onChange={()=>setMethod('vnpay')}/><span><strong>VNPay Sandbox</strong><small>Chuyển sang cổng thanh toán Sandbox</small></span></label><label className={method==='cash'?'selected':''}><input type="radio" name="paymentMethod" value="cash" checked={method==='cash'} disabled={busy} onChange={()=>setMethod('cash')}/><span><strong>Tiền mặt tại quầy</strong><small>Nhân viên xác nhận trước khi hết giữ ghế</small></span></label></fieldset>}
+ {booking.total>0&&<fieldset className="paymentMethods"><legend>Phương thức thanh toán</legend><label className={method==='vnpay'?'selected':''}><input type="radio" name="paymentMethod" value="vnpay" checked={method==='vnpay'} disabled={busy} onChange={()=>setMethod('vnpay')}/><span><strong>VNPay Sandbox</strong><small>Chuyển sang cổng thanh toán Sandbox</small></span></label>{counter&&<label className={method==='cash'?'selected':''}><input type="radio" name="paymentMethod" value="cash" checked={method==='cash'} disabled={busy} onChange={()=>setMethod('cash')}/><span><strong>Tiền mặt tại quầy</strong><small>Nhân viên xác nhận trước khi hết giữ ghế</small></span></label>}</fieldset>}
  {counter&&method==='cash'&&booking.total>0&&<label className="receivedLabel">Số tiền khách đưa<input type="number" min="0" step="1" value={received} onChange={e=>setReceived(e.target.value)} disabled={busy}/><small>{validCash?`Tiền trả khách: ${money(change)}`:`Cần nhận tối thiểu ${money(booking.total)}.`}</small></label>}
  {booking.total===0&&<p className="paymentNotice">Đơn đã được giảm còn 0đ. Xác nhận để nhận vé QR.</p>}
  {(editingFood||pointsDirty||promotionDirty)&&<p className="helperText" role="status">Lưu hoặc hủy thay đổi bắp nước, mã khuyến mãi và điểm trước khi thanh toán.</p>}
- <button className="primary paymentSubmit" disabled={blocked||(!counter&&method==='cash'&&!!notice&&booking.total>0)} onClick={pay}>{submitLabel}</button>
+ <button className="primary paymentSubmit" disabled={blocked} onClick={pay}>{submitLabel}</button>
 
  {canEditOrder&&<button className="paymentTextButton cancelOrder" disabled={busy} onClick={()=>perform(async()=>{if(window.confirm('Hủy đơn và giải phóng ghế?'))sync(await post('/cancel',{}));})}>Hủy đơn và giải phóng ghế</button>}</>}
  {booking.status==='pending'&&remaining===0&&<><p className="paymentError" role="alert">{booking.activePayment||paymentUncertain?'Giữ ghế đã hết hạn. Cần kiểm tra và đối soát giao dịch trước khi thu thêm tiền.':'Giữ ghế đã hết hạn. Vui lòng tạo đơn mới.'}</p>{!booking.activePayment&&!paymentUncertain&&!collectionOnly&&<button className="primary" onClick={()=>setTab('booking')}>Đặt vé lại</button>}</>}

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createCounterBooking, searchMembers } from '../../services/counterService';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
 import { isAvailableSeat, orphanSeatMessage } from '../../../../shared/seatSelection.mjs';
+import { memberPointsQuote } from '../../utils/memberPoints';
 
 import alice from '../../assets/posters/alice_in_borderland.jpg';
 import usDead from '../../assets/posters/all_of_us_are_dead.jpg';
@@ -107,7 +108,8 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     const normalizedRole = String(user?.role || '').toLowerCase();
     const [seat, setSeat] = useState([]);
     const [food, setFood] = useState([]);
-    const [guardianConfirmed, setGuardianConfirmed] = useState(false);
+    const [ageConfirmation, setAgeConfirmation] = useState(null);
+    const [bookingError, setBookingError] = useState('');
     const [step, setStep] = useState(selected?.startTime ? 2 : 0);
     const [cinema, setCinema] = useState(selected?.cinema || '');
     const [movieId, setMovieId] = useState(selected?.movie?._id || selected?._id || '');
@@ -168,14 +170,24 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
             ? { ...movie, ...latestMovie } : movie;
     }, [movieId, movies, currentShowtime]);
 
+    const requiredAge = ({ T13: 13, T16: 16, T18: 18 })[currentMovie?.classification] || currentMovie?.ageLimit || 0;
+    const needsAgeCheck = requiredAge > 0 || currentMovie?.classification === 'K';
+    // A check applies only to the selected screening and customers/seats.
+    // Changing them requires the employee to check the new customers again.
+    const ageConfirmationKey = JSON.stringify([showtimeId, currentMovie?._id, currentMovie?.classification, requiredAge, customerType, selectedMember?._id, [...seat].sort()]);
+    const guardianConfirmed = ageConfirmation === ageConfirmationKey;
+    useEffect(() => {
+        setAgeConfirmation(null);
+        setBookingError('');
+    }, [ageConfirmationKey]);
+
     useEffect(() => {
         setSeat(current => current.filter(number => currentShowtime?.seats?.some(item => item.number === number && isAvailableSeat(item))));
     }, [currentShowtime]);
 
     const subtotal = (currentShowtime?.price || 0) * seat.length + food.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
-    const pointStep = pointsPolicy?.pointRedeemStep || 100;
-    const maxPoints = Math.floor(Math.min(pointsBalance, Math.floor(subtotal / 1000)) / pointStep) * pointStep;
-    const pointsDiscount = Number(pointsToUse || 0) * 1000;
+    const pointStep = pointsPolicy?.pointRedeemStep || 1;
+    const { maxPoints, pointsValid, discount: pointsDiscount } = memberPointsQuote(pointsBalance, subtotal, pointsToUse, pointStep);
     const finalTotal = Math.max(0, subtotal - pointsDiscount);
 
     function clearMemberSelection(query = '') {
@@ -260,7 +272,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                 setStep(3);
                 return false;
             }
-            if (!Number.isSafeInteger(Number(pointsToUse)) || Number(pointsToUse) < 0 || Number(pointsToUse) % pointStep !== 0 || Number(pointsToUse) > maxPoints) {
+            if (!pointsValid) {
                 setMsg('Số điểm thưởng không được vượt quá điểm hiện có của khách hàng.');
                 setStep(3);
                 return false;
@@ -310,6 +322,12 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
     async function book() {
         if (bookingBusy) return;
         if (!validateBefore(4)) return;
+        if (needsAgeCheck && !guardianConfirmed) {
+            setBookingError('Vui lòng xác nhận kiểm tra tuổi/điều kiện người giám hộ bên dưới trước khi giữ ghế.');
+            document.getElementById('counter-age-confirmation')?.focus();
+            return;
+        }
+        setBookingError('');
         setBookingBusy(true);
         try {
             const booking = await createCounterBooking({
@@ -326,6 +344,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
             setMsg(`Đặt vé tại quầy thành công: ${booking._id}.`);
             setTab('payment');
         } catch (error) {
+            setBookingError(error.message);
             if ([404, 409, 410].includes(error.status)) await refreshAvailability(error.message);
             else setMsg(error.message);
         } finally {
@@ -423,7 +442,7 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
                                                         setMovieId(movie._id);
                                                         setShowtimeId(showtime._id);
                                                         setSeat([]);
-                                                        setGuardianConfirmed(false);
+                                                        setAgeConfirmation(null);
                                                         setAvailabilityError('');
                                                         setStep(2);
                                                     }}
@@ -575,8 +594,14 @@ export default function BookingCounter({ user, selected, showtimes, foods, movie
 
                         <FoodPicker foods={foods} items={food} onChange={setFood} />
 
-                        {(['K', 'T13', 'T16', 'T18'].includes(currentMovie?.classification) || currentMovie?.ageLimit > 0) && <label style={{display:'block',margin:'18px 0'}}><input type="checkbox" checked={guardianConfirmed} onChange={event=>setGuardianConfirmed(event.target.checked)} /> Tôi đã kiểm tra tuổi khách và điều kiện người giám hộ theo phân loại phim.</label>}
-                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy}>{bookingBusy ? 'Đang giữ ghế…' : 'Giữ ghế & tiếp tục thanh toán'}</button>
+                        {needsAgeCheck && <section className={'counterAgeCheck' + (guardianConfirmed ? ' confirmed' : '')} aria-labelledby="counter-age-title">
+                            <div className="counterAgeHeading"><h4 id="counter-age-title">Kiểm tra điều kiện xem phim</h4><strong className="counterClassification">{classificationLabel(currentMovie)}</strong></div>
+                            <p>{currentMovie?.classification === 'K' ? 'Kiểm tra điều kiện người giám hộ của khách theo phân loại K trước khi bán vé.' : `Kiểm tra tất cả khách trong đơn đủ ${requiredAge} tuổi trước khi bán vé.`}</p>
+                            <label htmlFor="counter-age-confirmation"><input id="counter-age-confirmation" type="checkbox" checked={guardianConfirmed} disabled={bookingBusy} aria-describedby="counter-age-help" onChange={event => { setAgeConfirmation(event.target.checked ? ageConfirmationKey : null); setBookingError(''); }} /><span>Tôi đã kiểm tra tuổi khách và điều kiện người giám hộ theo phân loại phim.</span></label>
+                            <p id="counter-age-help" className="counterAgeHint" aria-live="polite">{guardianConfirmed ? 'Đã xác nhận. Bạn có thể giữ ghế và tiếp tục thanh toán.' : 'Bắt buộc đánh dấu xác nhận ở trên để tiếp tục giữ ghế.'}</p>
+                        </section>}
+                        {bookingError && <p className="paymentError" role="alert">{bookingError}</p>}
+                        <button type="button" className="primary full" onClick={book} disabled={bookingBusy || (needsAgeCheck && !guardianConfirmed)} aria-describedby={needsAgeCheck ? 'counter-age-help' : undefined}>{bookingBusy ? 'Đang giữ ghế…' : 'Giữ ghế & tiếp tục thanh toán'}</button>
                     </div>
                 )}
 

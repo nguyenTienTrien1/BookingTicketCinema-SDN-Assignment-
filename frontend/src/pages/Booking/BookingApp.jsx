@@ -2,6 +2,8 @@ import FoodPicker from '../../components/FoodPicker';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createBooking } from '../../services/bookingService';
 import useMemberPoints from '../../hooks/useMemberPoints';
+import MemberPointsPicker from '../../components/MemberPointsPicker';
+import { memberPointsQuote } from '../../utils/memberPoints';
 import { translateFoodName, translateGenre } from '../../utils/uiText';
 import { orphanSeatMessage } from '../../../../shared/seatSelection.mjs';
 
@@ -134,10 +136,7 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
     }, [currentShowtime]);
 
     const subtotal = ticketSubtotal + foodSubtotal;
-    const maxPoints = Math.floor(Math.min(memberPoints.balance, Math.floor(subtotal / 1000)) / memberPoints.step) * memberPoints.step;
-    const selectedPoints = Number(pointsToUse);
-    const pointsValid = Number.isSafeInteger(selectedPoints) && selectedPoints >= 0 && selectedPoints % memberPoints.step === 0 && selectedPoints <= maxPoints;
-    const discount = pointsValid ? selectedPoints * 1000 : 0;
+    const { selectedPoints, pointsValid, discount } = memberPointsQuote(memberPoints.balance, subtotal, pointsToUse, memberPoints.step);
     function getMovieShowtimes(movie) {
         if (!cinema) return [];
         return showtimes.filter((s) => {
@@ -495,28 +494,16 @@ export default function BookingApp({ user, setUser, selected, showtimes, foods, 
                                     <span>Tổng bắp nước</span>
                                     <strong>{foodSubtotal.toLocaleString()}₫</strong>
                                 </div>
+                                {discount > 0 && <div className="summaryPriceRow memberPointsSummaryDiscount"><span>Giảm từ {selectedPoints} điểm</span><strong>−{discount.toLocaleString('vi-VN')}₫</strong></div>}
                             </div>
                             <div className="summaryTotal">
                                 <span>Tổng thanh toán</span>
-                                <strong>{(subtotal - discount).toLocaleString()}₫</strong>
+                                <strong>{(subtotal - discount).toLocaleString('vi-VN')}₫</strong>
                             </div>
                         </div>
-                        <div className="pointsPayment">
-                            <label htmlFor="online-member-points">Dùng điểm thành viên giảm tiền</label>
-                            <p aria-live="polite">Hiện có {memberPoints.balance} điểm · 1 điểm = 1.000đ · Đổi theo bội số {memberPoints.step} · Đơn này dùng tối đa {maxPoints} điểm.</p>
-                            <div className="pointBox">
-                                <input id="online-member-points" type="number" min="0" max={maxPoints} step={memberPoints.step}
-                                    value={pointsToUse} onChange={(event) => setPointsToUse(event.target.value)} disabled={bookingBusy || memberPoints.refreshing} />
-                                <button type="button" onClick={() => setPointsToUse(String(maxPoints))} disabled={bookingBusy || memberPoints.refreshing || !!memberPoints.error}>Dùng tối đa</button>
-                                <button type="button" onClick={() => setPointsToUse('0')} disabled={bookingBusy}>Không dùng điểm</button>
-                                <button type="button" onClick={memberPoints.refresh} disabled={bookingBusy || memberPoints.refreshing}>{memberPoints.refreshing ? 'Đang tải…' : 'Làm mới số dư'}</button>
-                            </div>
-                            {memberPoints.error && <p role="alert">{memberPoints.error}</p>}
-                            {!pointsValid && <p role="alert">Số điểm phải là số nguyên từ 0 đến {maxPoints}.</p>}
-                            <p>Giảm {discount.toLocaleString()}đ · Chỉ trừ điểm khi thanh toán thành công.</p>
-                        </div>
+                        <MemberPointsPicker wallet={memberPoints} value={pointsToUse} onChange={setPointsToUse} subtotal={subtotal} busy={bookingBusy} />
                         <p className="accountNotice">Thông tin khách hàng sẽ được lấy từ tài khoản của bạn. Không cần nhập lại.</p>
-                        <p className="helperText">Nh?n vi?n s? ki?m tra ?? tu?i v? ?i?u ki?n ng??i gi?m h? t?i qu?y tr??c khi v?o xem phim.</p>
+                        <p className="helperText">Nhân viên sẽ kiểm tra độ tuổi và điều kiện người giám hộ tại quầy trước khi vào xem phim.</p>
                         <button type="button" className="primary full" onClick={book} disabled={bookingBusy || !pointsValid || (selectedPoints > 0 && (memberPoints.refreshing || !!memberPoints.error))}>{bookingBusy ? 'Đang tạo đơn…' : 'Tạo đơn và chọn thanh toán'}</button>
                     </div>
                 )}

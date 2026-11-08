@@ -1,0 +1,75 @@
+.accountAdminPage { width: 100%; min-width: 0; color: #f4f5f8; }
+.accountPageHeading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 28px; }
+.accountEyebrow { margin: 0 0 9px; color: #8a96ab; font-size: .72rem; font-weight: 700; letter-spacing: 1.5px; }
+.accountPageHeading h2 { margin: 0 0 10px; font-size: clamp(1.4rem, 2.2vw, 1.85rem); }
+.accountPageHeading p:last-child { margin: 0; color: #a7afbf; line-height: 1.6; font-size: .9rem; }
+.accountCreateLayout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr); gap: 24px; align-items: start; }
+.accountFormCard, .accountHelpCard, .accountDirectory { min-width: 0; padding: 24px; border: 1px solid #2b303d; border-radius: 14px; background: #12151d; }
+.accountCardHeading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid #282d39; }
+.accountCardHeading h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.accountCardHeading > span { color: #8e99af; font-size: .75rem; }
+.accountFormCard fieldset { min-width: 0; padding: 0; margin: 0; border: 0; }
+.accountFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 20px; }
+.accountFields label, .accountStatusField, .accountToolbar label { display: flex; flex-direction: column; align-items: stretch; gap: 9px; min-width: 0; color: #e0e4ec; font-size: .86rem; font-weight: 600; }
+.accountFields label > span { display: inline; color: #ff737a; }
+.accountFields label { position: relative; }
+.accountFields label > span { position: absolute; top: 0; left: auto; margin-left: -10px; }
+.accountFields input, .accountFields select, .accountStatusField select, .accountToolbar input, .accountToolbar select {
+    box-sizing: border-box; width: 100%; min-width: 0; min-height: 46px; margin: 0; padding: 11px 13px;
+    border: 1px solid #363d4e; border-radius: 8px; background: #191e28; color: #f4f5f8; font: inherit; font-weight: 400;
+}
+.accountAdminPage input::placeholder { color: #728097; }
+.accountAdminPage input:focus, .accountAdminPage select:focus { outline: 2px solid #e5091455; outline-offset: 2px; border-color: #f0525a; }
+.accountAdminPage button:focus-visible { outline: 2px solid #ff737a; outline-offset: 3px; }
+.accountFields small, .accountFieldHint { color: #8c98ac; font-size: .74rem; font-weight: 400; line-height: 1.6; }
+.accountStatusField { margin-top: 22px; }
+.accountFormActions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 28px; padding-top: 22px; border-top: 1px solid #282d39; }
+.accountAdminPage .primary, .accountAdminPage .ghost { min-height: 42px; padding: 10px 16px; border-radius: 8px; font-size: .85rem; }
+.accountAdminPage .ghost { border: 1px solid #374054; background: #1b2130; color: #dce1ed; }
+.accountAdminPage button:disabled, .accountAdminPage input:disabled, .accountAdminPage select:disabled { opacity: .5; cursor: not-allowed; }
+.accountHelpCard { background: linear-gradient(145deg, #201820, #141820 75%); }
+.accountMailIcon { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #66313b; border-radius: 12px; background: #391d27; color: #ff8e95; font-size: 1.5rem; }
+.accountHelpCard h3 { font-size: 1rem; line-height: 1.5; margin: 18px 0 12px; }
+.accountHelpCard ol { margin: 0; padding-left: 19px; color: #aab3c4; font-size: .85rem; line-height: 1.7; }
+.accountHelpCard li + li { margin-top: 10px; }
+.accountHelpCard > p { margin: 16px 0 0; color: #8f9bb0; font-size: .77rem; line-height: 1.6; }
+.accountEmailPreview { margin-top: 22px; padding: 14px; border: 1px dashed #42495b; border-radius: 8px; background: #10141c; }
+.accountEmailPreview span { display: block; color: #8e9bb0; font-size: .74rem; margin-bottom: 7px; }
+.accountEmailPreview strong { font-size: .85rem; overflow-wrap: anywhere; }
+.accountAlert { padding: 18px 20px; margin: 0 0 22px; border: 1px solid; border-radius: 10px; line-height: 1.65; font-size: .87rem; overflow-wrap: anywhere; }
+.accountAlert p { margin: 8px 0 0; }
+.accountAlert.success { color: #b0e9c8; background: #14271e; border-color: #2a6045; }
+.accountAlert.error { color: #ffc2c6; background: #301920; border-color: #79343f; }
+.accountAlert.warning { color: #f4d69e; background: #2a2418; border-color: #6a5630; }
+.accountResultActions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.accountManageLayout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: start; }
+.accountManageLayout.editing { grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr); }
+.accountEditCard .accountFields { grid-template-columns: 1fr; }
+.accountToolbar { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 14px; }
+.accountCount { color: #8f9bb0; font-size: .8rem; margin: 18px 0 12px; }
+.accountUserList { display: grid; gap: 10px; }
+.accountUserRow { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 17px 14px; border: 1px solid #2b3342; border-radius: 10px; background: #171c26; }
+.accountUserRow.selected { border-color: #b64650; background: #251c26; }
+.accountUserRow .accountAvatar { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; background: #342c41; color: #d9c7f3; font-size: 1rem; font-weight: 700; }
+.accountUserInfo { min-width: 0; flex: 1; }
+.accountUserInfo h3 { margin: 0 0 5px; font-size: .9rem; overflow-wrap: anywhere; }
+.accountUserInfo p { margin: 0 0 4px; font-size: .8rem; color: #b1bbcd; overflow-wrap: anywhere; }
+.accountUserInfo small { color: #8795ad; font-size: .72rem; font-weight: 400; }
+.accountStatus { display: table; width: fit-content; margin-top: 8px; padding: 4px 8px; border-radius: 5px; font-size: .69rem; }
+.accountStatus.active { background: #143728; color: #7ee3ad; }
+.accountStatus.inactive { background: #3d3022; color: #efbf7d; }
+.accountRowActions { display: flex; flex-direction: column; gap: 9px; align-items: flex-end; }
+.accountInlineButton { padding: 5px 0; border: 0; background: transparent; color: #b5c5e3; font-size: .78rem; text-decoration: underline; text-underline-offset: 3px; }
+.accountEmpty { color: #95a3b9; padding: 22px 0; }
+@media (max-width: 1200px) { .accountCreateLayout { grid-template-columns: minmax(0, 1fr); } .accountManageLayout.editing { grid-template-columns: minmax(0, 1fr); } .accountEditCard { grid-row: 1; } .accountEditCard .accountFields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+    .accountFields, .accountEditCard .accountFields, .accountToolbar { grid-template-columns: minmax(0, 1fr); }
+    .accountPageHeading { flex-direction: column; align-items: flex-start; }
+    .accountFormCard, .accountHelpCard, .accountDirectory { padding: 18px 14px; }
+    .accountCardHeading { align-items: flex-start; flex-direction: column; gap: 8px; }
+    .accountUserRow { flex-wrap: wrap; }
+    .accountUserInfo { flex-basis: calc(100% - 60px); }
+    .accountRowActions { flex-direction: row; align-items: center; width: 100%; justify-content: flex-end; }
+    .accountFormActions { flex-direction: column-reverse; }
+    .accountFormActions button { width: 100%; }
+}

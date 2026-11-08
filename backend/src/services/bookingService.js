@@ -13,8 +13,11 @@ import { quoteCounterPromotion, consumeCounterPromotion } from './counterPromoti
 import { orphanSeatMessage } from '../../../shared/seatSelection.mjs';
 export const POINT_VALUE = 1000;
 export function validatePoints(points, subtotal, balance) {
- const step = Number(process.env.POINT_REDEEM_STEP || 100);
- if (!Number.isSafeInteger(points) || points < 0 || points % step !== 0 || points > balance || points * POINT_VALUE > subtotal) throw fail('Điểm sử dụng không hợp lệ hoặc vượt số dư/giá trị đơn.');
+ const step = Number(process.env.POINT_REDEEM_STEP || 1);
+ if (!Number.isSafeInteger(points) || points < 0) throw fail('Số điểm phải là số nguyên không âm.');
+ if (points % step !== 0) throw fail(`Số điểm phải là bội số ${step}.`);
+ if (points > balance) throw fail(`Bạn chỉ có ${balance} điểm. Vui lòng giảm số điểm sử dụng.`);
+ if (points * POINT_VALUE > subtotal) throw fail('Giá trị điểm sử dụng không được vượt giá trị đơn.');
 }
 const populate = [{ path: 'showtime', populate: { path: 'movie' } }, { path: 'foodItems.food' }, { path: 'user', select: 'fullName email role memberPoints status' }];
 async function reprice(booking, member, session, code = booking.promotion?.code || '') {

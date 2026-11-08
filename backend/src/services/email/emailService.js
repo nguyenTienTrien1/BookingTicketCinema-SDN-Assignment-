@@ -446,3 +446,19 @@ export async function sendStaffInvitation({to,fullName,token}) {
  const info=await transport.sendMail({from:process.env.EMAIL_FROM||process.env.SMTP_USER,to,subject:'CINEMA+ — Kích hoạt tài khoản nhân sự',text:'Xin chào '+fullName+'. Tự đặt mật khẩu qua liên kết có hiệu lực 24 giờ: '+link.toString()});
  return {emailSent:!!info.messageId};
 }
+
+export async function sendStaffCredentials({ to, fullName, password }) {
+  const transport = await getTransporter(true);
+  const loginUrl = new URL('/login', process.env.CLIENT_URL || 'http://localhost:5173').href;
+  const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+  const info = await transport.sendMail({
+    from: process.env.EMAIL_FROM || process.env.GMAIL_USER || process.env.SMTP_USER,
+    to,
+    subject: 'CINEMA+ — Thông tin đăng nhập tài khoản nhân sự',
+    text: `Xin chào ${fullName},\n\nTài khoản CINEMA+ của bạn đã được tạo.\nEmail đăng nhập: ${to}\nMật khẩu: ${password}\nĐăng nhập: ${loginUrl}\n\nVui lòng đổi mật khẩu trong Hồ sơ sau khi đăng nhập. Không chia sẻ thông tin này.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#17202a"><h1>CINEMA<span style="color:#e50914">+</span></h1><h2>Tài khoản nhân sự của bạn</h2><p>Xin chào ${escape(fullName)},</p><p>Tài khoản của bạn đã sẵn sàng để đăng nhập.</p><p><b>Email:</b> ${escape(to)}</p><p><b>Mật khẩu:</b> <code style="padding:8px;background:#f1f3f5">${escape(password)}</code></p><p><a href="${escape(loginUrl)}">Đăng nhập CINEMA+</a></p><p>Vui lòng đổi mật khẩu trong Hồ sơ sau khi đăng nhập. Không chia sẻ thông tin này.</p></div>`
+  });
+  if (!info.accepted?.some(address => String(address).toLowerCase() === to.toLowerCase())) {
+    throw new Error('Recipient was not accepted by SMTP.');
+  }
+}
