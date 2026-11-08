@@ -15,6 +15,7 @@
     "test:food-sales": "node --test tests/api/test_food_sales.js",
     "test:catalogue": "node --test tests/api/test_catalogue.js",
     "test:food-images": "node --test tests/api/test_food_images.js",
+    "test:movie-images:ui": "node --test tests/ui/test-movie-images-ui.js",
     "test:food-images:ui": "node --test tests/ui/test-food-images-ui.js",
     "test:profile": "node --test tests/api/test_profile.js",
     "test:password-reset": "node --test tests/api/test_password_reset.js",

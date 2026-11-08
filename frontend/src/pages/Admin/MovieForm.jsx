@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { addMovie, getAdminMovie, updateMovie } from '../../services/movieService';
+import { addMovie, getAdminMovie, updateMovie, uploadMovieImage } from '../../services/movieService';
+import MovieImagePicker from '../../components/MovieImagePicker';
 import './movies.css';
 
 const initialForm = {
@@ -18,6 +19,8 @@ export default function MovieForm({ editing = false }) {
   const [form, setForm] = useState(initialForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [imageFiles, setImageFiles] = useState({ poster: null, banner: null });
+  const [imageErrors, setImageErrors] = useState({});
   const submitting = useRef(false);
   const errorRef = useRef(null);
 
@@ -27,6 +30,8 @@ export default function MovieForm({ editing = false }) {
     setLoading(true);
     setLoaded(false);
     setError('');
+    setImageFiles({ poster: null, banner: null });
+    setImageErrors({});
     getAdminMovie(id).then(({ movie, hasShowtimes }) => {
       if (ignore) return;
       setForm({
@@ -47,16 +52,30 @@ export default function MovieForm({ editing = false }) {
     const { name, value, type, checked } = event.target;
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   }
+  function chooseImage(kind, file) {
+    const invalid = file && (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size || file.size > 5 * 1024 * 1024);
+    setImageErrors(current => ({ ...current, [kind]: invalid ? 'Chọn ảnh JPG, PNG hoặc WebP hợp lệ, tối đa 5 MB.' : '' }));
+    setImageFiles(current => ({ ...current, [kind]: invalid ? null : file }));
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     if (submitting.current) return;
+    if (Object.values(imageErrors).some(Boolean)) return;
     submitting.current = true;
     setSaving(true);
     setError('');
     try {
+      const uploaded = {};
+      for (const kind of ['poster', 'banner']) {
+        if (!imageFiles[kind]) continue;
+        uploaded[kind] = await uploadMovieImage(imageFiles[kind]);
+        // Keep successful uploads when saving metadata fails, so retry does not upload again.
+        setForm(current => ({ ...current, [kind]: uploaded[kind] }));
+        setImageFiles(current => ({ ...current, [kind]: null }));
+      }
       const payload = {
-        ...form, genre: form.genre.split(',').map((item) => item.trim()),
+        ...form, ...uploaded, genre: form.genre.split(',').map((item) => item.trim()),
         duration: Number(form.duration), rating: Number(form.rating)
       };
       const result = editing ? await updateMovie(id, payload) : await addMovie(payload);
@@ -112,18 +131,14 @@ export default function MovieForm({ editing = false }) {
                 <input id="movie-release" type="date" name="releaseDate" disabled={hasShowtimes} value={form.releaseDate} onChange={handleChange} required min="1900-01-01" max="9999-12-31" /></label>
               <label htmlFor="movie-rating">Điểm đánh giá (0–10)
                 <input id="movie-rating" type="number" name="rating" value={form.rating} onChange={handleChange} required min={0} max={10} step="any" /></label>
-              <label className="movieWide" htmlFor="movie-poster">Đường dẫn poster *
-                <input id="movie-poster" name="poster" value={form.poster} onChange={handleChange} required maxLength={2048} placeholder="https://… hoặc /images/posters/…" aria-describedby="media-help" /></label>
-              <label className="movieWide" htmlFor="movie-banner">Đường dẫn banner
-                <input id="movie-banner" name="banner" value={form.banner} onChange={handleChange} maxLength={2048} placeholder="https://… hoặc /images/banners/…" />
-                <small id="media-help">Dùng URL http/https hoặc đường dẫn ảnh có sẵn trên website.</small></label>
+              {['poster', 'banner'].map(kind => <MovieImagePicker key={kind} kind={kind} value={form[kind]} file={imageFiles[kind]} error={imageErrors[kind]} onFile={file => chooseImage(kind, file)} onUrl={handleChange} />)}
               <label className="movieWide movieCheckbox" htmlFor="movie-featured">
                 <input id="movie-featured" type="checkbox" name="featured" checked={form.featured} onChange={handleChange} />Đánh dấu phim nổi bật</label>
             </div>
           </fieldset>
           <div className="movieFormActions">
             <button className="movieSecondary" type="button" disabled={saving} onClick={() => navigate('/admin/movies')}>Hủy</button>
-            <button className="moviePrimary" type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu phim'}</button>
+            <button className="moviePrimary" type="submit" disabled={saving || Object.values(imageErrors).some(Boolean)}>{saving ? 'Đang lưu…' : 'Lưu phim'}</button>
           </div>
         </form>}
       </div>

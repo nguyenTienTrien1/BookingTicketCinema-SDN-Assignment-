@@ -41,7 +41,7 @@ const posters = {
 
 export function getMoviePoster(movie) {
     const normalizedTitle = String(movie.title || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-    return movie.poster?.startsWith('http') ? movie.poster : posters[normalizedTitle] || movie.poster || '';
+    return movie.poster?.startsWith('http') || movie.poster?.startsWith('/api/uploads/movies/') ? movie.poster : posters[normalizedTitle] || movie.poster || '';
 }
 
 export default function MovieCard({ movie, onClick, onDetail }) {

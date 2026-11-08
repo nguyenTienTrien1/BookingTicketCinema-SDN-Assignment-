@@ -162,6 +162,7 @@ Admin: `admin@cinema.com` / `admin123`
 
 ### Implemented CE190580 scope (Khai)
 - UC-13.1: Add Movie — Admin form with server validation and creator tracking.
+- Add/Edit Movie accepts local poster and banner files with previews, alongside the existing URL fields. JPG, PNG and WebP are supported up to 5 MB each; only Save uploads the files. `POST /api/movies/images` is Admin-only and validates the decoded raster content before storing normalized WebP under ignored `backend/uploads/movies/`. `/api/uploads/movies/:filename` serves the artwork publicly; the Member catalogue and movie detail keep the saved poster/banner. Existing image files are retained when replaced to preserve shared references. Verify with `npm run test:movie-images:ui -w backend` (isolated temporary database).
 - UC-13.2: View Movies — Admin catalogue with title search, pagination and movie details.
 - UC-13.3: Update Movie — use **Sửa** in the Admin catalogue. The editor shares validation with Add Movie, checks the loaded version to reject stale writes and records `updatedBy`. Movies with any showtime lock title, duration, classification and release date; other descriptive fields remain editable.
 - UC-13.4: Delete Movie — use **Xóa** and confirm. Movies referenced by any showtime are blocked. Other movies are soft deleted with `deletedAt`/`deletedBy`; references and audit history are retained, and the movie is hidden from public/Admin catalogues and cannot be booked.

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 export const FOOD_IMAGE_DIRECTORY = fileURLToPath(new URL("../../../uploads/foods/", import.meta.url));
+export const MOVIE_IMAGE_DIRECTORY = fileURLToPath(new URL("../../../uploads/movies/", import.meta.url));
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -18,6 +19,9 @@ function detectedType(buffer) {
 
 export async function storeFoodImage(buffer, contentType) {
   return storeImage(buffer, contentType, 'foods');
+}
+export async function storeMovieImage(buffer, contentType) {
+  return storeImage(buffer, contentType, 'movies');
 }
 async function storeImage(buffer, contentType, folder) {
   if (!Buffer.isBuffer(buffer) || !buffer.length) throw invalid('Vui lòng chọn một ảnh.');

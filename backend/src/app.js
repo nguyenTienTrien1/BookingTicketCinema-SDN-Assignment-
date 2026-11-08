@@ -8,7 +8,7 @@ import userRoutes from "./routes/users/userRoutes.js";
 import movieRoutes from "./routes/movies/movieRoutes.js";
 import bookingRoutes from "./routes/bookings/bookingRoutes.js";
 import foodRoutes from "./routes/catalogue/foodRoutes.js";
-import { serveImage } from "./controllers/catalogue/foodImageController.js";
+import { serveImage, serveMovieImage } from "./controllers/catalogue/foodImageController.js";
 import counterRoutes from "./routes/bookings/counterRoutes.js";
 import promotionRoutes from "./routes/catalogue/promotionRoutes.js";
 import foodSaleRoutes from "./routes/catalogue/foodSaleRoutes.js";
@@ -37,6 +37,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 app.get('/api/uploads/foods/:filename', serveImage);
+app.get('/api/uploads/movies/:filename', serveMovieImage);
 
 // 3. Health check endpoint
 app.get('/api/health', (_req, res) => {

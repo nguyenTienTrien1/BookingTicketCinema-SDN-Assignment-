@@ -54,6 +54,18 @@
 .movieFormActions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 24px; border-top: 1px solid #292e3b; }
 .movieForm .movieError { margin: 0 0 24px; }
 .movieSrOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.movieImagePicker { min-width: 0; display: grid; gap: 14px; padding: 20px; border: 1px solid #303747; border-radius: 12px; background: #0d1016; }
+.movieImagePicker h3 { margin: 0; font-size: 1rem; }
+.movieImagePicker .movieFormHint { margin: 0; line-height: 1.6; }
+.movieImageActions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.movieImageActions span { font-size: .85rem; color: #bbc4d7; overflow-wrap: anywhere; min-width: 0; }
+.movieImagePreview { padding: 12px; background: #080b10; border: 1px solid #272e3c; border-radius: 10px; }
+.movieImagePreview img { display: block; max-width: 100%; max-height: 280px; object-fit: contain; margin: auto; }
+.movieImagePicker-poster .movieImagePreview img { width: 180px; aspect-ratio: 2/3; }
+.movieImagePicker-banner .movieImagePreview img { width: 100%; aspect-ratio: 16/9; }
+.movieImagePicker .movieError { margin: 0; }
+.movieImagePicker input[type=file] { display: none; }
+.movieImagePicker > *, .movieFormGrid > label { min-width: 0; }
 @media (max-width: 600px) {
   .movieAdmin { padding: 20px 14px 40px; }
   .movieAdminHeading { align-items: flex-start; flex-direction: column; gap: 18px; }
