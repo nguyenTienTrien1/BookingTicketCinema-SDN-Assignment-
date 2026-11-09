@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Platform, Text } from 'react-native';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { api, when } from '../api';
+import { api, ApiError, when } from '../api';
 import { BackButton, Button, Card, Field, Heading, Muted, Page, s } from '../ui';
 import OptionPicker from '../OptionPicker';
 
@@ -31,6 +31,7 @@ export default function TicketCheckIn() {
     try { const result = await api<Preview>(`/tickets/${encodeURIComponent(ticket.reference)}/check-in`, 'POST', { showtimeId, ageVerified }); setTicket(result); setSuccess(result.message || 'Đã lưu trạng thái check-in.'); }
     catch (e) {
       setError((e as Error).message); setTicket(null); setAgeVerified(false);
+      if (!(e instanceof ApiError) || e.status >= 500) setNeedsLookup(true);
     } finally { saving.current = false; setBusy(false); }
   }
   return <Page><BackButton disabled={busy} onPress={() => router.navigate('/workspace')} /><Heading>Check-in vé</Heading><Muted>Chọn đúng suất, tra cứu vé rồi xác nhận vào rạp sau khi trạng thái được lưu.</Muted>
