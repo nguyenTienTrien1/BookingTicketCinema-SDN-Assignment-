@@ -5,6 +5,9 @@ import { imageUrl } from './api';
 import { bundledImages } from './assets';
 import { Icon, IconName } from './Icon';
 export const colors = {bg:'#0a0b10',panel:'#15171f',border:'#272a36',red:'#f23758',muted:'#a1a7b8',text:'#f5f5fa',soft:'#1e202b',pink:'#ff8a9f',green:'#9ee4bd',gold:'#edcd8d'};
+export function BackButton({onPress,disabled=false}:{onPress:()=>void;disabled?:boolean}) {
+  return <View style={{alignSelf:'flex-start'}}><Button secondary title="← Về tác vụ" disabled={disabled} onPress={onPress}/></View>;
+}
 export function Heading({children}:PropsWithChildren){return <Text style={s.heading}>{children}</Text>;}
 export function Muted({children}:PropsWithChildren){return <Text style={s.muted}>{children}</Text>;}
 export function Card({children}:PropsWithChildren){return <View style={s.card}>{children}</View>;}
