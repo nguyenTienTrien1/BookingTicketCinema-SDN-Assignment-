@@ -1,0 +1,7 @@
+export type User = { _id: string; fullName: string; email: string; memberPoints?: number; role: string };
+export type Movie = { _id: string; title: string; description?: string; poster?: string; banner?: string; genre: string[]; duration: number; classification?: string; rating?: number };
+export type Seat = { number: string; status: string; type?: string; condition?: string };
+export type Showtime = { _id: string; movie: Movie; cinema: string; room: string; startTime: string; price: number; seats: Seat[] };
+export type Food = { _id: string; name: string; image?: string; price: number; stock: number };
+export type Booking = { _id: string; showtime?: Showtime; user?:User|null; counterEmployee?:string; seats: string[]; subtotal: number; total: number; pointsUsed: number; discount: number; promotionDiscount?: number; promotion?: { code: string; stackable: boolean }; status: string; expiresAt: string; activePayment?: string; paymentRef?:string; cashReceived?:number; change?:number; foodItems?: { name: string; quantity: number; unitPrice: number }[] };
+export type TicketResult = { message?: string; mode?: string; tickets: { reference: string; seat: string; status: string; qrDataUrl?: string }[] };

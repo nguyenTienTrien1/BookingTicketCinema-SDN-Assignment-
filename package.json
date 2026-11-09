@@ -3,6 +3,8 @@
   "private": true,
   "workspaces": ["frontend", "backend"],
   "scripts": {
+    "dev:mobile": "npm --prefix mobile run start --",
+    "check:mobile": "npm --prefix mobile run typecheck",
     "setup:local": "npm run db:setup -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "dev:backend": "npm run dev -w backend",
