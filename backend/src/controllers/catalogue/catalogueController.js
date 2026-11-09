@@ -1,8 +1,8 @@
+import { trustedClientRequest } from '../../config/clientOrigins.js';
 import * as service from "../../services/catalogue/catalogueService.js";
 
 export function protectWrite(req, res, next) {
-  const origin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-  if (req.get('Sec-Fetch-Site') === 'cross-site' || (req.get('Origin') && req.get('Origin') !== origin)) {
+  if (!trustedClientRequest(req)) {
     return res.status(403).json({ message: 'Nguồn yêu cầu không hợp lệ.' });
   }
   if (!req.is('application/json')) return res.status(415).json({ message: 'Yêu cầu phải dùng application/json.' });

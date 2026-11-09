@@ -1,9 +1,9 @@
+import { trustedClientRequest } from '../../config/clientOrigins.js';
 import express from 'express';
 import { FOOD_IMAGE_DIRECTORY, MOVIE_IMAGE_DIRECTORY, IMAGE_TYPES, MAX_IMAGE_BYTES, storeFoodImage, storeMovieImage } from "../../services/catalogue/foodImageService.js";
 
 export function protectImageUpload(req, res, next) {
-  const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-  if (req.get('Sec-Fetch-Site') === 'cross-site' || (req.get('Origin') && req.get('Origin') !== allowedOrigin)) {
+  if (!trustedClientRequest(req)) {
     return res.status(403).json({ message: 'Nguồn yêu cầu không hợp lệ.' });
   }
   if (!IMAGE_TYPES.includes(req.get('Content-Type')?.split(';')[0].trim().toLowerCase())) {

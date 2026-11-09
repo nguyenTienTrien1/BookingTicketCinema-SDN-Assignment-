@@ -1,3 +1,4 @@
+import { trustedClientRequest } from '../../config/clientOrigins.js';
 import * as service from "../../services/cinema/showtimeService.js";
 
 export async function suggest(req, res, next) {
@@ -15,8 +16,7 @@ export async function confirm(req, res, next) {
 }
 
 export function protectWrite(req, res, next) {
-  const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-  if (req.get('Sec-Fetch-Site') === 'cross-site' || (req.get('Origin') && req.get('Origin') !== allowedOrigin)) {
+  if (!trustedClientRequest(req)) {
     return res.status(403).json({ message: 'Nguồn yêu cầu không hợp lệ.' });
   }
   if (!req.is('application/json')) {

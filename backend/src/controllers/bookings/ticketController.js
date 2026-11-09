@@ -1,8 +1,10 @@
 import * as service from "../../services/bookings/ticketService.js";
+import { allowedClientOrigins } from '../../config/clientOrigins.js';
 
 export function protectWrite(req, res, next) {
-  const origin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-  if (req.get('Sec-Fetch-Site') === 'cross-site' || (req.get('Origin') && req.get('Origin') !== origin)) return res.status(403).json({ message: 'Nguồn yêu cầu không hợp lệ.' });
+  const origin = req.get('Origin');
+  const mobilePreview = process.env.NODE_ENV !== 'production' && origin === (process.env.MOBILE_WEB_ORIGIN || 'http://localhost:8081') && req.headers.authorization?.startsWith('Bearer ');
+  if ((!mobilePreview && req.get('Sec-Fetch-Site') === 'cross-site') || (origin && !allowedClientOrigins().includes(origin))) return res.status(403).json({ message: 'Nguồn yêu cầu không hợp lệ.' });
   if (!req.is('application/json')) return res.status(415).json({ message: 'Yêu cầu phải dùng application/json.' });
   next();
 }

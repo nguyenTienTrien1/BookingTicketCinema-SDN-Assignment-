@@ -2,6 +2,7 @@ import paymentRoutes from "./routes/payments/paymentRoutes.js";
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { allowedClientOrigins } from './config/clientOrigins.js';
 
 import authRoutes from './routes/auth/authRoutes.js';
 import userRoutes from "./routes/users/userRoutes.js";
@@ -27,7 +28,7 @@ import { adminDashboard } from './controllers/auth/adminLoginController.js';
 const app = express();
 
 // 1. CORS Configuration with credentials enabled for HttpOnly cookies
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const allowedOrigin = allowedClientOrigins();
 app.use(cors({
   origin: allowedOrigin,
   credentials: true

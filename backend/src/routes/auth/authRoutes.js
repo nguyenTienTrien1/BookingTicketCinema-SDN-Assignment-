@@ -1,6 +1,6 @@
 import {activateStaff} from "../../services/users/staffService.js";
 import { Router } from 'express';
-import { login, logout, getCurrentUser } from '../../controllers/auth/loginController.js';
+import { login, mobileLogin, mobileStaffLogin, logout, getCurrentUser } from '../../controllers/auth/loginController.js';
 import { adminLogin } from '../../controllers/auth/adminLoginController.js';
 import { register, verifyEmail, resendVerification } from '../../controllers/auth/registerController.js';
 import { verifyToken } from '../../middleware/auth/verifyToken.js';
@@ -9,8 +9,13 @@ import { createPasswordResetLimiter } from '../../middleware/auth/passwordResetR
 import * as google from '../../controllers/auth/googleAuthController.js';
 import { protectProfileWrite } from "../../controllers/users/profileController.js";
 import { requireRole } from '../../middleware/auth/requireRole.js';
+import * as mobileGoogle from '../../controllers/auth/mobileGoogleController.js';
 
 const router = Router();
+router.post('/mobile/google', createPasswordResetLimiter(10, 15 * 60 * 1000), mobileGoogle.begin);
+router.get('/mobile/google/:id', mobileGoogle.page);
+router.post('/mobile/google/:id/complete', createPasswordResetLimiter(20, 15 * 60 * 1000), mobileGoogle.complete);
+router.post('/mobile/google/:id/exchange', createPasswordResetLimiter(180, 5 * 60 * 1000), mobileGoogle.exchange);
 
 const googleLimit = createPasswordResetLimiter(60, 15 * 60 * 1000);
 router.post('/google/challenge', googleLimit, protectProfileWrite, google.challenge);
@@ -21,6 +26,8 @@ router.post('/link-google', googleLimit, protectProfileWrite, verifyToken, requi
 
 // Public login routes
 router.post('/login', login);
+router.post('/mobile/login', createPasswordResetLimiter(20, 15 * 60 * 1000), mobileLogin);
+router.post('/mobile/staff-login', createPasswordResetLimiter(20, 15 * 60 * 1000), mobileStaffLogin);
 router.post('/admin/login', adminLogin);
 
 // UC-1: Member Registration & Email Verification (BR-1, BR-8)

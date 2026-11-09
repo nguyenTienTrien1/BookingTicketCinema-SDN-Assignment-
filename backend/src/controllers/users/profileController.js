@@ -1,9 +1,9 @@
+import { trustedClientRequest } from '../../config/clientOrigins.js';
 import * as profileService from "../../services/users/profileService.js";
 
 // JSON and Origin/Fetch Metadata checks protect cookie-authenticated writes.
 export function protectProfileWrite(req, res, next) {
-  const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-  if (req.get('Sec-Fetch-Site') === 'cross-site' || (req.get('Origin') && req.get('Origin') !== allowedOrigin)) {
+  if (!trustedClientRequest(req)) {
     return res.status(403).json({ message: 'Nguồn yêu cầu không hợp lệ.' });
   }
   if (!req.is('application/json')) {

@@ -5,6 +5,7 @@ import User from "../../models/users/User.js";
 import { settle, loadBooking } from "../bookings/bookingService.js";
 import { transaction, domainError as fail } from "../common/transaction.js";
 import { refundFailedPayment } from "./refundService.js";
+import { validateMobileReturn } from './mobileReturn.js';
 // Sắp xếp, mã hóa tham số vnp_ và bỏ trường chữ ký để tạo chuỗi ký thống nhất.
 export function canonical(params) {
   return Object.keys(params)
@@ -46,7 +47,8 @@ function date(value) {
   return ["year", "month", "day", "hour", "minute", "second"].map(get).join("");
 }
 // Kiểm tra đơn, tạo/dùng lại mã giao dịch và trả URL VNPay có chữ ký; chưa ghi nhận đã trả tiền.
-export async function createPayment(bookingId, userId, ip, staffId = null) {
+export async function createPayment(bookingId, userId, ip, staffId = null, mobileReturnTo = null) {
+  if (mobileReturnTo) mobileReturnTo = validateMobileReturn(mobileReturnTo);
   if (
     !process.env.VNPAY_TMN_CODE ||
     !process.env.VNPAY_HASH_SECRET ||
@@ -80,7 +82,10 @@ export async function createPayment(bookingId, userId, ip, staffId = null) {
       const a = await PaymentAttempt.findOne({ ref: b.activePayment }).session(
         session,
       );
-      if (a?.status === "created" && a.method === "vnpay") return a;
+      if (a?.status === "created" && a.method === "vnpay") {
+        if (mobileReturnTo) { a.mobileReturnTo = mobileReturnTo; await a.save({ session }); }
+        return a;
+      }
       if (a?.status === "unresolved")
         throw fail(
           "Giao dịch đang cần đối soát. Không thanh toán lại; vui lòng liên hệ nhân viên.",
@@ -94,6 +99,7 @@ export async function createPayment(bookingId, userId, ip, staffId = null) {
       method: "vnpay",
       expiresAt: b.expiresAt,
       actor: staffId || undefined,
+      mobileReturnTo: mobileReturnTo || undefined,
     });
     await a.save({ session });
     b.activePayment = a.ref;

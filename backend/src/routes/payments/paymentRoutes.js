@@ -12,6 +12,7 @@ r.get('/food-sales/reconciliation', foodReconciliation.list);
 r.post('/food-sales/:id/reconciliation', protectWrite, foodReconciliation.resolve);
 r.get('/results/:reference', p.result);
 r.get('/tickets/:code',p.ticket);r.get('/bookings/:id',p.lookup);
+r.get('/bookings/:id/tickets',p.staffTickets);
 r.post('/bookings/:id/cash', protectWrite, p.cash);
 r.post('/bookings/:id/pay', protectWrite, p.staffPay);
 r.patch('/members/:id/age',p.verifyAge);

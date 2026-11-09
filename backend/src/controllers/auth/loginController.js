@@ -30,6 +30,21 @@ export async function login(req, res, next) {
   }
 }
 
+// Native clients send this session in Authorization rather than browser cookies.
+export async function mobileLogin(req, res, next) {
+  try {
+    const { user, token } = await loginService.authenticate(req.body?.email, req.body?.password, { allowedRoles: ['member'] });
+    res.set('Cache-Control', 'no-store').json({ success: true, user, token });
+  } catch (error) { next(error); }
+}
+
+export async function mobileStaffLogin(req, res, next) {
+  try {
+    const { user, token } = await loginService.authenticate(req.body?.email, req.body?.password, { allowedRoles: ['employee', 'admin'] });
+    res.set('Cache-Control', 'no-store').json({ success: true, user, token });
+  } catch (error) { next(error); }
+}
+
 /**
  * Logout handler - clears session cookie
  * URL: POST /api/auth/logout

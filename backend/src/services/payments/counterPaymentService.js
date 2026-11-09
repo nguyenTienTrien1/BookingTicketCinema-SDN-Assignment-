@@ -83,7 +83,7 @@ export async function payStaffBooking(id, input, actorId, ip) {
   return settle(id, { kind: 'points', actor: actorId });
  }
  if (method === 'vnpay') {
-  const payment = await createPayment(id, null, ip, actorId);
+  const payment = await createPayment(id, null, ip, actorId, input.mobileReturnTo || null);
   return { ...payment, booking: await loadBooking(id) };
  }
  if (method === 'points') throw fail('Số tiền còn lại phải bằng 0 để xác nhận đơn bằng điểm.');

@@ -20,6 +20,7 @@ import {
   reconcilePayment,
 } from "../../services/payments/counterPaymentService.js";
 import { ownedTickets } from "../../services/bookings/ticketService.js";
+import { validateMobileReturn } from '../../services/payments/mobileReturn.js';
 // Trả kết quả giao dịch, đơn và vé; thành viên chỉ xem được đơn của mình.
 export async function result(req, res, next) {
   try {
@@ -97,7 +98,7 @@ export async function start(req, res, next) {
     }
     if (req.body.method !== "vnpay")
       throw fail("Chọn thanh toán giả lập hoặc phương thức hợp lệ.");
-    res.json(await createPayment(b._id, req.user._id, req.ip));
+    res.json(await createPayment(b._id, req.user._id, req.ip, null, req.body.mobileReturnTo || null));
   } catch (e) {
     next(e);
   }
@@ -160,6 +161,18 @@ export async function returnUrl(req, res) {
       "[VNPAY] Sandbox return could not be finalized; check IPN/payment status.",
     );
   }
+  if (typeof req.query.vnp_TxnRef === 'string') {
+    const attempt = await PaymentAttempt.findOne({ ref: req.query.vnp_TxnRef, method: 'vnpay' }).select('mobileReturnTo').catch(() => null);
+    if (attempt?.mobileReturnTo) {
+      try {
+        const target = new URL(validateMobileReturn(attempt.mobileReturnTo));
+        target.searchParams.set('reference', req.query.vnp_TxnRef);
+        const href = target.toString().replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+        const script = JSON.stringify(target.toString()).replaceAll('<', '\\u003c');
+        return res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }).type('html').send(`<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CINEMA+</title><body style="background:#090b10;color:white;font:18px system-ui;padding:32px"><h1>CINEMA+</h1><p>Quay lại app để kiểm tra kết quả từ máy chủ.</p><a style="color:#ff7a96" href="${href}">Mở lại Expo Go</a><script>location.href=${script}</script></body></html>`);
+      } catch { /* An obsolete app address falls back to the existing website. */ }
+    }
+  }
   const url = new URL(
     "/payment-result",
     process.env.CLIENT_URL ||
@@ -217,6 +230,14 @@ export async function lookup(req, res, next) {
   } catch (e) {
     next(e);
   }
+}
+
+export async function staffTickets(req, res, next) {
+  try {
+    const booking = await Booking.findById(req.params.id).select('user');
+    if (!booking) throw fail('Không tìm thấy đơn.', 404);
+    res.set('Cache-Control', 'no-store').json(await ownedTickets(booking._id, booking.user));
+  } catch (error) { next(error); }
 }
 
 // Xem/cập nhật tồn kho; chặn ghi đè nếu số tồn đã thay đổi.

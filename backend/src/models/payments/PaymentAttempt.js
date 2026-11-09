@@ -6,6 +6,7 @@ const schema = new mongoose.Schema({
  providerRef: String, responseCode: String, message: String, receivedAmount: Number,
  actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
  collectedAt: Date, change: Number,
+ mobileReturnTo: String,
  reconciliation: [{ action: String, reason: String, actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, at: Date }]
 }, { timestamps: true });
 schema.index({ providerRef: 1, method: 1 }, { unique: true, partialFilterExpression: { providerRef: { $type: 'string' } } });
