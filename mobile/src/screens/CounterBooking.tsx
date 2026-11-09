@@ -6,6 +6,7 @@ import { Booking, Food, Movie, Showtime, User } from '../types';
 import { useSession } from '../session';
 import { Artwork, BackButton, Button, Card, Chip, Field, Heading, Muted, Page, s, StickyBar } from '../ui';
 import SeatPlan from '../SeatPlan';
+import FoodPicker from '../FoodPicker';
 import { isAvailableSeat, orphanSeatMessage } from '../../../shared/seatSelection.mjs';
 
 const steps = ['Chọn rạp', 'Chọn suất chiếu', 'Chọn ghế', 'Thông tin', 'Xác nhận đơn'];
@@ -18,7 +19,7 @@ export default function CounterBooking() {
   const [step, setStep] = useState(0), [shows, setShows] = useState<Showtime[]>([]), [movies, setMovies] = useState<Movie[]>([]), [foods, setFoods] = useState<Food[]>([]);
   const [cinema, setCinema] = useState(''), [movieId, setMovieId] = useState(''), [showId, setShowId] = useState(''), [seats, setSeats] = useState<string[]>([]);
   const [customerType, setCustomerType] = useState('guest'), [query, setQuery] = useState(''), [members, setMembers] = useState<User[]>([]), [member, setMember] = useState<User | null>(null);
-  const [points, setPoints] = useState('0'), [pointStep, setPointStep] = useState(1), [quantities] = useState<Record<string, number>>({}), [ageAck, setAgeAck] = useState('');
+  const [points, setPoints] = useState('0'), [pointStep, setPointStep] = useState(1), [quantities, setQuantities] = useState<Record<string, number>>({}), [ageAck, setAgeAck] = useState('');
   const [busy, setBusy] = useState(false), [searching, setSearching] = useState(false), [ready, setReady] = useState(false), [error, setError] = useState(''), [availabilityError, setAvailabilityError] = useState('');
   const [resume, setResume] = useState<Booking | null>(null), [pendingRequest, setPendingRequest] = useState<CreateRequest | null>(null), [recoveryError, setRecoveryError] = useState('');
   const processing = useRef(false), searchVersion = useRef(0), mounted = useRef(true);
@@ -147,7 +148,7 @@ export default function CounterBooking() {
         <Text style={s.title}>Khách hàng: {customerType === 'guest' ? 'Khách vãng lai' : member?.fullName}</Text><Muted>{movie?.title} · {cinema} · {show.room}</Muted><Muted>{when(show.startTime)} · Ghế {seats.join(', ')}</Muted>
         {selectedFoods.map(item => <Muted key={item._id}>{item.name} × {quantities[item._id]} · {money(item.price * quantities[item._id])}</Muted>)}
         <Muted>Tạm tính: {money(subtotal)}</Muted><Muted>Giảm từ {points} điểm: {money(Number(points) * 1000)}</Muted><Heading>Thành tiền: {money(subtotal - Number(points) * 1000)}</Heading>
-      </Card>
+      </Card><Heading>Bắp & nước</Heading><FoodPicker foods={foods} quantities={quantities} onChange={setQuantities} disabled={busy} />
         {needsAge && <Card><Heading>Kiểm tra điều kiện xem phim · {movie?.classification || `${requiredAge}+`}</Heading><Muted>{movie?.classification === 'K' ? 'Kiểm tra điều kiện người giám hộ theo phân loại K.' : `Kiểm tra tất cả khách trong đơn đủ ${requiredAge} tuổi.`}</Muted><Button secondary={ageAck !== ageKey} title={ageAck === ageKey ? '✓ Đã kiểm tra tuổi / người giám hộ' : 'Xác nhận đã kiểm tra tuổi / người giám hộ'} onPress={() => setAgeAck(ageAck === ageKey ? '' : ageKey)} /></Card>}
       </>}
     </>}
