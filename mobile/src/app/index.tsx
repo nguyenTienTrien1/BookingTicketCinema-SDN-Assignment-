@@ -7,6 +7,6 @@ import { colors, s } from '../ui';
 export default function Index() {
   const {user, loading} = useSession();
   if (loading) return <View style={[s.page,{justifyContent:'center'}]}><ActivityIndicator color={colors.red}/></View>;
-  if (user) return <Redirect href="/home" />;
+  if (user) return <Redirect href={user.role === 'member' ? '/home' : '/workspace'} />;
   return <AuthScreen />;
 }

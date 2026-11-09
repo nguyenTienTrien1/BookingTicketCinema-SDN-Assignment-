@@ -149,7 +149,14 @@ export async function previewMemberPromotion({ showtimeId, seats, foodItems = []
 }
 // Tạo đơn dưới khóa ghi lịch chiếu để tránh xung đột khi sửa lịch.
 export async function createBooking(data) {
-  return withScheduleWrite(function () {
+  const counterRequest = data.counterEmployee && data.requestId !== undefined;
+  if (counterRequest && (typeof data.requestId !== 'string' || !/^[A-Za-z0-9_-]{12,100}$/.test(data.requestId))) throw fail('Mã yêu cầu tạo đơn không hợp lệ.');
+  return withScheduleWrite(async function () {
+    // Reuse the committed order when the mobile client retries a lost response.
+    if (counterRequest) {
+      const existing = await Booking.findOne({ counterEmployee: data.counterEmployee, counterRequestId: data.requestId }).select('_id');
+      if (existing) return loadBooking(existing._id);
+    }
     return createBookingWithGuard(data);
   });
 }
@@ -160,6 +167,7 @@ async function createBookingWithGuard({
   seats,
   foodItems = [],
   counterEmployee = null,
+  requestId,
   points = 0,
   guardianConfirmed = false,
   promotionCode = "",
@@ -206,6 +214,7 @@ async function createBookingWithGuard({
     const b = new Booking({
       user: userId || null,
       counterEmployee,
+      counterRequestId: counterEmployee ? requestId : undefined,
       showtime: show._id,
       seats: seats.map(String),
       ticketPrice: show.price,
