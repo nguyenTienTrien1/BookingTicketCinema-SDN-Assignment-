@@ -1,0 +1,7 @@
+import React, { useState } from 'react';
+import { Text } from 'react-native';
+import { api } from '../services/api';
+import { useAction } from '../utils/hooks';
+import { Button, Card, ConfirmButton, Heading, Muted } from './ui';
+import { s } from '../theme/index';
+export default function RefundPanel({id,onChanged}:{id:string;onChanged:()=>Promise<void>}){const [quote,setQuote]=useState<any>(null),a=useAction();return <Card><Heading>Hoàn vé</Heading><Muted>Xem chính sách và số điểm được hoàn trước khi xác nhận. Hoàn vé theo quy định của rạp; không tự hoàn tiền mặt/VNPay.</Muted><Button secondary busy={a.busy} title="Kiểm tra điều kiện hoàn vé" onPress={()=>a.run(async()=>setQuote(await api(`/bookings/${id}/refund`)))}/>{!!a.error&&<Text style={s.error}>{a.error}</Text>}{quote&&!quote.eligible&&<Muted>{quote.reason}</Muted>}{quote?.eligible&&<><Muted>Mức hoàn {quote.rate}% · Nhận {quote.points} điểm</Muted><ConfirmButton disabled={a.busy} title="Yêu cầu hoàn toàn bộ đơn" message={`Xác nhận hủy toàn bộ vé trong đơn và nhận ${quote.points} điểm theo báo giá hiện tại?`} onConfirm={()=>a.run(async()=>{const result=await api(`/bookings/${id}/refund`,'POST',{quoteKey:quote.quoteKey});a.setNotice(result.refund.status==='completed'?'Đã hoàn điểm thành công.':'Yêu cầu đang xử lý, chưa xác nhận cộng điểm.');setQuote(null);await onChanged();})}/></>}{!!a.notice&&<Muted>{a.notice}</Muted>}</Card>;}

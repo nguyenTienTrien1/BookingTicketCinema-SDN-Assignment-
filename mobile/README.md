@@ -51,14 +51,43 @@ Vé demo/mô phỏng được đánh dấu riêng. Không bật `ENABLE_PAYMENT_
 
 ## File và kiểm tra
 
-| File | Chức năng |
+```text
+mobile/
+├── App.js
+├── app.json
+├── babel.config.js
+├── metro.config.js
+├── assets/
+├── src/
+│   ├── app/          # Khai báo route của Expo Router
+│   ├── components/   # Thành phần giao diện dùng chung
+│   ├── context/      # Phiên đăng nhập và thông tin người dùng
+│   ├── navigation/   # Stack, tab và điều kiện truy cập
+│   ├── screens/      # Màn hình theo nhóm nghiệp vụ
+│   │   ├── account/
+│   │   ├── admin/
+│   │   ├── auth/
+│   │   ├── booking/
+│   │   ├── member/
+│   │   └── staff/
+│   ├── services/     # HTTP, token, lưu đơn và mở trình duyệt
+│   ├── theme/        # Màu sắc và StyleSheet dùng chung
+│   └── utils/        # Kiểu dữ liệu, định dạng, hook và ánh xạ ảnh
+└── tests/            # Dành sẵn cho kiểm thử; hiện chưa thêm bộ test
+```
+
+`App.js` khởi động Expo Router. Giữ `src/app/` để các đường dẫn, liên kết Google, email và callback thanh toán tiếp tục hoạt động. Các layout gọi navigator trong `src/navigation/`; màn hình và phần dùng chung nằm ngoài thư mục route. `DateField.native.tsx` được Metro chọn cho Android/iOS, còn `DateField.tsx` phục vụ bản web.
+
+| Thư mục / file | Chức năng |
 |---|---|
-| `src/app/` | Route, tab và kiểm tra quyền giao diện |
-| `src/session.tsx`, `src/api.ts` | Phiên, token, HTTP, upload và khôi phục đơn F&B |
-| `src/screens/AuthScreen.tsx`, `ProfileScreen.tsx` | Tài khoản |
-| `src/BookingFlow.tsx`, `RefundPanel.tsx` | Đặt vé, thanh toán, QR, hoàn vé |
-| `src/screens/AdminCatalogue.tsx` | Movies/F&B/Promotion CRUD |
-| `src/screens/StaffScreens.tsx`, `Reconciliation.tsx` | Quầy, camera và đối soát |
+| `src/app/`, `src/navigation/` | Đường dẫn, stack, tab và kiểm tra quyền giao diện |
+| `src/context/SessionContext.tsx`, `src/services/` | Phiên, token, HTTP, upload, mở trình duyệt và khôi phục đơn |
+| `src/screens/auth/`, `src/screens/account/` | Đăng nhập, đăng ký, xác minh email, mật khẩu và hồ sơ |
+| `src/screens/member/`, `src/screens/booking/`, `src/components/RefundPanel.tsx` | Phim, đặt vé, lịch sử, thanh toán, QR và hoàn vé |
+| `src/screens/admin/AdminCatalogue.tsx` | Movies/F&B/Promotion CRUD |
+| `src/screens/staff/` | Tác vụ nhân viên, bán vé/F&B, thu tiền, tra cứu thành viên, check-in và đối soát |
+| `src/components/`, `src/theme/` | Giao diện, màu sắc và kiểu hiển thị dùng chung |
+| `src/utils/` | Kiểu dữ liệu, định dạng tiền/ngày/trạng thái, hook và ảnh đóng gói |
 
 - `npm run check:mobile` từ root: TypeScript.
 - `npm --prefix mobile run lint`: lint.

@@ -1,1 +1,1 @@
-export { AdminEdit as default } from '../../screens/AdminCatalogue';
+export { AdminEdit as default } from '../../screens/admin/AdminCatalogue';

@@ -1,1 +1,1 @@
-export { default } from '../../screens/Reconciliation';
+export { default } from '../../screens/staff/Reconciliation';

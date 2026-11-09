@@ -1,1 +1,1 @@
-export { default } from '../../screens/CounterBooking';
+export { default } from '../../screens/staff/CounterBooking';
