@@ -244,9 +244,11 @@ export async function sendPasswordResetEmail({ to, resetUrl, expiresInMinutes })
  * Send Account Verification Email (UC-1, BR-8)
  * @param {{ to: string, fullName: string, token: string }} params
  */
-export async function sendVerificationEmail({ to, fullName, token }) {
+export async function sendVerificationEmail({ to, fullName, token, verificationBaseUrl }) {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-  const verificationUrl = `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
+  const verificationUrl = verificationBaseUrl
+    ? `${verificationBaseUrl}?token=${encodeURIComponent(token)}`
+    : `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
   const senderUser = (process.env.GMAIL_USER || process.env.SMTP_USER || '').trim();
   const from = senderUser
     ? `"CINEMA+ Rạp Phim" <${senderUser}>`

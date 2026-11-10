@@ -1,1 +1,1 @@
-export { MemberLookup as default } from '../../screens/StaffScreens';
+export { MemberLookup as default } from '../../screens/staff/StaffScreens';

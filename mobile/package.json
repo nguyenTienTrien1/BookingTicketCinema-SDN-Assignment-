@@ -1,7 +1,7 @@
 {
   "name": "cinema-mobile",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "App.js",
   "dependencies": {
     "@react-native-community/datetimepicker": "8.4.4",
     "eslint": "^9.39.5",
@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "babel-preset-expo": "~54.0.10",
     "typescript": "~5.9.2"
   },
   "scripts": {

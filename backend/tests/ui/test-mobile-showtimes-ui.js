@@ -56,8 +56,7 @@ try {
     await page.getByRole('textbox', { name: 'Email', exact: true }).fill(email);
     await page.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill(password);
     await click('Đăng nhập');
-    await page.waitForURL(/\/home$/);
-    await page.getByRole('tab', { name: /Tác vụ/ }).click();
+    await page.waitForURL(/\/workspace$/);
   }
   async function choose(title, name) {
     await click(title);

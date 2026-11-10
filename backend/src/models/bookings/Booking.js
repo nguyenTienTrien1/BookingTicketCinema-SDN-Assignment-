@@ -14,6 +14,7 @@ const appliedPromotionSchema = new mongoose.Schema({
 const bookingSchema = new mongoose.Schema({
  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, required: function () { return !this.counterEmployee; } },
  counterEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+ counterRequestId: String,
  showtime: { type: mongoose.Schema.Types.ObjectId, ref: 'Showtime', required: true },
  seats: [String], ticketPrice: Number,
  foodItems: [{ food: { type: mongoose.Schema.Types.ObjectId, ref: 'Food' }, name: String, unitPrice: Number, quantity: Number }],
@@ -33,4 +34,5 @@ const bookingSchema = new mongoose.Schema({
 }, { timestamps: true });
 bookingSchema.index({ 'tickets.reference': 1 }, { unique: true, sparse: true });
 bookingSchema.index({ 'tickets.code': 1 }, { sparse: true });
+bookingSchema.index({ counterEmployee: 1, counterRequestId: 1 }, { unique: true, partialFilterExpression: { counterRequestId: { $type: 'string' } } });
 export default mongoose.model('Booking', bookingSchema);

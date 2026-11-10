@@ -39,6 +39,15 @@ async function ownedSale(req) {
   return Booking.findOne({ _id: req.params.id, counterEmployee: actor });
 }
 
+export async function requestStatus(req, res, next) {
+  try {
+    if (!/^[A-Za-z0-9_-]{12,100}$/.test(req.params.requestId)) return res.status(400).json({ message: 'Mã yêu cầu không hợp lệ.' });
+    const booking = await Booking.findOne({ counterEmployee: req.user._id, counterRequestId: req.params.requestId }).select('_id');
+    if (!booking) return res.status(404).json({ message: 'Chưa tìm thấy đơn của yêu cầu này. Có thể thử lại cùng mã yêu cầu.' });
+    res.set('Cache-Control', 'no-store').json(await bookings.loadBooking(booking._id));
+  } catch (error) { next(error); }
+}
+
 export async function points(req, res, next) {
   try {
     const sale = await ownedSale(req);

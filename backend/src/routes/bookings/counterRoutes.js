@@ -7,6 +7,7 @@ import { protectWrite } from "../../controllers/cinema/showtimeController.js";
 const router = Router();
 router.use(verifyToken, requireRole('admin', 'employee'));
 router.get('/members', counter.searchMembers);
+router.get('/requests/:requestId', counter.requestStatus);
 router.post('/bookings', counter.create);
 router.patch('/bookings/:id/points', counter.points);
 router.patch('/bookings/:id/promotion', protectWrite, counter.promotion);

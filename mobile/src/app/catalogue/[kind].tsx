@@ -1,1 +1,1 @@
-export { AdminList as default } from '../../screens/AdminCatalogue';
+export { AdminList as default } from '../../screens/admin/AdminCatalogue';

@@ -16,7 +16,9 @@ Existing commands still work: `npm test -w backend`, `npm test -w frontend`, `np
 
 Members sign in at `/login` and open the customer homepage. Admins and Employees sign in at `/admin/login` and open `/admin/dashboard` or `/employee/dashboard`; staff cannot open customer movie/booking pages or use personal booking APIs.
 
-For Google sign-in, configure the same Web Client ID as `GOOGLE_CLIENT_ID` in `backend/.env` and `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Add the exact frontend origin, such as `http://localhost:5173`, to the Web client's Authorized JavaScript origins in Google Cloud, then restart both servers. No Google Client Secret is required. Google only signs in existing linked Members and never recreates a deleted account. Members link Google in Profile using their current password and a Google account with the same email; successful linking keeps the current browser signed in.
+For website Google sign-in, configure the same Web Client ID as `GOOGLE_CLIENT_ID` in `backend/.env` and `VITE_GOOGLE_CLIENT_ID` in `frontend/.env.local`. Add the exact frontend origin, such as `http://localhost:5173`, to the Web client's Authorized JavaScript origins in Google Cloud, then restart both servers. Website GIS does not require a Google Client Secret. The website only signs in existing linked Members and never recreates a deleted account. Members link Google in Profile using their current password and a Google account with the same email; successful linking keeps the current browser signed in.
+
+Mobile uses Google OAuth 2.0 Authorization Code with PKCE and OpenID Connect. It also requires server-only `GOOGLE_CLIENT_SECRET` and `GOOGLE_MOBILE_REDIRECT_URI` matching the Web client's Authorized redirect URI. New Google identities can register as Members through mobile; existing email accounts require explicit linking. See [mobile Google setup](mobile/README.md#google-oauth-20--openid-connect) for phone/Expo Go configuration and verification commands.
 
 ## VNPay Sandbox setup
 

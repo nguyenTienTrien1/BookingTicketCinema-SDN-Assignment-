@@ -1,1 +1,1 @@
-export { Workspace as default } from '../../screens/StaffScreens';
+export { Workspace as default } from '../../screens/staff/StaffScreens';
