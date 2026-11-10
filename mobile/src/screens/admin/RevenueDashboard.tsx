@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import Svg, { Path } from 'react-native-svg';
 import DateField from '../../components/DateField';
 import OptionPicker from '../../components/OptionPicker';
@@ -9,7 +11,7 @@ import { colors, s } from '../../theme';
 import { money } from '../../utils/format';
 import {
   getRevenueReport, initialRevenueFilters, RevenueFilters, RevenueMetrics,
-  RevenuePeriod, RevenueReport, revenueMethods, revenueSources, vietnamDay,
+  RevenuePeriod, RevenueReport, revenueMethods, revenueSources, vietnamDay, exportRevenueReport,
 } from '../../services/revenueService';
 
 const dateLabel = (value: string) => value.split('-').reverse().join('/');
@@ -47,6 +49,8 @@ export default function RevenueDashboard() {
   const [filters, setFilters] = useState<RevenueFilters>(initialRevenueFilters);
   const [report, setReport] = useState<RevenueReport | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportNotice, setExportNotice] = useState('');
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const mounted = useRef(false), locked = useRef(false);
@@ -69,7 +73,7 @@ export default function RevenueDashboard() {
   }, []);
 
   function change<K extends keyof RevenueFilters>(key: K, value: RevenueFilters[K]) {
-    setFilters(previous => ({ ...previous, [key]: value })); setError('');
+    setFilters(previous => ({ ...previous, [key]: value })); setError(''); setExportNotice('');
   }
   function quickRange(kind: 'today' | 'week' | 'month') {
     const to = vietnamDay();
@@ -79,6 +83,35 @@ export default function RevenueDashboard() {
   }
   const dirty = !!report && (Object.keys(filters) as (keyof RevenueFilters)[]).some(key => filters[key] !== report.filters[key]);
   const pages = report ? Math.max(1, Math.ceil(report.series.length / 10)) : 1;
+
+  async function exportReport() {
+    if (!report || dirty || busy || exporting) return;
+    setExporting(true); setError(''); setExportNotice('');
+    try {
+      const file = await exportRevenueReport(report);
+      if (Platform.OS === 'web') {
+        const url = URL.createObjectURL(new Blob([file.csv], { type: 'text/csv;charset=utf-8' }));
+        const link = document.createElement('a'); link.href = url; link.download = file.filename; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setExportNotice(`Đã tải ${file.filename}.`);
+      } else if (Platform.OS === 'android') {
+        const initialUri = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+        const directory = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialUri);
+        if (!directory.granted) { setExportNotice('Chưa lưu file. Hãy chọn thư mục để lưu báo cáo.'); return; }
+        const filename = file.filename.replace(/\.csv$/i, '');
+        const uri = await FileSystem.StorageAccessFramework.createFileAsync(directory.directoryUri, filename, 'text/csv');
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(uri, file.csv, { encoding: FileSystem.EncodingType.UTF8 });
+        setExportNotice(`Đã lưu ${file.filename} vào thư mục đã chọn.`);
+      } else {
+        const uri = `${FileSystem.cacheDirectory}${file.filename}`;
+        await FileSystem.writeAsStringAsync(uri, file.csv, { encoding: FileSystem.EncodingType.UTF8 });
+        if (!await Sharing.isAvailableAsync()) throw new Error('Thiết bị chưa hỗ trợ chia sẻ file CSV.');
+        await Sharing.shareAsync(uri, { mimeType: 'text/csv', dialogTitle: 'Chia sẻ báo cáo doanh thu' });
+        setExportNotice(`Đã tạo ${file.filename}.`);
+      }
+    } catch (e) { setError((e as Error).message); }
+    finally { setExporting(false); }
+  }
 
   return <Page>
     <BackButton disabled={busy} onPress={() => router.replace('/workspace')} />
@@ -104,6 +137,7 @@ export default function RevenueDashboard() {
         <Chip title="Theo tháng" selected={filters.groupBy === 'month'} disabled={busy} onPress={() => change('groupBy', 'month')} />
       </View>
       <Button title="Xem báo cáo" busy={busy} onPress={() => void load(filters)} />
+      <Button secondary busy={exporting} disabled={!report || dirty || busy} title="Xuất báo cáo CSV" onPress={() => void exportReport()} />
       <Muted>Chọn khoảng tối đa 366 ngày, tính cả ngày bắt đầu và kết thúc.</Muted>
     </Card>
     {busy && <View style={s.row}><ActivityIndicator color={colors.pink} /><Muted>Đang tải báo cáo doanh thu…</Muted></View>}
@@ -120,6 +154,7 @@ export default function RevenueDashboard() {
         <Amount label="Tiền thu" value={report.totals.payments} />
         <Amount label="Hoàn tiền" value={report.totals.refunds} />
         <Muted>{report.totals.paymentCount} thanh toán · {report.totals.refundCount} hoàn tiền</Muted>
+        {!!exportNotice && <Text accessibilityLiveRegion="polite" style={{ color: colors.green, fontSize: 13 }}>{exportNotice}</Text>}
       </Card>
       {!report.totals.paymentCount && !report.totals.refundCount && <Card>
         <Text style={s.title}>Chưa có giao dịch được xác minh trong kỳ</Text>

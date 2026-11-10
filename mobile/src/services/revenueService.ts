@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, apiCsv } from './api';
 
 export const revenueSources = { all: 'Tất cả nguồn', tickets: 'Vé và F&B đi kèm', food: 'F&B tại quầy' };
 export const revenueMethods = { all: 'Tất cả phương thức', cash: 'Tiền mặt', vnpay: 'VNPay', momo: 'MoMo', 'credit-card': 'Thẻ', points: 'Chỉ dùng điểm' };
@@ -36,4 +36,7 @@ export function validateRevenueFilters(filters: RevenueFilters) {
 export function getRevenueReport(filters: RevenueFilters) {
   validateRevenueFilters(filters);
   return api<RevenueReport>('/revenue/reports', 'POST', filters);
+}
+export function exportRevenueReport(report: RevenueReport) {
+  return apiCsv(`/revenue/reports/${encodeURIComponent(report.reportId)}/export`, report.filters);
 }

@@ -56,6 +56,33 @@ export async function api<T = any>(path: string, method = 'GET', body?: unknown)
     throw new Error('Không kết nối được máy chủ. Kiểm tra mạng và địa chỉ API.');
   } finally { clearTimeout(timer); }
 }
+export async function apiCsv(path: string, body: unknown): Promise<{ csv: string; filename: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(API_URL + path, {
+      method: 'POST', signal: controller.signal, credentials: 'omit',
+      headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
+    });
+    const raw = await response.text();
+    if (!response.ok) {
+      let message = 'Không thể xuất báo cáo. Vui lòng thử lại.';
+      try { message = JSON.parse(raw).message || message; } catch { /* Use the readable fallback for non-JSON proxy errors. */ }
+      if (response.status === 401 && token) { await saveSession(null); sessionExpired?.(); }
+      throw new ApiError(message, response.status);
+    }
+    if (!response.headers.get('content-type')?.includes('text/csv')) throw new Error('Máy chủ không trả về file CSV. Hãy tải lại báo cáo rồi thử xuất lại.');
+    const disposition = response.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const filename = (match?.[1] || 'revenue_report.csv').replace(/[\\/:*?"<>|]/g, '_');
+    return { csv: raw, filename };
+  } catch (error) {
+    if (error instanceof ApiError || (error instanceof Error && error.message.startsWith('Máy chủ'))) throw error;
+    if (error instanceof Error && error.message.includes('JSON')) throw error;
+    throw new Error('Không kết nối được máy chủ để xuất báo cáo. Kiểm tra mạng và địa chỉ API.');
+  } finally { clearTimeout(timer); }
+}
 export function imageUrl(path?: string) {
   if (!path) return undefined;
   if (/^https?:\/\//.test(path)) return path;
