@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { decodeImageUpload } from '../utils/imageUpload';
 
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000/api').replace(/\/$/, '');
 let token: string | null = null;
@@ -23,10 +24,9 @@ export async function writeDraft(key: string, value: string | null) {
   if (Platform.OS === 'web') { if(value)sessionStorage.setItem(key,value);else sessionStorage.removeItem(key); }
   else if(value)await SecureStore.setItemAsync(key,value);else await SecureStore.deleteItemAsync(key);
 }
-export async function uploadImage(kind: 'movies'|'foods', base64: string, mime: string) {
-  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-  if (!bytes.length || bytes.length > 5 * 1024 * 1024) throw new Error('Ảnh phải nhỏ hơn hoặc bằng 5 MB.');
-  const response = await fetch(API_URL + `/${kind}/images`, {method:'POST',credentials:'omit',headers:{'Content-Type':mime,Authorization:`Bearer ${token}`,'ngrok-skip-browser-warning':'true'},body:bytes.buffer});
+export async function uploadImage(kind: 'movies'|'foods', base64: string) {
+  const { bytes, contentType } = decodeImageUpload(base64);
+  const response = await fetch(API_URL + `/${kind}/images`, {method:'POST',credentials:'omit',headers:{'Content-Type':contentType,Authorization:`Bearer ${token}`,'ngrok-skip-browser-warning':'true'},body:bytes.buffer as ArrayBuffer});
   const result=await response.json();if(!response.ok)throw new ApiError(result.message||'Tải ảnh thất bại.',response.status);return result.image as string;
 }
 export class ApiError extends Error {
