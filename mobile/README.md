@@ -24,7 +24,9 @@ Xem trước trình duyệt: `npm --prefix mobile run web` → http://localhost:
 
 **Nhân viên:** tìm thành viên, bán vé cho khách vãng lai/thành viên, dùng điểm và mã khi có quyền sửa đơn, thu tiền mặt hoặc mở VNPay, bán riêng F&B tiền mặt (UC-11), giữ mã đơn F&B để khôi phục khi tải lại app, tra cứu đơn vé/F&B, đối soát khoản thu, ghi chú, thử hoàn tất hoặc xác nhận trả khoản thực thu; quét QR bằng camera hoặc nhập mã để check-in theo suất và giờ vào rạp.
 
-Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ. Các màn quản trị ngoài phạm vi này (phòng chiếu, lịch chiếu, doanh thu, quản lý nhân sự) tiếp tục dùng website.
+**Suất chiếu (Admin):** vào **Tác vụ → Quản lý suất chiếu** để xem danh sách, lọc theo phim, phân trang, thêm thủ công, sửa hoặc xác nhận xóa suất chiếu. Chọn phim, phòng đang hoạt động, ngày/giờ Việt Nam (UTC+7) và giá vé; ghế lấy từ cấu hình phòng. Backend kiểm tra ngày khởi chiếu, lịch trùng và 15 phút dọn phòng. Không sửa/xóa trực tiếp suất đã bắt đầu, đã hủy, đang giữ ghế hoặc có tham chiếu đặt vé. Khi dữ liệu thay đổi, tải lại và kiểm tra trước khi lưu tiếp. Đề xuất lịch tự động và hủy suất/hoàn điểm tiếp tục dùng website.
+
+Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ. Các màn quản trị ngoài phạm vi này (phòng chiếu, doanh thu, quản lý nhân sự) tiếp tục dùng website.
 
 ## Google — cấu hình sau theo lựa chọn của nhóm
 
@@ -64,5 +66,6 @@ Vé demo/mô phỏng được đánh dấu riêng. Không bật `ENABLE_PAYMENT_
 - `npm --prefix mobile run lint`: lint.
 - `cd mobile` rồi `npx expo install --check`: kiểm tra phiên bản dependency.
 - `cd mobile` rồi `npx expo export --platform android`: kiểm tra bundle Android, không tạo APK.
+- Sau khi chạy Expo, từ `backend` chạy `node tests/ui/test-mobile-showtimes-ui.js`: kiểm tra giao diện suất chiếu ở kích thước điện thoại qua browser preview, dùng database tạm riêng và không sửa dữ liệu app đang chạy. Có thể đặt `MOBILE_UI_URL` nếu Expo không chạy tại `http://localhost:8081`.
 
 Các kiểm tra tự động dùng database tạm, email/Google giả lập để không gửi email hoặc sửa dữ liệu demo của nhóm. Cần kiểm tra cuối trên điện thoại: cấp/từ chối quyền camera và thư viện ảnh, giữ phiên sau đóng app, ngắt mạng khi tạo/thu tiền, VNPay thực tế và trình duyệt mở lại Expo Go. Google thực tế chờ nhóm cấu hình Client ID.
