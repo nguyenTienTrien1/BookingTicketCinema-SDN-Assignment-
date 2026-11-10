@@ -1,13 +1,12 @@
 import DateField from '../../components/DateField';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { api, uploadImage } from '../../services/api';
-import { money } from '../../utils/format';
 import { useSession } from '../../context/SessionContext';
 import { useAction } from '../../utils/hooks';
-import { Artwork, Button, Card, Chip, ConfirmButton, Eyebrow, Field, Heading, Muted, Page } from '../../components/ui';
+import { Artwork, Button, Card, Chip, Field, Heading, Muted, Page } from '../../components/ui';
 import { s } from '../../theme/index';
 type Kind='movies'|'foods'|'promotions';
 const names:Record<Kind,string>={movies:'phim',foods:'F&B',promotions:'khuyến mãi'};
@@ -29,17 +28,7 @@ function Media({kind,field,value,onChange,run,busy}:{kind:'movies'|'foods';field
  async function pick(){await run(async()=>{const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],base64:true,quality:0.85});if(result.canceled)return;const asset=result.assets[0],mime=asset.mimeType||'image/jpeg';if(!['image/jpeg','image/png','image/webp'].includes(mime)||!asset.base64)throw new Error('Chọn JPG, PNG hoặc WebP tối đa 5 MB.');onChange(await uploadImage(kind,asset.base64,mime));});}
  return <Card><Text style={s.title}>{field==='image'?'Ảnh F&B':field==='poster'?'Poster':'Banner'}</Text>{!!value&&<View style={{width:field==='banner'?'100%':120}}><Artwork uri={value} wide={field==='banner'}/></View>}<Button secondary busy={busy} title="Chọn ảnh từ điện thoại" onPress={pick}/><Field label="Hoặc URL ảnh" value={value} onChangeText={onChange} autoCapitalize="none"/><Muted>Ảnh được tải lên khi chọn. JPG, PNG, WebP tối đa 5 MB.</Muted></Card>;
 }
-export function AdminList(){const {kind:raw}=useLocalSearchParams<{kind:string}>(),{user}=useSession(),kind=isKind(raw)?raw:null;
- const [items,setItems]=useState<any[]>([]),[search,setSearch]=useState(''),[filter,setFilter]=useState(''),[page,setPage]=useState(1),[pages,setPages]=useState(0),[total,setTotal]=useState(0),[expanded,setExpanded]=useState(''),a=useAction();
- async function load(){if(!kind)return;const q=new URLSearchParams({page:String(page),limit:'10',search});if(filter)q.set(kind==='movies'?'classification':kind==='foods'?'stockState':'status',filter);const result=await api(`/${kind}/admin?${q}`);setItems(kind==='movies'?result.movies:result.items);setPages(result.totalPages);setTotal(result.total);}
- useFocusEffect(useCallback(()=>{void a.run(load);},[kind,page,filter]));
- if(!kind||user?.role!=='admin')return <Redirect href="/workspace"/>;
- const filters=kind==='movies'?[['','Tất cả'],...['P','K','T13','T16','T18','C'].map(v=>[v,v])]:kind==='foods'?[['','Tất cả'],['in-stock','Còn hàng'],['low','Sắp hết'],['out-of-stock','Hết hàng']]:[['','Tất cả'],['current','Hiệu lực'],['future','Sắp chạy'],['expired','Hết hạn'],['exhausted','Hết lượt'],['paused','Tắt']];
- return <Page><Eyebrow>CINEMA+ / ADMIN</Eyebrow><Heading>Quản lý {names[kind]}</Heading><Button title={`Thêm ${names[kind]}`} onPress={()=>router.push({pathname:'/catalogue/edit',params:{kind,id:'new'}})}/><Field label="Tìm kiếm" value={search} onChangeText={setSearch}/><Button secondary busy={a.busy} title="Tìm kiếm" onPress={()=>{if(page!==1)setPage(1);else void a.run(load);}}/><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:8}}>{filters.map(([value,title])=><Chip key={value} selected={filter===value} title={title} onPress={()=>{setFilter(value);setPage(1);}}/>)}</ScrollView><Muted>{total} bản ghi · Trang {page}/{Math.max(1,pages)}</Muted>{!!a.error&&<Text style={s.error}>{a.error}</Text>}
- {items.map(item=><Card key={item._id}><View style={s.row}>{kind!=='promotions'&&<View style={{width:65}}><Artwork uri={item.poster||item.image}/></View>}<View style={{flex:1}}><Text style={s.title}>{item.title||item.name}</Text><Muted>{kind==='movies'?`${item.classification||'P'} · ${item.duration} phút`:kind==='foods'?`${money(item.price)} · Còn ${item.stock} · ${item.available?'Đang bán':'Ngưng bán'}`:`${item.code} · ${item.discountType==='percentage'?item.value+'%':money(item.value)}`}</Muted></View></View><Button secondary title={expanded===item._id?'Thu gọn':'Xem thông tin'} onPress={()=>setExpanded(expanded===item._id?'':item._id)}/>{expanded===item._id&&<><Muted>{item.description||'Chưa có mô tả.'}</Muted>{kind==='promotions'&&<Muted>Phạm vi: {item.scope} · Dùng cùng điểm: {item.stackable?'Có':'Không'}{'\n'}Bắt đầu: {new Date(item.startsAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}{'\n'}Kết thúc trước: {new Date(item.endsAt).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'})}{'\n'}Đã dùng: {item.usedCount}/{item.usageLimit??'∞'}</Muted>}</>}
- <Button secondary title="Sửa" onPress={()=>router.push({pathname:'/catalogue/edit',params:{kind,id:item._id}})}/><ConfirmButton disabled={a.busy} title="Xóa" message={`Xác nhận xóa “${item.title||item.name}”? Backend sẽ kiểm tra lịch chiếu/đơn đang xử lý.`} onConfirm={()=>a.run(async()=>{await api(`/${kind}/${item._id}`,'DELETE',{version:item.__v});await load();})}/></Card>)}
- <View style={s.row}><Button secondary disabled={page<=1||a.busy} title="Trang trước" onPress={()=>setPage(p=>p-1)}/><Button secondary disabled={page>=pages||a.busy} title="Trang sau" onPress={()=>setPage(p=>p+1)}/></View></Page>;
-}
+export { default as AdminList } from './CatalogueList';
 export function AdminEdit(){const {kind:raw,id}=useLocalSearchParams<{kind:string;id:string}>(),kind=isKind(raw)?raw:null,{user}=useSession(),editing=id!=='new',a=useAction();
  const [form,setForm]=useState<Record<string,any>>({title:'',name:'',description:'',genre:'',duration:'',classification:'P',releaseDate:vnDay(),rating:'0',featured:false,image:'',poster:'',banner:'',price:'',stock:'0',available:true,code:'',discountType:'percentage',value:'',minOrder:'0',maxDiscount:'',scope:'all',stackable:true,startsAt:vnDay(),endsAt:vnDay(),usageLimit:'',active:true});
  const [loaded,setLoaded]=useState(!editing),[hasShows,setHasShows]=useState(false),[specific,setSpecific]=useState(false),[original,setOriginal]=useState<any>(null);
