@@ -223,7 +223,7 @@ async function createBookingWithGuard({
       pointsUsed: points,
       discount: points * POINT_VALUE,
       total: subtotal - points * POINT_VALUE,
-      expiresAt: new Date(Date.now() + 600000),
+      expiresAt: new Date(Math.min(Date.now() + 600000, show.startTime.getTime())),
       ageCheckedBy: counterEmployee,
       guardianConfirmed,
     });

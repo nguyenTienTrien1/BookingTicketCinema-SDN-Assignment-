@@ -45,6 +45,7 @@
     "test:revenue": "node --test tests/api/test_revenue.js",
     "test": "node --test tests/api/test_accounts.js tests/api/test_booking_history.js tests/api/test_catalogue.js tests/api/test_complete_uc.js tests/api/test_counter_points.js tests/api/test_counter_promotions.js tests/api/test_online_promotions.js tests/api/test_food_sales.js tests/api/test_google_auth.js tests/api/test_mobile_google_oauth.js tests/api/test_mobile_registration.js tests/api/test_mobile_password_reset.js tests/api/test_member_search.js tests/api/test_movies.js tests/api/test_password_reset.js tests/api/test_profile.js tests/api/test_regression.js tests/api/test_revenue.js tests/api/test_roles.js tests/api/test_showtimes.js tests/api/test_rooms.js tests/api/test_tickets.js tests/api/test_showtime_suggestions.js tests/api/test_vnpay_return.js tests/api/test_food_images.js",
     "db:local": "node scripts/database/local-db.js",
+    "audit:bookings": "node scripts/database/audit-bookings.js",
     "db:setup": "node scripts/database/local-db.js --import-current",
     "test:e2e": "node tests/ui/test-member-points-ui.js && node tests/ui/test-accounts-ui.js",
     "test:tickets": "node --test tests/api/test_tickets.js",

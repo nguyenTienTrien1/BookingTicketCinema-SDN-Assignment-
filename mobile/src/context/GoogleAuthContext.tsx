@@ -1,6 +1,7 @@
 import React, { createContext, PropsWithChildren, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
+import { appReturnUrl } from '../services/appReturnUrl';
 import { router } from 'expo-router';
 import { api, ApiError, readDraft, writeDraft } from '../services/api';
 import { openExternal } from '../services/browser';
@@ -108,7 +109,7 @@ export function GoogleAuthProvider({ children }: PropsWithChildren) {
     popup.current = browser;
     try {
       if (Platform.OS === 'web' && !browser) throw new Error('Trình duyệt đã chặn cửa sổ Google. Hãy cho phép cửa sổ bật lên rồi thử lại.');
-      const result = await api<{ id: string; secret: string; expiresAt: number; browserUrl: string }>('/auth/mobile/google', 'POST', { purpose, returnTo: Linking.createURL('/auth-return') });
+      const result = await api<{ id: string; secret: string; expiresAt: number; browserUrl: string }>('/auth/mobile/google', 'POST', { purpose, returnTo: appReturnUrl('/auth-return') });
       await remember({ id: result.id, secret: result.secret, expiresAt: result.expiresAt, purpose });
       setNotice('Chọn tài khoản trong trình duyệt Google, sau đó quay lại CINEMA+.');
       if (browser) browser.location.replace(result.browserUrl);

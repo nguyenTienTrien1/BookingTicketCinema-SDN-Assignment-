@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Image, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import * as Linking from 'expo-linking';
+import { appReturnUrl } from '../../services/appReturnUrl';
 import { api, ApiError, writeDraft } from '../../services/api';
 import { money, statusText, when } from '../../utils/format';
 import { Booking, Food, TicketResult } from '../../utils/types';
@@ -68,7 +68,7 @@ export default function CounterPayment({ initial, collectionOnly = false }: { in
   async function pay(chosen = booking.total === 0 ? 'points' : method) {
     let result: Booking & { paymentUrl?: string; booking?: Booking };
     try {
-      result = await api('/payments/bookings/' + booking._id + '/pay', 'POST', { method: chosen, receivedAmount: chosen === 'cash' ? Number(cash) : 0, confirmedTotal: booking.total, mobileReturnTo: Linking.createURL('/payment-return') });
+      result = await api('/payments/bookings/' + booking._id + '/pay', 'POST', { method: chosen, receivedAmount: chosen === 'cash' ? Number(cash) : 0, confirmedTotal: booking.total, mobileReturnTo: appReturnUrl('/payment-return') });
     } catch (e) { if (!(e instanceof ApiError) || e.status >= 500) setUncertain(true); throw e; }
     if (result.paymentUrl) {
       if (result.booking) sync(result.booking);

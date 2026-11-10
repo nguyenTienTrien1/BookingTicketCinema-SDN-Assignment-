@@ -6,6 +6,7 @@ import { money, statusText, when } from '../../utils/format';
 import { Booking, Movie } from '../../utils/types';
 import { Artwork, Badge, Button, Card, Chip, Eyebrow, Field, Heading, Muted, Page, Section } from '../../components/ui';
 import { colors, s } from '../../theme/index';
+import { bookingSummary } from '../../utils/checkout';
 import { Icon } from '../../components/Icon';
 import { useSession } from '../../context/SessionContext';
 
@@ -16,7 +17,7 @@ export function Home({onMovie}:{onMovie:(movie:Movie)=>void}){
  useEffect(()=>{void Promise.resolve().then(load);},[]);
  const genres=[...new Set(movies.flatMap(movie=>movie.genre||[]))].slice(0,8);
  const filtered=movies.filter(movie=>movie.title.toLocaleLowerCase('vi-VN').includes(search.toLocaleLowerCase('vi-VN'))&&(!genre||movie.genre?.includes(genre)));
- const featured=movies[0],columns=width>=650?3:2,cardWidth=(Math.min(width,780)-36-14*(columns-1))/columns;
+ const featured=movies.find(movie=>movie.status!=='coming-soon') || movies[0],columns=width>=650?3:2,cardWidth=(Math.min(width,780)-36-14*(columns-1))/columns;
  return <Page refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.red}/>}>
   <View style={s.between}><View style={{gap:5}}><Eyebrow>HẸN BẠN TẠI RẠP</Eyebrow><Heading>Hôm nay, xem gì?</Heading></View><View style={local.avatar}><Text style={{color:colors.pink,fontWeight:'800',fontSize:20}}>{user?.fullName?.slice(0,1).toUpperCase()||'C'}</Text></View></View>
   <Field icon="search" label="Tìm phim" value={search} onChangeText={setSearch} placeholder="Tên phim bạn muốn xem…" returnKeyType="search"/>
@@ -38,7 +39,7 @@ export function Tickets({version,onOrder}:{version:number;onOrder:(booking:Booki
   <View style={s.wrap}>{[['','Tất cả'],['pending','Chờ thanh toán'],['paid','Đã thanh toán']].map(([value,title])=><Chip key={value} selected={filter===value} title={title} onPress={()=>setFilter(value)}/>)}</View>
   {!!error&&<><Text style={s.error}>{error}</Text><Button secondary title="Thử lại" onPress={load}/></>}
   {!loading&&!error&&!visible.length&&<Card><Icon name="ticket" size={36} color={colors.pink}/><Text style={s.title}>Chưa có vé trong mục này</Text><Muted>Đặt một suất chiếu yêu thích để bắt đầu cuộc hẹn điện ảnh.</Muted></Card>}
-  {visible.map(item=><View key={item._id} style={local.ticket}><View style={{padding:16,gap:14}}><View style={s.between}><Badge tone={item.status==='paid'?'green':item.status==='pending'?'gold':'neutral'}>{statusText(item.status)}</Badge><Icon name="ticket" size={18}/></View><View style={[s.row,{alignItems:'flex-start'}]}><View style={{width:68}}><Artwork uri={item.showtime?.movie?.poster}/></View><View style={{flex:1,gap:6}}><Text style={s.title} numberOfLines={2}>{item.showtime?.movie?.title||'Phim'}</Text><View style={s.row}><Icon name="calendar" size={14}/><Text style={s.muted}>{item.showtime?.startTime?when(item.showtime.startTime):'Chưa có giờ chiếu'}</Text></View><Text style={s.muted} numberOfLines={1}>{item.showtime?.cinema}</Text><Text style={{color:colors.pink,fontSize:12,fontWeight:'600'}}>Ghế {item.seats.join(', ')}</Text></View></View></View><View style={local.ticketBottom}><View><Text style={[s.muted,{fontSize:10}]}>TỔNG THANH TOÁN</Text><Text style={[s.title,{marginTop:3}]}>{money(item.total)}</Text></View><Button secondary title="Xem đơn" icon="arrow" onPress={()=>onOrder(item)}/></View></View>)}
+  {visible.map(item=><View key={item._id} style={local.ticket}><View style={{padding:16,gap:14}}><View style={s.between}><Badge tone={item.status==='paid'?'green':item.status==='pending'?'gold':'neutral'}>{statusText(item.status)}</Badge><Icon name="ticket" size={18}/></View><View style={[s.row,{alignItems:'flex-start'}]}><View style={{width:68}}><Artwork uri={item.showtime?.movie?.poster}/></View><View style={{flex:1,gap:6}}><Text style={s.title} numberOfLines={2}>{bookingSummary(item).title}</Text><View style={s.row}><Icon name="calendar" size={14}/><Text style={s.muted}>{bookingSummary(item).startTime?when(bookingSummary(item).startTime):'—'}</Text></View><Text style={s.muted} numberOfLines={1}>{bookingSummary(item).cinema}</Text><Text style={{color:colors.pink,fontSize:12,fontWeight:'600'}}>Ghế {item.seats.join(', ')}</Text></View></View></View><View style={local.ticketBottom}><View><Text style={[s.muted,{fontSize:10}]}>TỔNG THANH TOÁN</Text><Text style={[s.title,{marginTop:3}]}>{money(item.total)}</Text></View><Button secondary title="Xem đơn" icon="arrow" onPress={()=>onOrder(item)}/></View></View>)}
  </Page>;
 }
 const local=StyleSheet.create({
