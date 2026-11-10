@@ -76,6 +76,28 @@ test('UC-16.1 revenue dashboard and UC-16.2 matching CSV export', async (t) => {
     assert.equal(exported.status, 200);
     assert.ok(exported.text.includes('"TỔNG",0,0,0,0,0,0,0,0,0'));
   });
+  await t.test('mobile Admin bearer sessions work natively and in development preview without weakening cookie origin checks', async () => {
+    const token = user => jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'supersecret_cinema_jwt_key_2026_sdn302');
+    const previewOrigin = process.env.MOBILE_WEB_ORIGIN || 'http://localhost:8081';
+    async function bearer(user = admin, extra = {}) {
+      return fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token(user)}`, ...extra }, body: JSON.stringify(filters) });
+    }
+    assert.equal((await bearer()).status, 201);
+    for (const user of [member, employee]) assert.equal((await bearer(user)).status, 403);
+    const previous = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = 'test';
+      const headers = { Origin: previewOrigin, 'Sec-Fetch-Site': 'cross-site' };
+      const response = await bearer(admin, headers);
+      assert.equal(response.status, 201);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.equal((await request(filters, admin, '', headers)).status, 403);
+      assert.equal((await bearer(admin, { Origin: 'https://evil.test' })).status, 403);
+      process.env.NODE_ENV = 'production';
+      assert.equal((await bearer(admin, headers)).status, 403);
+      assert.equal((await bearer()).status, 201, 'native bearer remains supported in production');
+    } finally { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; }
+  });
 
   const atStart = await payment('START', '2019-12-31T17:00:00.000Z', { gross: 100000, discounts: 10000, fees: 5000, points: 20000, amount: 75000 });
   await payment('SECOND-DAY', '2020-01-01T17:00:00.000Z', { method: 'vnpay', evidence: 'provider-confirmation', gross: 200000, amount: 200000 });
