@@ -1,4 +1,4 @@
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { AuthScreen } from '../screens/auth/AuthScreen';
-export default function Page(){const {token}=useLocalSearchParams<{token:string}>();return <AuthScreen initialMode="verify" initialToken={token||''}/>;}
+import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
+export default function Page(){const {token}=useLocalSearchParams<{token?:string|string[]}>();const value=typeof token==='string'?token:'';return <EmailVerificationScreen key={value} token={value}/>;}

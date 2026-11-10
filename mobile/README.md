@@ -16,7 +16,7 @@ Xem trước trình duyệt: `npm --prefix mobile run web` → http://localhost:
 
 ## Chức năng
 
-**Tài khoản:** đăng nhập member hoặc nhân viên/Admin; đăng ký; xác minh và gửi lại email; yêu cầu đặt lại mật khẩu; dán token/liên kết email vào app để đặt lại mật khẩu; chỉnh hồ sơ; đổi mật khẩu và đăng nhập lại; xem điểm; đăng xuất. Token native được lưu SecureStore; browser preview chỉ giữ token trong bộ nhớ.
+**Tài khoản:** đăng nhập member hoặc nhân viên/Admin; đăng ký; bấm liên kết trong email để tự xác minh và gửi lại email; yêu cầu đặt lại mật khẩu; bấm email để mở form đặt mật khẩu mới trong app; chỉnh hồ sơ; đổi mật khẩu và đăng nhập lại; xem điểm; đăng xuất. Token native được lưu SecureStore; browser preview chỉ giữ token trong bộ nhớ.
 
 **Member:** xem/tìm phim, lịch chiếu, chọn ghế, thêm F&B, giữ ghế, nhập hoặc chọn mã từ danh sách, dùng điểm, thanh toán VNPay, xem lại đơn pending, hủy đơn chưa thanh toán, lịch sử, QR vé; xem báo giá hoàn toàn bộ đơn và xác nhận hoàn về điểm theo chính sách backend.
 
@@ -26,20 +26,52 @@ Xem trước trình duyệt: `npm --prefix mobile run web` → http://localhost:
 
 Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ. Các màn quản trị ngoài phạm vi này (phòng chiếu, lịch chiếu, doanh thu, quản lý nhân sự) tiếp tục dùng website.
 
-## Google — cấu hình sau theo lựa chọn của nhóm
+## Google OAuth 2.0 / OpenID Connect
 
-Code đăng nhập/liên kết đã có nhưng backend hiện chưa cấu hình Client ID:
+Mobile dùng Authorization Code với PKCE (S256), `state` và `nonce`. Google mới tự tạo tài khoản **member Active**, dựa trên email đã được Google xác minh. Lần đăng nhập sau dùng cùng tài khoản, giữ điểm và lịch sử. Nếu email đã thuộc một tài khoản Cinema+ chưa liên kết Google, hệ thống yêu cầu đăng nhập bằng mật khẩu rồi vào **Tài khoản → Liên kết Google**, xác nhận bằng Google cùng email và mật khẩu Cinema+ hiện tại. Google không đăng nhập vào cổng nhân viên/admin.
 
-1. Trong Google Cloud tạo **OAuth Web Client ID**. Thêm origin của backend/ngrok vào Authorized JavaScript origins, ví dụ `https://<ngrok-domain>`. Với kiểm tra local có thể thêm `http://localhost:3000`. Đây là origin trang Google dành cho mobile, khác origin Vite 5173.
-2. Đặt `GOOGLE_CLIENT_ID=<web-client-id>.apps.googleusercontent.com` trong `backend/.env`, khởi động lại backend. Không đưa Client Secret vào mobile. Không cần OAuth redirect scheme riêng của app cài đặt.
-3. Đăng nhập member bằng mật khẩu, vào Tài khoản → Liên kết Google. Trang trình duyệt yêu cầu mật khẩu CINEMA+ hiện tại và Google cùng email. Backend kiểm tra lại mật khẩu, nonce, Google ID token và phiên tài khoản.
-4. Sau liên kết, có thể đăng nhập bằng Google trên màn đăng nhập. Tài khoản Google chưa liên kết không được tự động tạo/gộp tài khoản, theo nghiệp vụ website hiện có.
+1. Trong [Google Auth Platform](https://console.cloud.google.com/auth/clients), tạo/chọn client loại **Web application**. Cấu hình consent screen; nếu app ở chế độ Testing, thêm email thử nghiệm vào Test users.
+2. Thêm **Authorized redirect URI** đúng tuyệt đối với callback của backend:
+   - Điện thoại thật: `https://<backend-hoặc-ngrok>/api/auth/mobile/google/callback`.
+   - Preview trên máy tính: `http://localhost:3000/api/auth/mobile/google/callback`.
+   Không dùng IP LAN hoặc URL `exp://` làm redirect URI của Google. Với điện thoại, tunnel phải trỏ tới backend cổng 3000; tunnel Metro không thay thế tunnel API.
+3. Trong `backend/.env`, giữ Client ID hiện có nếu website dùng cùng client, rồi bổ sung:
 
-Google mở bằng system browser để dùng với Expo Go. Phiên chuyển giao có secret chỉ app biết, cookie ràng buộc browser, TTL 5 phút và chỉ đổi lấy token một lần. JWT không nằm trong URL. Nếu backend restart giữa chừng, bắt đầu lại đăng nhập Google.
+   ```env
+   GOOGLE_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=<client-secret>
+   GOOGLE_MOBILE_REDIRECT_URI=https://<backend-hoặc-ngrok>/api/auth/mobile/google/callback
+   ```
+
+   Secret chỉ nằm trên backend. Website GIS vẫn chỉ cần Client ID và Authorized JavaScript origins của website; mobile code flow dùng Authorized redirect URI.
+4. Trong `mobile/.env`, đặt `EXPO_PUBLIC_API_URL=https://<backend-hoặc-ngrok>/api` hoặc địa chỉ LAN của backend. Trình duyệt Google luôn mở trên origin callback để cookie xác thực khớp, kể cả khi mobile gọi API qua LAN.
+5. Khởi động lại backend và Expo (`npm start -- --clear` trong `mobile`), chọn tab **Thành viên → Tiếp tục với Google**. Nếu dùng ngrok, mở URL ngrok trên điện thoại và chấp nhận trang nhắc trước khi thử.
+
+Google mở bằng system browser để hoạt động với Expo Go. Backend nhận code, đổi và xác minh ID token; app chỉ nhận phiên Cinema+. App tự kiểm tra khi quay lại từ trình duyệt, có nút kiểm tra/hủy và khôi phục phiên chờ khi đổi màn hình hoặc mở lại app. Web preview dùng popup (cần cho phép popup). Phiên chuyển giao có secret lưu SecureStore trên native, cookie HttpOnly ràng buộc browser, TTL 5 phút và chỉ đổi lấy token một lần. JWT và Google token không nằm trong URL quay lại app. Handoff lưu trong bộ nhớ một tiến trình backend; restart backend sẽ hết phiên, triển khai nhiều instance cần shared store/sticky session.
+
+Kiểm thử API với MongoDB tạm và Google được mô phỏng: `npm run test:mobile-google -w backend`. Tài liệu: [Google OAuth code flow](https://developers.google.com/identity/protocols/oauth2/web-server), [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect), [Expo WebBrowser SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/).
 
 ## Email
 
-Đăng ký/quên mật khẩu dùng SMTP hiện có của backend. App không chứa SMTP password. Liên kết email website vẫn hoạt động; để thao tác trong app, sao chép liên kết/token vào màn xác minh hoặc Đặt lại mật khẩu. Route `/verify-email` và `/reset-password` của Expo cũng nhận tham số `token` nếu mở bằng liên kết Expo.
+Đăng ký/quên mật khẩu dùng SMTP hiện có của backend. App không chứa SMTP password.
+
+Đăng ký mobile gửi email chứa liên kết HTTPS `/api/auth/mobile/verify-email?token=...` trên backend công khai. Người dùng chỉ cần bấm liên kết: tài khoản tự kích hoạt và trình duyệt báo kết quả, sau đó quay lại app đăng nhập. Màn chờ chỉ hiển thị email, hướng dẫn, nút gửi lại và về đăng nhập; không nhập token. Email được gửi lại sẽ chứa liên kết mới và vô hiệu hóa liên kết trước.
+
+Đặt `PUBLIC_API_URL=https://<backend-hoặc-ngrok>` trong `backend/.env`; nếu chưa đặt, hệ thống dùng origin của `GOOGLE_MOBILE_REDIRECT_URI` hiện có. Không dùng localhost khi thử trên điện thoại. Nếu đã nhận email cũ trỏ về website/localhost, bấm **Gửi lại email xác minh** trong app để nhận liên kết mới. Backend/ngrok cần chạy khi mở email.
+
+Kiểm thử đăng ký, gửi lại, mở liên kết và đăng nhập bằng database tạm, không gửi email thật: `npm run test:mobile-registration -w backend`.
+
+Liên kết xác minh của website tiếp tục hoạt động như trước. Route `/verify-email?token=...` của Expo cũng tự xác minh nếu mở app qua deep link.
+
+Quên mật khẩu mobile gọi `/api/auth/mobile/forgot-password`. Email mới chứa liên kết HTTPS `/api/auth/mobile/reset-password?token=...`; trang này kiểm tra liên kết rồi tự mở màn `/reset-password` trong app. Form chỉ hiển thị mật khẩu mới và xác nhận mật khẩu, không nhập hay dán token. Nếu Gmail chặn chuyển app tự động, bấm **Mở ứng dụng CINEMA+** trên trang email.
+
+Backend dùng `MOBILE_PASSWORD_RESET_APP_URL` làm đích mở app tin cậy:
+- Expo Go: `exp://<IP-máy-chạy-Expo>:8081/--/reset-password` (đúng URL Metro hiện tại; giữ Expo chạy và điện thoại kết nối được máy tính).
+- Bản app đã cài: `cinemaplus://reset-password`.
+
+Đổi IP/port Metro thì cập nhật biến này và khởi động lại backend. Đích mở app được đặt trên backend, không nhận URL chuyển hướng tùy ý từ request/email. Link email chỉ kiểm tra token, chưa thay đổi mật khẩu; token chỉ được dùng khi người dùng gửi form. Link có thời hạn, dùng một lần và vô hiệu sau khi đổi mật khẩu. Chỉ thành viên đang hoạt động, có mật khẩu Cinema+ mới được gửi email; Google-only tiếp tục đăng nhập Google. Mỗi tài khoản cách nhau ít nhất 60 giây giữa hai yêu cầu gửi email.
+
+Email cũ trỏ về `localhost` không tự đổi URL: sau khi tải lại app, yêu cầu email đặt lại mật khẩu mới. Website vẫn dùng link website như trước. Kiểm thử với database tạm và email được mô phỏng: `npm run test:mobile-password-reset -w backend`; kiểm thử SMTP và quy tắc reset: `npm run test:password-reset -w backend`. Tham khảo [Expo Go deep links](https://docs.expo.dev/linking/into-your-app/#test-a-link-using-expo-go).
 
 ## VNPay và quay lại Expo Go
 

@@ -70,7 +70,7 @@ function collision() {
   return fail('Không thể đăng nhập Google. Nếu đã có tài khoản Cinema+, hãy đăng nhập bằng email và mật khẩu, rồi liên kết Google trong Hồ sơ → Bảo mật.', 409);
 }
 
-export async function googleLogin(credential, nonce) {
+export async function googleLogin(credential, nonce, { allowRegistration = false } = {}) {
   const identity = await verifyGoogleCredential(credential, nonce);
   let account = await User.findOne({ googleId: identity.sub }).select('+googleId');
   if (!account) {
@@ -83,7 +83,19 @@ export async function googleLogin(credential, nonce) {
     }
   }
   if (!account) {
-    throw fail('Không tìm thấy tài khoản Cinema+ cho Google này. Vui lòng đăng ký tài khoản rồi liên kết Google trong Hồ sơ → Bảo mật.', 404);
+    if (!allowRegistration) throw fail('Không tìm thấy tài khoản Cinema+ cho Google này. Vui lòng đăng ký tài khoản rồi liên kết Google trong Hồ sơ → Bảo mật.', 404);
+    try {
+      account = await User.create({
+        fullName: typeof identity.name === 'string' && identity.name.trim() ? identity.name.trim().slice(0, 120) : identity.email.split('@')[0],
+        email: identity.email, googleId: identity.sub, googleEmail: identity.email,
+        role: 'member', status: 'Active'
+      });
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      // Concurrent first logins may race. Never merge into an email-only account.
+      account = await User.findOne({ googleId: identity.sub }).select('+googleId');
+      if (!account) throw collision();
+    }
   }
   checkMember(account);
   const updated = await User.findOneAndUpdate(

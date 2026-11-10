@@ -10,12 +10,16 @@ import * as google from '../../controllers/auth/googleAuthController.js';
 import { protectProfileWrite } from "../../controllers/users/profileController.js";
 import { requireRole } from '../../middleware/auth/requireRole.js';
 import * as mobileGoogle from '../../controllers/auth/mobileGoogleController.js';
+import * as mobileRegistration from '../../controllers/auth/mobileRegistrationController.js';
+import * as mobilePasswordReset from '../../controllers/auth/mobilePasswordResetController.js';
 
 const router = Router();
 router.post('/mobile/google', createPasswordResetLimiter(10, 15 * 60 * 1000), mobileGoogle.begin);
+router.get('/mobile/google/callback', mobileGoogle.callback);
 router.get('/mobile/google/:id', mobileGoogle.page);
 router.post('/mobile/google/:id/complete', createPasswordResetLimiter(20, 15 * 60 * 1000), mobileGoogle.complete);
 router.post('/mobile/google/:id/exchange', createPasswordResetLimiter(180, 5 * 60 * 1000), mobileGoogle.exchange);
+router.post('/mobile/google/:id/cancel', mobileGoogle.cancel);
 
 const googleLimit = createPasswordResetLimiter(60, 15 * 60 * 1000);
 router.post('/google/challenge', googleLimit, protectProfileWrite, google.challenge);
@@ -31,12 +35,17 @@ router.post('/mobile/staff-login', createPasswordResetLimiter(20, 15 * 60 * 1000
 router.post('/admin/login', adminLogin);
 
 // UC-1: Member Registration & Email Verification (BR-1, BR-8)
+router.post('/mobile/register', mobileRegistration.register);
+router.post('/mobile/resend-verification', mobileRegistration.resend);
+router.get('/mobile/verify-email', mobileRegistration.verify);
 router.post('/register', register);
 router.get('/verify-email', verifyEmail);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
 
 // UC-19: public recovery; the opaque email token grants permission to reset.
+router.post('/mobile/forgot-password', createPasswordResetLimiter(10, 15 * 60 * 1000), mobilePasswordReset.forgot);
+router.get('/mobile/reset-password', mobilePasswordReset.open);
 router.post('/forgot-password', createPasswordResetLimiter(10, 15 * 60 * 1000), forgotPassword);
 const resetLimit = createPasswordResetLimiter(60, 15 * 60 * 1000);
 router.get('/reset-password/verify', resetLimit, verifyPasswordReset);

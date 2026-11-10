@@ -8,7 +8,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * UC-1: Register Member Account
  * Enforces BR-1 (Password Hashing) & BR-8 (Pending Verification & 24h single-use token)
  */
-export async function registerMember(data) {
+export async function registerMember(data, { verificationBaseUrl } = {}) {
   const { fullName, email, password, phone } = data;
 
   // 1. Validation
@@ -49,7 +49,8 @@ export async function registerMember(data) {
         emailResult = await sendVerificationEmail({
           to: normalizedEmail,
           fullName: existingUser.fullName,
-          token
+          token,
+          verificationBaseUrl
         });
       } catch (err) {
         console.warn(`[AUTH AUDIT] Warning: Email delivery failed for ${normalizedEmail} (Exception E2):`, err.message);
@@ -96,7 +97,8 @@ export async function registerMember(data) {
     emailResult = await sendVerificationEmail({
       to: normalizedEmail,
       fullName: newUser.fullName,
-      token: verificationToken
+      token: verificationToken,
+      verificationBaseUrl
     });
   } catch (emailErr) {
     // UC-1 Exception E2: System keeps the account Pending Verification and reports delivery failure
@@ -133,7 +135,7 @@ export async function verifyEmail(token) {
   }
 
   // Find user by verification token
-  const user = await User.findOne({ verificationToken: token.trim() });
+  let user = await User.findOne({ verificationToken: token.trim() });
 
   if (!user) {
     const error = new Error('Mã xác thực không tồn tại hoặc đã được sử dụng.');
@@ -149,11 +151,13 @@ export async function verifyEmail(token) {
     throw error;
   }
 
-  // Activate account (BR-8: Single-use activation)
-  user.status = 'Active';
-  user.verificationToken = null;
-  user.verificationExpires = null;
-  await user.save();
+  // Consume the link atomically: double clicks cannot activate twice, and a
+  // concurrent ban/status change must never be overwritten by activation.
+  user = await User.findOneAndUpdate({
+    _id: user._id, status: 'Pending Verification', verificationToken: token.trim(),
+    verificationExpires: { $gt: new Date() }
+  }, { $set: { status: 'Active', verificationToken: null, verificationExpires: null } }, { new: true });
+  if (!user) throw Object.assign(new Error('Liên kết xác minh không hợp lệ hoặc đã được sử dụng.'), { status: 400 });
 
   console.log(`[AUTH AUDIT] Account verified and activated: email=${user.email}`);
 
@@ -173,7 +177,7 @@ export async function verifyEmail(token) {
 /**
  * Resend verification email for Pending Verification account (BR-8)
  */
-export async function resendVerification(email) {
+export async function resendVerification(email, { verificationBaseUrl } = {}) {
   if (typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
     const error = new Error('Địa chỉ email không hợp lệ.');
     error.status = 400;
@@ -215,7 +219,8 @@ export async function resendVerification(email) {
     emailResult = await sendVerificationEmail({
       to: normalizedEmail,
       fullName: user.fullName,
-      token: verificationToken
+      token: verificationToken,
+      verificationBaseUrl
     });
   } catch (err) {
     console.warn(`[AUTH AUDIT] Warning: Resend email delivery failed for ${normalizedEmail}:`, err.message);

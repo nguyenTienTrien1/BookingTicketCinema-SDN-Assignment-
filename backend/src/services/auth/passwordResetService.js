@@ -35,27 +35,27 @@ function usableToken(hash, now) {
   };
 }
 
-function resetConfiguration() {
+function resetConfiguration(resetBaseUrl) {
   // Technical defaults allowed by the task; not the BR-8 registration expiry.
   const minutes = Number(process.env.PASSWORD_RESET_TTL_MINUTES || 30);
-  const clientUrl = new URL(process.env.CLIENT_URL || '');
+  const clientUrl = new URL(resetBaseUrl || process.env.CLIENT_URL || '');
   if (!Number.isSafeInteger(minutes) || minutes <= 0 ||
       !['http:', 'https:'].includes(clientUrl.protocol) || clientUrl.username || clientUrl.password) {
     throw new Error('Invalid password reset configuration.');
   }
   const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
   if (Number.isNaN(expiresAt.getTime())) throw new Error('Invalid password reset expiry.');
-  return { minutes, expiresAt, resetUrl: new URL('/reset-password', clientUrl) };
+  return { minutes, expiresAt, resetUrl: resetBaseUrl ? clientUrl : new URL('/reset-password', clientUrl) };
 }
 
-export async function requestPasswordReset(data) {
+export async function requestPasswordReset(data, { resetBaseUrl } = {}) {
   if (!data || typeof data !== 'object' || Array.isArray(data) || typeof data.email !== 'string' ||
       data.email.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
     invalidInput('Địa chỉ email không hợp lệ.');
   }
   const email = data.email.trim().toLowerCase();
   try {
-    const config = resetConfiguration();
+    const config = resetConfiguration(resetBaseUrl);
     const account = await User.findOne({ email, ...activeMember() }).select('_id email tokenVersion');
     if (!account) return;
 
