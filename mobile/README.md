@@ -24,7 +24,11 @@ Xem trước trình duyệt: `npm --prefix mobile run web` → http://localhost:
 
 **Nhân viên:** tìm thành viên, bán vé cho khách vãng lai/thành viên, dùng điểm và mã khi có quyền sửa đơn, thu tiền mặt hoặc mở VNPay, bán riêng F&B tiền mặt (UC-11), giữ mã đơn F&B để khôi phục khi tải lại app, tra cứu đơn vé/F&B, đối soát khoản thu, ghi chú, thử hoàn tất hoặc xác nhận trả khoản thực thu; quét QR bằng camera hoặc nhập mã để check-in theo suất và giờ vào rạp.
 
-Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ. Các màn quản trị ngoài phạm vi này (lịch chiếu, doanh thu, quản lý nhân sự) tiếp tục dùng website.
+**Suất chiếu (Admin):** vào **Tác vụ → Quản lý suất chiếu** để xem danh sách, lọc theo phim, phân trang, thêm thủ công, sửa hoặc xác nhận xóa suất chiếu. Chọn phim, phòng đang hoạt động, ngày/giờ Việt Nam (UTC+7) và giá vé; ghế lấy từ cấu hình phòng. Backend kiểm tra ngày khởi chiếu, lịch trùng và 15 phút dọn phòng. Không sửa/xóa trực tiếp suất đã bắt đầu, đã hủy, đang giữ ghế hoặc có tham chiếu đặt vé. Khi dữ liệu thay đổi, tải lại và kiểm tra trước khi lưu tiếp. Đề xuất lịch tự động và hủy suất/hoàn điểm tiếp tục dùng website.
+
+**Doanh thu (Admin):** vào **Tác vụ → Xem doanh thu**. Lọc khoảng ngày tối đa 366 ngày theo giờ Việt Nam, nguồn thu, phương thức và nhóm ngày/tháng. Xem tiền thu, hoàn tiền, thu ròng, cơ cấu tiền, hoàn về điểm riêng, biểu đồ và chi tiết từng kỳ. Bộ lọc chỉ áp dụng khi bấm **Xem báo cáo**; số liệu luôn ghi rõ kỳ và thời điểm lấy dữ liệu. Báo cáo dùng cùng chứng từ đã xác minh với website, không tính đơn demo hoặc khoản thu chưa xác minh. Xuất CSV tiếp tục dùng website.
+
+Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ.
 
 ## Google OAuth 2.0 / OpenID Connect
 
@@ -49,7 +53,7 @@ Mobile dùng Authorization Code với PKCE (S256), `state` và `nonce`. Google m
 
 Google mở bằng system browser để hoạt động với Expo Go. Backend nhận code, đổi và xác minh ID token; app chỉ nhận phiên Cinema+. App tự kiểm tra khi quay lại từ trình duyệt, có nút kiểm tra/hủy và khôi phục phiên chờ khi đổi màn hình hoặc mở lại app. Web preview dùng popup (cần cho phép popup). Phiên chuyển giao có secret lưu SecureStore trên native, cookie HttpOnly ràng buộc browser, TTL 5 phút và chỉ đổi lấy token một lần. JWT và Google token không nằm trong URL quay lại app. Handoff lưu trong bộ nhớ một tiến trình backend; restart backend sẽ hết phiên, triển khai nhiều instance cần shared store/sticky session.
 
-Kiểm thử API với MongoDB tạm và Google được mô phỏng: `npm run test:mobile-google -w backend`. Tài liệu: [Google OAuth code flow](https://developers.google.com/identity/protocols/oauth2/web-server), [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect), [Expo WebBrowser SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/webbrowser/).
+Kiểm thử API với MongoDB tạm và Google được mô phỏng: `npm run test:mobile-google -w backend`. Tài liệu: [Google OAuth code flow](https://developers.google.com/identity/protocols/oauth2/web-server), [OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect), [Expo WebBrowser SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/webbrowser/).
 
 ## Email
 
@@ -126,5 +130,7 @@ mobile/
 - `cd mobile` rồi `npx expo install --check`: kiểm tra phiên bản dependency.
 - `cd mobile` rồi `npx expo export --platform android`: kiểm tra bundle Android, không tạo APK.
 - Kiểm thử quản lý phòng trên web mobile với database tạm: từ root chạy `npm --prefix mobile run test:rooms:ui`. Cần MongoDB đang chạy và Playwright/Edge (như các bài kiểm thử UI của backend). Ảnh kiểm tra lưu tại `.local/qa/mobile-rooms/`.
+- Sau khi chạy Expo, từ `backend` chạy `node tests/ui/test-mobile-showtimes-ui.js`: kiểm tra giao diện suất chiếu ở kích thước điện thoại qua browser preview, dùng database tạm riêng và không sửa dữ liệu app đang chạy. Có thể đặt `MOBILE_UI_URL` nếu Expo không chạy tại `http://localhost:8081`.
+- Từ `backend` chạy `node tests/ui/test-mobile-revenue-ui.js` để kiểm tra màn doanh thu, bộ lọc, số liệu hoàn tiền âm, phân trang, quyền truy cập và thử lại khi lỗi qua browser preview. API và dữ liệu kiểm thử được cô lập trong database tạm.
 
 Các kiểm tra tự động dùng database tạm, email/Google giả lập để không gửi email hoặc sửa dữ liệu demo của nhóm. Cần kiểm tra cuối trên điện thoại: cấp/từ chối quyền camera và thư viện ảnh, giữ phiên sau đóng app, ngắt mạng khi tạo/thu tiền, VNPay thực tế và trình duyệt mở lại Expo Go. Google thực tế chờ nhóm cấu hình Client ID.

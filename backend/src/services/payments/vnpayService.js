@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import Booking from "../../models/bookings/Booking.js";
 import PaymentAttempt from "../../models/payments/PaymentAttempt.js";
 import User from "../../models/users/User.js";
+import Showtime from "../../models/cinema/Showtime.js";
 import { settle, loadBooking } from "../bookings/bookingService.js";
 import { transaction, domainError as fail } from "../common/transaction.js";
 import { refundFailedPayment } from "./refundService.js";
@@ -77,6 +78,9 @@ export async function createPayment(bookingId, userId, ip, staffId = null, mobil
       b.expiresAt <= new Date()
     )
       throw fail("Đơn không còn hiệu lực.", 410);
+    const show = await Showtime.findById(b.showtime).session(session);
+    if (!show || show.cancelledAt || show.startTime <= new Date())
+      throw fail("Suất chiếu đã bắt đầu hoặc đã hủy. Không tạo thêm thanh toán.", 410);
     if (b.total <= 0) throw fail("Đơn 0đ phải dùng thanh toán bằng điểm.");
     if (b.activePayment) {
       const a = await PaymentAttempt.findOne({ ref: b.activePayment }).session(

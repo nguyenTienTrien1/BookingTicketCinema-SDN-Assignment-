@@ -35,6 +35,25 @@ test('Nine UC completion against transactional MongoDB',async t=>{
  async function fixture(extra={}){const movie=await Movie.create({title:'Test '+randomUUID(),genre:['Action'],duration:100,classification:'P',releaseDate:new Date(),...extra});const show=await Showtime.create({movie:movie._id,cinema:'Test',room:'1',startTime:new Date(Date.now()+3600000),price:100000,seats:[{number:'A1'},{number:'A2'}]});return {movie,show};}
  async function book(actor=member,body={},extra={}){const f=await fixture(extra);const result=await request('/bookings',actor,'POST',{showtimeId:f.show.id,seats:['A1'],...body});assert.equal(result.status,201,JSON.stringify(result.data));return {...f,b:result.data};}
 
+ await t.test('a hold cannot outlive the showtime and a legacy order cannot start VNPay after the film starts',async()=>{
+  const f=await fixture();
+  const start=new Date(Date.now()+120000);
+  await Showtime.updateOne({_id:f.show._id},{$set:{startTime:start}});
+  const created=await request('/bookings',member,'POST',{showtimeId:f.show.id,seats:['A1']});
+  assert.equal(created.status,201);
+  assert.equal(new Date(created.data.expiresAt).getTime(),start.getTime());
+  const saved=Object.fromEntries(['VNPAY_TMN_CODE','VNPAY_HASH_SECRET','VNPAY_RETURN_URL'].map(k=>[k,process.env[k]]));
+  Object.assign(process.env,{VNPAY_TMN_CODE:'TESTMERCHANT',VNPAY_HASH_SECRET:'test-secret',VNPAY_RETURN_URL:'http://localhost/api/payments/vnpay/return'});
+  try {
+   await Showtime.updateOne({_id:f.show._id},{$set:{startTime:new Date(Date.now()-1000)}});
+   const payment=await request('/bookings/'+created.data._id+'/pay',member,'POST',{method:'vnpay'});
+   assert.equal(payment.status,410);
+   assert.equal(await PaymentAttempt.countDocuments({booking:created.data._id}),0);
+   assert.equal((await Booking.findById(created.data._id)).activePayment,null);
+  } finally {
+   for(const [key,value] of Object.entries(saved)) { if(value===undefined)delete process.env[key];else process.env[key]=value; }
+  }
+ });
  await t.test('concurrent seat claims have one winner and cash payment keeps sold seats unavailable',async()=>{
   const f=await fixture(),other=await account();
   const results=await Promise.all([member,other].map(actor=>request('/bookings',actor,'POST',{showtimeId:f.show.id,seats:['A1']})));
