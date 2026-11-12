@@ -4,12 +4,14 @@ import Food from '../../models/catalogue/Food.js';
 import { transaction, domainError as fail } from '../common/transaction.js';
 import { canonical, signature } from '../payments/vnpayService.js';
 import { quoteFoodPromotion, consumeFoodPromotion } from './foodSalePromotionService.js';
+import { validateMobileReturn } from '../payments/mobileReturn.js';
 
 function date(value) {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(value);
   return ['year', 'month', 'day', 'hour', 'minute', 'second'].map(key => parts.find(p => p.type === key).value).join('');
 }
-export async function createFoodVnpay(id, employeeId, ip) {
+export async function createFoodVnpay(id, employeeId, ip, mobileReturnTo = null) {
+  if (mobileReturnTo) mobileReturnTo = validateMobileReturn(mobileReturnTo);
   if (!process.env.VNPAY_TMN_CODE || !process.env.VNPAY_HASH_SECRET || !process.env.VNPAY_RETURN_URL) throw fail('Chưa cấu hình VNPay.', 503);
   const sale = await transaction(async session => {
     const order = await FoodSale.findOne({ _id: id, employee: employeeId }).session(session);
@@ -26,6 +28,10 @@ export async function createFoodVnpay(id, employeeId, ip) {
       await order.save({ session });
     }
     if (order.onlinePayment.expiresAt <= new Date()) throw fail('Liên kết đã hết hạn. Kiểm tra kết quả VNPay trước khi đổi phương thức hoặc tạo đơn mới.', 409);
+    if (mobileReturnTo && order.onlinePayment.mobileReturnTo !== mobileReturnTo) {
+      order.onlinePayment.mobileReturnTo = mobileReturnTo;
+      await order.save({ session });
+    }
     return order;
   });
   // Keep the configured public host; use a dedicated return endpoint for FoodSale.

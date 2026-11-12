@@ -46,7 +46,7 @@ export default function Reconciliation() {
       <Field label="Lý do đối soát" value={notes[key] || ''} maxLength={500} editable={!a.busy} onChangeText={value => setNotes(current => ({ ...current, [key]: value }))} />
       <Button secondary busy={a.busy} title="Lưu ghi chú đối soát" onPress={() => a.run(() => resolve(item, type, 'note'))} />
       <ConfirmButton disabled={a.busy || !verified} title="Thử hoàn tất khoản đã thu" message="Không thu thêm tiền. Hệ thống kiểm tra lại điều kiện trước khi hoàn tất." onConfirm={() => a.run(() => resolve(item, type, 'retry'))} />
-      {(type === 'food' || (item.method === 'cash' && !item.booking?.user)) && <ConfirmButton disabled={a.busy || !verified} title="Ghi nhận đã trả tiền khách" message={'Chỉ xác nhận sau khi đã trả lại khoản thực thu ' + money(type === 'food' ? item.total : item.amount) + '; không trả tiền thừa lần nữa.'} onConfirm={() => a.run(() => resolve(item, type, 'cash-returned'))} />}
+      {((type === 'food' && item.paymentMethod !== 'vnpay') || (type === 'ticket' && item.method === 'cash' && !item.booking?.user)) && <ConfirmButton disabled={a.busy || !verified} title="Ghi nhận đã trả tiền khách" message={'Chỉ xác nhận sau khi đã trả lại khoản thực thu ' + money(type === 'food' ? item.total : item.amount) + '; không trả tiền thừa lần nữa.'} onConfirm={() => a.run(() => resolve(item, type, 'cash-returned'))} />}
       {type === 'ticket' && !!item.booking?.user && <ConfirmButton disabled={a.busy || !verified} title="Hoàn 100% về điểm" message="Hoàn khoản thu đã xác minh về điểm thành viên; không hoàn thêm tiền mặt/VNPay." onConfirm={() => a.run(() => resolve(item, type, 'refund-points'))} />}
     </>;
   }
@@ -60,7 +60,8 @@ export default function Reconciliation() {
       {found && <><Text style={s.title}>{found.type === 'food-sale' ? 'Đơn F&B' : 'Đơn vé'} · {statusText(found.order.status)}</Text><Heading>{money(found.order.total)}</Heading><Text selectable style={s.muted}>{found.order._id}</Text>
         {found.type === 'booking' ? <Button title="Mở đơn & thu tiền" onPress={() => router.push({ pathname: '/order/[id]', params: { id: found.order._id, collection: 'true' } })} /> : <>
           {found.order.items?.map((item: any, index: number) => <Muted key={index}>{item.name} × {item.quantity} · {money(item.unitPrice * item.quantity)}</Muted>)}
-          <Muted>Khách đưa {money(found.order.cashReceived)} · Tiền thừa {money(found.order.change)}</Muted>
+          {found.order.paymentMethod === 'vnpay' ? <Muted>VNPay · Mã giao dịch: {found.order.onlinePayment?.providerRef || 'Chờ xác minh'}</Muted> : <Muted>Khách đưa {money(found.order.cashReceived)} · Tiền thừa {money(found.order.change)}</Muted>}
+          {!!found.order.promotionDiscount && <Muted>Mã {found.order.promotion?.code} · Giảm {money(found.order.promotionDiscount)}</Muted>}
           {['payment_received', 'reconciliation'].includes(found.order.status) && <Button secondary title="Đối soát đơn F&B" onPress={() => setSection('reconciliation')} />}
         </>}
       </>}

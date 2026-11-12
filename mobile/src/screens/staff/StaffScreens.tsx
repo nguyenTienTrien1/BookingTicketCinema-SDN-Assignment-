@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import { Redirect, router } from 'expo-router';
 import { api, readDraft, writeDraft } from '../../services/api';
 import { money } from '../../utils/format';
@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Card,
+  Chip,
   Eyebrow,
   Field,
   Heading,
@@ -21,6 +22,8 @@ import {
 import { colors, s } from '../../theme/index';
 import { Icon, IconName } from '../../components/Icon';
 import { Food } from '../../utils/types';
+import { openExternal } from '../../services/browser';
+import { appReturnUrl } from '../../services/appReturnUrl';
 function Task({
   title,
   detail,
@@ -147,7 +150,7 @@ export function Workspace() {
               primary
               icon="cart"
               title="Bán riêng F&B"
-              detail="Bắp, nước và thanh toán tiền mặt"
+              detail="Bắp nước, khuyến mãi và tiền mặt / VNPay"
               onPress={() => router.push('/staff/food-sales')}
             />
             <Task
@@ -186,6 +189,11 @@ export function FoodSales() {
     [enabled, setEnabled] = useState(false),
     [ready, setReady] = useState(false),
     [search, setSearch] = useState('');
+  const [method, setMethod] = useState<'cash' | 'vnpay'>('cash');
+  const [code, setCode] = useState('');
+  const [promotions, setPromotions] = useState<{ _id: string; code: string; value: number; discountType: string }[]>([]);
+  const [promotionError, setPromotionError] = useState('');
+  const [uncertain, setUncertain] = useState(false);
   const a = useAction(),
     request = useRef<string>('');
   // Mỗi nhân viên lưu riêng ID đơn đang xử lý để khôi phục khi quay lại ứng dụng.
@@ -202,7 +210,12 @@ export function FoodSales() {
       setFoods(data.foods);
       setEnabled(data.paymentsEnabled);
       const id = await readDraft(key);
-      if (id) setSale(await api('/food-sales/' + id));
+      if (id) {
+        const order = await api('/food-sales/' + id);
+        setSale(order); setCode(order.promotion?.code || '');
+        setMethod(order.paymentMethod === 'vnpay' ? 'vnpay' : 'cash');
+      }
+      setUncertain(false);
       setReady(true);
     } catch (e) {
       a.setError((e as Error).message);
@@ -212,6 +225,21 @@ export function FoodSales() {
     newRequest();
     void Promise.resolve().then(load);
   }, []);
+  useEffect(() => {
+    let active = true;
+    api('/promotions?scope=food').then(data => { if (active) setPromotions(data); })
+      .catch(() => { if (active) setPromotionError('Chưa tải được mã gợi ý. Bạn vẫn có thể nhập mã.'); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active' && sale?._id && !a.busy) void refresh().catch(e => a.setError((e as Error).message));
+    });
+    return () => listener.remove();
+  }, [sale?._id, a.busy]);
+  const onlinePending = sale?.onlinePayment?.status === 'created';
+  const codeDirty = code.trim().toUpperCase() !== (sale?.promotion?.code || '');
+  const canChangeCode = sale?.status === 'pending' && !sale?.onlinePayment?.ref && !uncertain;
   // Tạm tính để hiển thị; khi tạo đơn, backend tự đọc giá và tính tổng lại.
   const total = foods.reduce((sum, f) => sum + f.price * (quantities[f._id] || 0), 0),
     validCash =
@@ -220,7 +248,30 @@ export function FoodSales() {
       Number(cash) >= (sale?.total || 0);
   async function refresh() {
     // Dùng cả khi thanh toán lỗi mạng để biết backend đã hoàn tất hay chưa.
-    if (sale) setSale(await api('/food-sales/' + sale._id));
+    if (sale) {
+      const order = await api('/food-sales/' + sale._id);
+      setSale(order); setUncertain(false);
+      if (order.total !== sale.total) { setCash(''); setConfirmed(false); }
+      if (order.onlinePayment?.ref) setCode(order.promotion?.code || '');
+      if (order.onlinePayment?.status === 'created') setMethod('vnpay');
+    }
+  }
+  async function applyPromotion(value: string) {
+    setSale(await api(`/food-sales/${sale._id}/promotion`, 'PATCH', { code: value.trim() }));
+    setCode(value.trim().toUpperCase()); setCash(''); setConfirmed(false);
+  }
+  async function onlinePay() {
+    if (codeDirty) throw new Error('Áp dụng mã hoặc hủy thay đổi mã trước khi thanh toán.');
+    setUncertain(true);
+    try {
+      const result = await api(`/food-sales/${sale._id}/vnpay`, 'POST', { mobileReturnTo: appReturnUrl('/payment-return') });
+      await refresh();
+      await openExternal(result.paymentUrl);
+      await refresh();
+    } catch (e) {
+      await refresh().catch(() => {});
+      throw e;
+    }
   }
   function quantity(food: Food, delta: number) {
     // Số lượng nằm trong [0, min(tồn kho, 100)]; đổi giỏ thì tạo requestId mới.
@@ -234,7 +285,7 @@ export function FoodSales() {
     <Page>
       <BackButton disabled={a.busy} onPress={() => router.navigate('/workspace')} />
       <Heading>Quầy bắp & nước</Heading>
-      <Muted>Bán riêng F&B · Thanh toán tiền mặt</Muted>
+      <Muted>Bán riêng F&B · Tiền mặt hoặc VNPay</Muted>
       {!!a.error && (
         <Text accessibilityRole="alert" style={s.error}>
           {a.error}
@@ -300,6 +351,7 @@ export function FoodSales() {
                   // Lưu ID trước khi chuyển sang nhận tiền để có thể khôi phục đơn.
                   await writeDraft(key, result._id);
                   setSale(result);
+                  setCode(''); setMethod('cash'); setUncertain(false);
                 })
               }
             />
@@ -313,7 +365,7 @@ export function FoodSales() {
           </Text>
           <Heading>
             {{
-              pending: 'Chờ nhận tiền',
+              pending: 'Chờ thanh toán',
               payment_received: 'Đã nhận tiền',
               paid: 'Hoàn tất',
               cancelled: 'Đã hủy',
@@ -326,13 +378,43 @@ export function FoodSales() {
               {item.name} × {item.quantity} · {money(item.unitPrice * item.quantity)}
             </Text>
           ))}
-          <Heading>{money(sale.total)}</Heading>
+          <View style={{ gap: 10, paddingVertical: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
+            <View style={s.between}><Muted>Tạm tính</Muted><Text style={s.title}>{money(sale.subtotal ?? sale.total)}</Text></View>
+            {!!sale.promotionDiscount && <View style={s.between}><Muted>Mã {sale.promotion?.code}</Muted><Text style={{ color: colors.pink }}>−{money(sale.promotionDiscount)}</Text></View>}
+            <View style={s.between}><Text style={s.title}>Tổng thanh toán</Text><Heading>{money(sale.total)}</Heading></View>
+          </View>
+          {canChangeCode && <View style={{ gap: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 }}>
+            <Heading>Khuyến mãi F&B</Heading>
+            <Field label="Mã khuyến mãi" value={code} editable={!a.busy} maxLength={40} autoCapitalize="characters" autoCorrect={false} onChangeText={setCode} />
+            {!!promotions.length && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {promotions.map(item => <Chip key={item._id} title={`${item.code} · ${item.discountType === 'percentage' ? item.value + '%' : money(item.value)}`} selected={code.trim().toUpperCase() === item.code} disabled={a.busy} onPress={() => setCode(item.code)} />)}
+            </ScrollView>}
+            {!!promotionError && <Muted>{promotionError}</Muted>}
+            <View style={s.wrap}><Button secondary busy={a.busy} disabled={!code.trim()} title="Áp dụng mã" onPress={() => a.run(() => applyPromotion(code))} />
+              {!!sale.promotion && <Button secondary disabled={a.busy} title="Bỏ mã khuyến mãi" onPress={() => a.run(() => applyPromotion(''))} />}
+              {codeDirty && <Button secondary disabled={a.busy} title="Hủy thay đổi mã" onPress={() => setCode(sale.promotion?.code || '')} />}
+            </View>
+            <Muted>Mỗi đơn dùng một mã dành cho F&B hoặc toàn đơn.</Muted>
+          </View>}
           {sale.status === 'pending' && (
             <>
+              <Heading>Phương thức thanh toán</Heading>
+              <View style={s.wrap}>
+                <Chip title="Tiền mặt" selected={method === 'cash' && !onlinePending} disabled={a.busy || onlinePending || uncertain} onPress={() => { setMethod('cash'); setConfirmed(false); }} />
+                <Chip title="VNPay" selected={method === 'vnpay' || onlinePending} disabled={a.busy || onlinePending || uncertain || sale.total === 0} onPress={() => { setMethod('vnpay'); setConfirmed(false); }} />
+              </View>
+              {!enabled && <Muted>Thanh toán chưa sẵn sàng. Chưa thu tiền khách.</Muted>}
+              {uncertain && <Muted>Chưa xác định kết quả yêu cầu. Kiểm tra trạng thái trước khi thanh toán tiếp.</Muted>}
+              {(method === 'vnpay' || onlinePending) && sale.total > 0 ? <>
+                <Muted>{onlinePending ? 'Đang chờ kết quả VNPay. Không thu tiền mặt hoặc đổi mã.' : 'Mở VNPay để thanh toán, sau đó quay lại app kiểm tra hóa đơn.'}</Muted>
+                {sale.onlinePayment?.status === 'failed' && <Muted>VNPay báo giao dịch chưa thành công. Có thể thử lại hoặc chọn tiền mặt.</Muted>}
+                <Button busy={a.busy} disabled={!enabled || codeDirty || uncertain} title={onlinePending ? 'Mở lại VNPay' : 'Thanh toán bằng VNPay'} onPress={() => a.run(onlinePay)} />
+              </> : <>
               <Field
                 label="Tiền khách đưa (VND)"
                 keyboardType="number-pad"
                 value={cash}
+                editable={!a.busy && !uncertain && enabled}
                 onChangeText={(v) => {
                   setCash(v);
                   setConfirmed(false);
@@ -349,6 +431,7 @@ export function FoodSales() {
                     <Button
                       key={value}
                       secondary
+                      disabled={a.busy || uncertain || !enabled}
                       title={money(value)}
                       onPress={() => {
                         setCash(String(value));
@@ -364,12 +447,13 @@ export function FoodSales() {
               </Text>
               <Button
                 secondary={!confirmed}
+                disabled={a.busy || uncertain || !enabled || !validCash}
                 title={confirmed ? '✓ Đã nhận đủ tiền mặt' : 'Tôi đã nhận đủ tiền mặt'}
                 onPress={() => setConfirmed(!confirmed)}
               />
               <Button
                 busy={a.busy}
-                disabled={!enabled || !validCash || !confirmed}
+                disabled={!enabled || !validCash || !confirmed || uncertain || codeDirty}
                 title="Hoàn tất & xuất hóa đơn"
                 onPress={() =>
                   a.run(async () => {
@@ -391,9 +475,11 @@ export function FoodSales() {
                   })
                 }
               />
+              </>}
               <Button
                 secondary
                 busy={a.busy}
+                disabled={onlinePending || uncertain}
                 title="Hủy đơn chưa thu tiền"
                 onPress={() =>
                   a.run(async () =>
@@ -419,6 +505,7 @@ export function FoodSales() {
               Khách đưa {money(sale.cashReceived)} · Tiền thừa {money(sale.change)}
             </Muted>
           )}
+          {sale.paymentMethod === 'vnpay' && <Muted>Phương thức: VNPay{sale.onlinePayment?.providerRef ? ' · Mã giao dịch: ' + sale.onlinePayment.providerRef : ''}</Muted>}
           <Button
             secondary
             busy={a.busy}
@@ -435,6 +522,7 @@ export function FoodSales() {
                   setQuantities({});
                   setCash('');
                   setConfirmed(false);
+                  setCode(''); setMethod('cash'); setUncertain(false);
                   newRequest();
                   await load();
                 })

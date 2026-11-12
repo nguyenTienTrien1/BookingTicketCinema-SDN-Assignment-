@@ -14,7 +14,7 @@ const foodSaleSchema = new mongoose.Schema({
   subtotal: Number,
   promotion: mongoose.Schema.Types.Mixed,
   promotionDiscount: { type: Number, default: 0 },
-  onlinePayment: { ref: String, expiresAt: Date, status: String, providerRef: String, collectedAt: Date },
+  onlinePayment: { ref: String, expiresAt: Date, status: String, providerRef: String, collectedAt: Date, mobileReturnTo: String },
   currency: { type: String, default: 'VND' },
   status: { type: String, enum: ['pending', 'payment_received', 'paid', 'cancelled', 'reconciliation', 'returned'], default: 'pending' },
   paymentMethod: { type: String, enum: ['cash', 'vnpay'] },
