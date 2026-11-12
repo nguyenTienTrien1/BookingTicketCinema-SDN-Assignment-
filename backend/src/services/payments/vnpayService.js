@@ -139,6 +139,10 @@ export async function createPayment(bookingId, userId, ip, staffId = null, mobil
 }
 // Xác minh kết quả VNPay rồi hoàn tất đơn; callback lặp không xử lý thanh toán lần nữa.
 export async function processIPN(params) {
+  if (typeof params.vnp_TxnRef === 'string' && params.vnp_TxnRef.startsWith('food-')) {
+    const { processFoodVnpay } = await import('../catalogue/foodSaleVnpayService.js');
+    return processFoodVnpay(params);
+  }
   // Kiểm tra chữ ký, merchant, mã giao dịch và số tiền trước khi cập nhật đơn.
   if (
     Object.values(params).some((value) => typeof value !== "string") ||

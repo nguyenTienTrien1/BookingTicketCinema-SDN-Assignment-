@@ -5,7 +5,7 @@ import './counterPromotion.css';
 const money = value => Number(value || 0).toLocaleString('vi-VN') + 'đ';
 const scopeName = { food: 'Bắp nước', ticket: 'Vé', all: 'Toàn đơn' };
 
-export default function CounterPromotion({ booking, editable, disabled, onApply, onReplacePoints, onRemove, onDraftChange, onCancelDraft, heading = 'Khuyến mãi tại quầy' }) {
+export default function CounterPromotion({ booking, editable, disabled, onApply, onReplacePoints, onRemove, onDraftChange, onCancelDraft, heading = 'Khuyến mãi tại quầy', foodOnly = false }) {
     const applied = booking.promotion;
     const [code, setCode] = useState(applied?.code || '');
     const [suggestions, setSuggestions] = useState([]);
@@ -39,11 +39,11 @@ export default function CounterPromotion({ booking, editable, disabled, onApply,
     useEffect(() => {
         if (!editable) return;
         const controller = new AbortController(); setLoadError(false);
-        api('/promotions', { signal: controller.signal })
+        api(foodOnly ? '/promotions?scope=food' : '/promotions', { signal: controller.signal })
             .then(data => { if (!controller.signal.aborted) { if (!Array.isArray(data)) throw new Error('Invalid catalogue'); setSuggestions(data); } })
             .catch(() => { if (!controller.signal.aborted) setLoadError(true); });
         return () => controller.abort();
-    }, [booking._id, editable, retry]);
+    }, [booking._id, editable, retry, foodOnly]);
     if (!editable && !applied) return null;
     return <section className="paymentPanel counterPromotion" aria-labelledby="counter-promotion-heading">
         <div className="panelHeading"><h3 id="counter-promotion-heading">{heading}</h3><span className="counterPromotionPolicy">1 mã / đơn</span></div>
@@ -51,7 +51,7 @@ export default function CounterPromotion({ booking, editable, disabled, onApply,
             <fieldset disabled={disabled}>
                 <label htmlFor="counter-promotion-code">Mã khuyến mãi</label>
                 <div className="counterPromotionControl">
-                    <div className="counterPromotionInput" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) { setOptionsOpen(false); setActiveOption(-1); } }}>
+                    <div className="counterPromotionInput" onBlur={event => { if (!event.currentTarget.parentElement.contains(event.relatedTarget)) { setOptionsOpen(false); setActiveOption(-1); } }}>
                         <input ref={inputRef} id="counter-promotion-code" role="combobox" aria-autocomplete="list" aria-expanded={dropdownOpen} aria-controls="counter-promotion-options" aria-activedescendant={dropdownOpen && activeOption >= 0 ? 'promotion-option-' + activeOption : undefined}
                             value={code} onChange={event => { setCode(event.target.value); setOptionsOpen(true); setActiveOption(-1); }} onFocus={() => setOptionsOpen(true)} onKeyDown={navigateOptions}
                             maxLength={40} autoComplete="off" spellCheck={false} placeholder="Nhập mã khuyến mãi" aria-describedby="counter-promotion-hint" />
@@ -67,7 +67,7 @@ export default function CounterPromotion({ booking, editable, disabled, onApply,
                     </div>
                     <button className="ghost" type="submit" disabled={!normalized}>{replacesPoints ? 'Bỏ điểm và áp dụng mã' : !dirty && applied ? 'Kiểm tra lại mã' : 'Áp dụng mã'}</button>
                 </div>
-                <p id="counter-promotion-hint" className="helperText">Khuyến mãi được tính trước điểm. Chỉ mã cho phép cộng dồn mới dùng cùng điểm thành viên.</p>
+                <p id="counter-promotion-hint" className="helperText">{foodOnly ? 'Áp dụng một mã dành cho F&B hoặc toàn đơn trước khi thanh toán.' : 'Khuyến mãi được tính trước điểm. Chỉ mã cho phép cộng dồn mới dùng cùng điểm thành viên.'}</p>
                 {replacesPoints && <p className="promotionPointsConflict" role="status">Mã {normalized} không dùng cùng {booking.pointsUsed} điểm đang áp dụng. Chọn “Bỏ điểm và áp dụng mã” để dùng mã và giữ lại điểm trong tài khoản.</p>}
                 <div className="counterPromotionActions">
                     {dirty && <button type="button" className="paymentTextButton" onClick={() => { setCode(applied?.code || ''); onCancelDraft(); }}>Hủy thay đổi mã</button>}

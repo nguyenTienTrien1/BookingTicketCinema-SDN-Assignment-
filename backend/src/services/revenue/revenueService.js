@@ -135,10 +135,12 @@ export async function createReport(input, adminId) {
     }
   }
   let excludedFoodSales = 0;
-  if (filters.source !== 'tickets' && ['all', 'cash'].includes(filters.method)) {
+  if (filters.source !== 'tickets' && ['all', 'cash', 'vnpay'].includes(filters.method)) {
     const query = { status: 'paid', paidAt: { $gte: start, $lt: end, $lte: dataTimestamp }, createdAt: { $lte: dataTimestamp } };
     for await (const sale of FoodSale.find(query).lean().cursor()) {
-      if (sale.currency !== 'VND' || sale.paymentMethod !== 'cash' || !sale.paymentConfirmedAt || sale.paymentConfirmedAt > sale.paidAt) {
+      if (filters.method !== 'all' && sale.paymentMethod !== filters.method) continue;
+      const onlineProof = sale.paymentMethod === 'vnpay' && sale.onlinePayment?.status === 'succeeded' && sale.onlinePayment?.collectedAt && sale.onlinePayment?.providerRef;
+      if (sale.currency !== 'VND' || !['cash', 'vnpay'].includes(sale.paymentMethod) || (sale.paymentMethod === 'vnpay' && !onlineProof) || !sale.paymentConfirmedAt || sale.paymentConfirmedAt > sale.paidAt) {
         excludedFoodSales += 1;
         continue;
       }
@@ -149,9 +151,9 @@ export async function createReport(input, adminId) {
         }
         gross += item.unitPrice * item.quantity;
       }
-      const entry = { kind: 'payment', gross, discounts: 0, fees: 0, points: 0, amount: sale.total, confirmedAt: sale.paidAt };
+      const entry = { kind: 'payment', gross, discounts: sale.promotionDiscount || 0, fees: 0, points: 0, amount: sale.total, confirmedAt: sale.paidAt };
       checkPayment(entry);
-      if (!validMoney(sale.cashReceived) || !validMoney(sale.change) || sale.cashReceived - sale.change !== sale.total) {
+      if (sale.paymentMethod === 'cash' && (!validMoney(sale.cashReceived) || !validMoney(sale.change) || sale.cashReceived - sale.change !== sale.total)) {
         throw reportError('Hóa đơn bắp nước không khớp tiền thu; cần đối soát.', 409);
       }
       include(entry, 'food');

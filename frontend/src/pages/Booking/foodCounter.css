@@ -5,7 +5,7 @@
 .foodCounterItem.selected { border-color: #ed3654; box-shadow: 0 0 0 1px #ed365430; }
 .foodCounterItem h2 { font-size: 15px; line-height: 1.45; min-height: 38px; margin: 0; overflow-wrap: anywhere; }
 .foodCounterItem:hover { border-color: #72505a; }
-.foodCounterItem label, .foodPaymentForm > label { display: flex; flex-direction: column; gap: 10px; }
+.foodCounterItem label, .foodPaymentForm > label, .foodPaymentForm > form > label { display: flex; flex-direction: column; gap: 10px; }
 .foodPaymentForm { max-width: 560px; margin-top: 24px; }
 .foodPaymentForm .foodConfirm { flex-direction: row; align-items: flex-start; line-height: 1.6; }
 .foodConfirm input { margin-top: 5px; width: 20px; height: 20px; flex-shrink: 0; }
@@ -130,4 +130,47 @@
   .foodReceiptTable tr { padding: 12px 0; border-bottom: 1px solid #292e3b; }
   .foodReceiptTable td, .foodReceiptTable td:first-child { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 7px 0; border: 0; overflow-wrap: anywhere; }
   .foodReceiptTable td::before { content: attr(data-label); color: #b9c0d1; flex-shrink: 0; }
+}
+.foodCounterPage .foodPaymentMethods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; margin: 0 0 24px; padding: 0; border: 0; }
+.foodCounterPage .foodPaymentMethods legend { width: 100%; margin-bottom: 12px; padding: 0; font-size: 15px; font-weight: 700; }
+.foodCounterPage .foodPaymentMethods label { display: flex; align-items: center; justify-content: center; gap: 9px; min-width: 0; min-height: 48px; padding: 10px; border: 1px solid #45404b; border-radius: 10px; background: #17171f; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; transition: border-color .15s, background .15s; }
+.foodCounterPage .foodPaymentMethods label:has(input:checked) { border-color: #f16c88; background: #45232f; color: #ffe0e8; }
+.foodCounterPage .foodPaymentMethods label:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+.foodCounterPage .foodPaymentMethods input[type=radio] { appearance: auto; flex: 0 0 17px; width: 17px; height: 17px; min-height: 17px; margin: 0; padding: 0; border: 0; border-radius: 50%; box-shadow: none; accent-color: #ec315c; }
+.foodCounterPage .foodPaymentMethods label:has(input:focus-visible) { outline: 2px solid #ff9eb2; outline-offset: 3px; }
+.foodOnlinePayment { display: grid; gap: 16px; }
+.foodCounterOrderSummary .counterPromotion { margin-top: 20px; }
+.foodCounterPage .foodCounterReceipt { padding: 28px; }
+.foodReceiptHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.foodReceiptHeading .movieEyebrow { margin: 0 0 8px; font-size: 10px; }
+.foodReceiptHeading h2 { margin: 0; font-size: 24px; }
+.foodReceiptStatus { flex-shrink: 0; padding: 7px 11px; border: 1px solid #68513b; border-radius: 24px; background: #33281d; color: #f6cf94; font-size: 12px; font-weight: 650; }
+.foodReceiptStatus.status-paid { background: #172d23; border-color: #345e48; color: #a5e5c0; }
+.foodReceiptMeta { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 16px 0 22px; padding-bottom: 20px; border-bottom: 1px solid #2d303a; color: #9da7ba; font-size: 12px; }
+.foodReceiptMeta span { display: flex; flex-wrap: wrap; gap: 6px; }
+.foodReceiptMeta strong { color: #d3d9e5; font-weight: 500; overflow-wrap: anywhere; }
+.foodReceiptTotals { display: grid; gap: 12px; margin: 18px 0 24px; padding: 18px; border: 1px solid #2c303c; border-radius: 12px; background: #14171f; }
+.foodReceiptTotals > div { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; color: #abb6c8; }
+.foodReceiptTotals dd { margin: 0; font-weight: 650; white-space: nowrap; color: #e2e7f0; font-variant-numeric: tabular-nums; }
+.foodReceiptTotals .foodReceiptDiscount dd { color: #9adbb5; }
+.foodReceiptTotals .foodReceiptGrandTotal { border-top: 1px solid #303442; padding-top: 14px; font-weight: 700; color: #eef0f6; }
+.foodReceiptGrandTotal dd { color: #ff96ad; font-size: 20px; }
+.foodCounterPage .foodCounterOrderSummary .counterPromotion { padding: 20px; border: 1px solid #303644; border-radius: 12px; background: #151922; }
+.foodCounterPage .counterPromotion h3 { margin: 0; font-size: 17px; }
+.foodCounterPage .counterPromotion .panelHeading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 18px; }
+.foodCounterPage .foodPaymentForm #cash-received { font-size: 17px; }
+.foodCounterPage .foodPaymentForm #cash-received::placeholder { font-size: 14px; font-weight: 400; }
+.foodCounterPage .foodPaymentForm > form > label { font-size: 13px; line-height: 1.6; }
+.foodCounterPage .foodConfirm input[type=checkbox] { flex: 0 0 18px; width: 18px; height: 18px; min-height: 18px; padding: 0; margin: 3px 0 0; }
+.foodCounterPage .foodOnlinePayment > p { margin: 0; font-size: 13px; line-height: 1.7; color: #b6bdd0; }
+@media (max-width: 600px) {
+  .foodCounterPage .foodCounterReceipt { padding: 18px; }
+  .foodReceiptHeading { align-items: flex-start; }
+  .foodReceiptHeading h2 { font-size: 20px; }
+  .foodReceiptStatus { font-size: 11px; padding: 6px 9px; }
+  .foodReceiptMeta { flex-direction: column; gap: 8px; }
+  .foodCounterPage .foodCounterOrderSummary .counterPromotion, .foodCounterReceipt .foodPaymentForm { padding: 16px; }
+}
+@media (max-width: 560px) {
+  .foodCounterPage .counterPromotionOptions { position: static; margin-top: 8px; }
 }

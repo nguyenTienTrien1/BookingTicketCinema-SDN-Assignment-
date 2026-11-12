@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import Food from "../../models/catalogue/Food.js";
 import FoodSale from "../../models/catalogue/FoodSale.js";
+import { transaction } from '../common/transaction.js';
+import { quoteFoodPromotion, consumeFoodPromotion } from './foodSalePromotionService.js';
 
 function saleError(message, status = 400) {
   const error = new Error(message);
@@ -52,7 +54,7 @@ export async function createFoodSale(input, employeeId) {
   }
   if (!Number.isSafeInteger(total) || total <= 0) throw saleError('Tổng tiền đơn hàng không hợp lệ.');
   try {
-    return await FoodSale.create({ employee: employeeId, requestId: input.requestId, items, total });
+    return await FoodSale.create({ employee: employeeId, requestId: input.requestId, items, subtotal: total, total });
   } catch (error) {
     if (error.code === 11000) return FoodSale.findOne({ employee: employeeId, requestId: input.requestId });
     throw error;
@@ -63,7 +65,7 @@ export async function cancelFoodSale(id, employeeId) {
   const sale = await getFoodSale(id, employeeId);
   if (sale.status === 'cancelled') return sale;
   const cancelled = await FoodSale.findOneAndUpdate(
-    { _id: id, employee: employeeId, status: 'pending' }, { $set: { status: 'cancelled' } }, { new: true }
+    { _id: id, employee: employeeId, status: 'pending', 'onlinePayment.status': { $ne: 'created' } }, { $set: { status: 'cancelled' } }, { new: true }
   );
   if (!cancelled) throw saleError('Đơn đã nhận thanh toán hoặc đã thay đổi, không thể hủy.', 409);
   return cancelled;
@@ -80,17 +82,21 @@ export async function payFoodSale(id, input, employeeId) {
     throw saleError('Thanh toán cần MongoDB replica set để lưu hóa đơn và trừ kho đồng thời. Chưa ghi nhận thu tiền.', 503);
   }
   if (sale.status === 'pending') {
+    if (sale.onlinePayment?.status === 'created') throw saleError('Đang chờ kết quả VNPay. Không thu tiền mặt hoặc hủy đơn.', 409);
+    const quote = await quoteFoodPromotion(sale, sale.promotion?.code || '', null);
+    if (quote.discount !== (sale.promotionDiscount || 0) || quote.promotion?.ruleSignature !== sale.promotion?.ruleSignature) throw saleError('Mã đã thay đổi. Áp dụng lại mã trước khi nhận tiền.', 409);
     if (!input || input.paymentMethod !== 'cash' || input.paymentConfirmed !== true ||
         input.confirmedTotal !== sale.total || !Number.isSafeInteger(input.cashReceived) || input.cashReceived < sale.total) {
       throw saleError('Cần xác nhận đúng tổng tiền và tiền mặt đã nhận, không nhỏ hơn tổng đơn.');
     }
     // Persist the cash receipt before finalization so a failure never loses evidence of collected money.
     const received = await FoodSale.findOneAndUpdate(
-      { _id: id, employee: employeeId, status: 'pending' },
+      { _id: id, employee: employeeId, status: 'pending', __v: sale.__v, total: sale.total, 'onlinePayment.status': { $ne: 'created' } },
       { $set: { status: 'payment_received', paymentMethod: 'cash', cashReceived: input.cashReceived,
         change: input.cashReceived - sale.total, paymentConfirmedAt: new Date() } }, { new: true }
     );
     sale = received || await getFoodSale(id, employeeId);
+    if (sale.status === 'pending') throw saleError('Đơn đã chuyển sang VNPay. Không thu tiền mặt.', 409);
   }
   const session = await mongoose.startSession();
   try {
@@ -98,6 +104,8 @@ export async function payFoodSale(id, input, employeeId) {
       const current = await FoodSale.findOne({ _id: id, employee: employeeId }).session(session);
       if (current.status === 'paid') return;
       if (current.status !== 'payment_received') throw saleError('Đơn không còn ở trạng thái thanh toán.', 409);
+      if (current.paymentMethod !== 'cash') throw saleError('Đơn VNPay cần được xác minh bởi cổng thanh toán.', 409);
+      await consumeFoodPromotion(current, session);
       for (const item of current.items) {
         const result = await Food.updateOne(
           { _id: item.food, available: true, deletedAt: null, price: item.unitPrice, stock: { $gte: item.quantity } },
@@ -121,4 +129,20 @@ export async function payFoodSale(id, input, employeeId) {
     await session.endSession();
   }
   return getFoodSale(id, employeeId);
+}
+
+export async function applyFoodPromotion(id, input, employeeId) {
+  return transaction(async session => {
+    const sale = await FoodSale.findOne({ _id: id, employee: employeeId }).session(session);
+    if (!sale) throw saleError('Không tìm thấy đơn.', 404);
+    if (sale.status !== 'pending' || sale.onlinePayment?.ref) throw saleError('Chỉ đổi mã trước khi tạo giao dịch VNPay. Muốn đổi mã sau giao dịch thất bại, hủy đơn và tạo lại.', 409);
+    const quote = await quoteFoodPromotion(sale, input?.code, session);
+    sale.subtotal = sale.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    sale.promotion = quote.promotion;
+    sale.promotionDiscount = quote.discount;
+    sale.total = sale.subtotal - quote.discount;
+    sale.increment();
+    await sale.save({ session });
+    return sale;
+  });
 }

@@ -159,12 +159,12 @@ export default function CounterTools() {
    {!foodReceiptsReady && <p role="status">Đang tải các khoản F&B cần đối soát…</p>}
    {foodReceiptsReady && foodReceipts.length === 0 && <p className="staffToolsEmpty">Không có đơn F&B cần đối soát.</p>}
    {foodReceipts.map(order => <article className="paymentPanel staffReconciliationCard" key={order._id}>
-     <div className="staffReceiptHeading"><div><span className="staffOrderKind">F&B · ĐÃ NHẬN TIỀN MẶT</span><h3>{money(order.total)}</h3></div><span className="staffOrderStatus status-reconciliation">Cần xử lý</span></div>
+     <div className="staffReceiptHeading"><div><span className="staffOrderKind">F&B · {order.paymentMethod === 'vnpay' ? 'ĐÃ THU VNPAY' : 'ĐÃ NHẬN TIỀN MẶT'}</span><h3>{money(order.total)}</h3></div><span className="staffOrderStatus status-reconciliation">Cần xử lý</span></div>
      <p className="staffOrderReference">Mã đơn: {order._id}</p><p>Nhân viên: {order.employee?.fullName || 'Chưa có thông tin'}</p>
-     <p>Khách đưa: {money(order.cashReceived)} · Tiền thừa đã ghi nhận: {money(order.change)}</p>
+     {order.paymentMethod === 'vnpay' ? <p>Mã giao dịch VNPay: {order.onlinePayment?.providerRef}</p> : <p>Khách đưa: {money(order.cashReceived)} · Tiền thừa đã ghi nhận: {money(order.change)}</p>}
      <p className="staffToolsWarning">{order.issue || 'Đã ghi nhận tiền, chưa xác nhận hoàn tất.'} Không thu tiền lần nữa.</p>
      <label htmlFor={'food-reason-' + order._id}>Lý do / ghi chú</label><input id={'food-reason-' + order._id} aria-label={'Lý do đối soát F&B ' + order._id} maxLength={500} value={notes[order._id] || ''} onChange={event => setNotes({ ...notes, [order._id]: event.target.value })} placeholder="Ghi rõ kết quả kiểm tra và cách xử lý…" />
-     <div className="staffReconciliationActions"><button type="button" className="moviePrimary" onClick={() => run(() => resolveFood(order, 'retry'))}>Hoàn tất khoản F&B đã thu</button><button type="button" className="movieSecondary" onClick={() => run(() => resolveFood(order, 'cash-returned'))}>Xác nhận trả lại {money(order.total)}</button><button type="button" className="movieSecondary" onClick={() => run(() => resolveFood(order, 'note'))}>Lưu ghi chú F&B</button></div>
+     <div className="staffReconciliationActions"><button type="button" className="moviePrimary" onClick={() => run(() => resolveFood(order, 'retry'))}>Hoàn tất khoản F&B đã thu</button>{order.paymentMethod !== 'vnpay' && <button type="button" className="movieSecondary" onClick={() => run(() => resolveFood(order, 'cash-returned'))}>Xác nhận trả lại {money(order.total)}</button>}<button type="button" className="movieSecondary" onClick={() => run(() => resolveFood(order, 'note'))}>Lưu ghi chú F&B</button></div>
    </article>)}
    <h2>Đối soát hoàn điểm</h2>
    {!refundsReady && <p role="status">Chưa tải xong danh sách hoàn điểm.</p>}

@@ -11,6 +11,6 @@ export default function StaffFoodReceipt({ order, onReconcile }) {
     {order.paidAt && <p className="helperText">Thanh toán lúc {new Date(order.paidAt).toLocaleString('vi-VN')}</p>}
     {order.status === 'paid' && <p className="staffToolsSuccess">Đơn đã hoàn tất. Không thu thêm tiền và không cần đối soát.</p>}
     {order.status === 'pending' && <p className="staffToolsHint">Đơn chưa ghi nhận tiền. Nhân viên tạo đơn tiếp tục nhận tiền tại màn hình Bán F&B; đơn này chưa cần đối soát.</p>}
-    {unresolved && <><p className="staffToolsWarning">{order.issue || 'Đã ghi nhận tiền mặt nhưng chưa xác nhận hoàn tất.'} Không thu tiền lần nữa.</p><button className="moviePrimary" type="button" onClick={onReconcile}>Mở đối soát đơn F&B</button></>}
+    {unresolved && <><p className="staffToolsWarning">{order.issue || 'Đã ghi nhận khoản thu nhưng chưa xác nhận hoàn tất.'} Không thu tiền lần nữa.</p><button className="moviePrimary" type="button" onClick={onReconcile}>Mở đối soát đơn F&B</button></>}
   </section>;
 }
