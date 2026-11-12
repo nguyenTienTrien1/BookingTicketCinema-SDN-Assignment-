@@ -6,7 +6,7 @@ App React Native/TypeScript dùng chung Express và MongoDB với website; đi�
 
 1. Từ thư mục repo chính: `npm run db:local -w backend`, rồi `npm run dev:backend`.
 2. Lần đầu: `cd mobile`, `npm ci`, sao chép `.env.example` thành `.env`.
-3. Đặt `EXPO_PUBLIC_API_URL=https://<ngrok-domain>/api` hoặc `http://<IP-laptop>:3000/api`. Điện thoại thật không dùng localhost. Android emulator dùng `http://10.0.2.2:3000/api`.
+3. Khi backend và Expo chạy trên cùng máy, để trống `EXPO_PUBLIC_API_URL=`: app tự dùng địa chỉ máy chạy Metro và cổng API 3000, tránh giữ IP cũ sau khi đổi mạng. Nếu dùng backend từ xa, cổng API khác hoặc Expo `--tunnel`, đặt `EXPO_PUBLIC_API_URL=https://<ngrok-domain>/api` hoặc URL backend truy cập được. Điện thoại thật không dùng localhost. Android emulator tiêu chuẩn có thể dùng `http://10.0.2.2:3000/api`.
 4. Từ repo chính: `npm run dev:mobile`. Điện thoại và laptop cùng Wi-Fi, dùng Expo Go quét QR trong terminal. Expo Go phải tương thích SDK trong `mobile/package.json`; nếu báo SDK mismatch, gửi nguyên thông báo để đồng bộ phiên bản, không cần chuyển sang APK.
 5. Nếu đổi `.env`: `npm run dev:mobile -- --clear`. Nếu Metro đang chạy trên 8081 thì dừng phiên cũ bằng Ctrl+C trước.
 
@@ -20,11 +20,11 @@ Xem trước trình duyệt: `npm --prefix mobile run web` → http://localhost:
 
 **Member:** xem/tìm phim, lịch chiếu, chọn ghế, thêm F&B, giữ ghế, nhập hoặc chọn mã từ danh sách, dùng điểm, thanh toán VNPay, xem lại đơn pending, hủy đơn chưa thanh toán, lịch sử, QR vé; xem báo giá hoàn toàn bộ đơn và xác nhận hoàn về điểm theo chính sách backend.
 
-**Admin:** danh sách/tìm kiếm/lọc/phân trang và thêm/sửa/xóa phim, F&B, khuyến mãi; chọn ảnh thư viện điện thoại hoặc URL cho poster/banner/F&B; thời hạn khuyến mãi theo ngày trọn vẹn hoặc giờ cụ thể. Backend vẫn chặn sửa phim đã có lịch, thay đổi F&B đang có đơn và thay đổi điều kiện mã đã dùng.
+**Admin:** danh sách/tìm kiếm/lọc/phân trang và thêm/sửa/xóa phim, F&B, khuyến mãi, phòng chiếu; chọn ảnh thư viện điện thoại hoặc URL cho poster/banner/F&B; thời hạn khuyến mãi theo ngày trọn vẹn hoặc giờ cụ thể. Quản lý phòng có lọc theo rạp/trạng thái, tạo sơ đồ ban đầu, chọn ghế theo vị trí/hàng hoặc toàn bộ, đổi loại thường/VIP và tình trạng, thêm/xóa ghế, xem lại xung đột rồi xác nhận lưu. Các thay đổi gửi phiên bản phòng để tránh ghi đè; backend giữ nguyên các quy tắc bảo vệ suất chiếu và lịch sử đặt vé.
 
 **Nhân viên:** tìm thành viên, bán vé cho khách vãng lai/thành viên, dùng điểm và mã khi có quyền sửa đơn, thu tiền mặt hoặc mở VNPay, bán riêng F&B tiền mặt (UC-11), giữ mã đơn F&B để khôi phục khi tải lại app, tra cứu đơn vé/F&B, đối soát khoản thu, ghi chú, thử hoàn tất hoặc xác nhận trả khoản thực thu; quét QR bằng camera hoặc nhập mã để check-in theo suất và giờ vào rạp.
 
-Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ. Các màn quản trị ngoài phạm vi này (phòng chiếu, lịch chiếu, doanh thu, quản lý nhân sự) tiếp tục dùng website.
+Nhân viên không tự sửa đơn tại quầy của người khác; API tiếp tục kiểm tra quyền. Đơn online có thể được nhân viên tra cứu và thu tiền qua màn tác vụ. Các màn quản trị ngoài phạm vi này (lịch chiếu, doanh thu, quản lý nhân sự) tiếp tục dùng website.
 
 ## Google OAuth 2.0 / OpenID Connect
 
@@ -125,5 +125,6 @@ mobile/
 - `npm --prefix mobile run lint`: lint.
 - `cd mobile` rồi `npx expo install --check`: kiểm tra phiên bản dependency.
 - `cd mobile` rồi `npx expo export --platform android`: kiểm tra bundle Android, không tạo APK.
+- Kiểm thử quản lý phòng trên web mobile với database tạm: từ root chạy `npm --prefix mobile run test:rooms:ui`. Cần MongoDB đang chạy và Playwright/Edge (như các bài kiểm thử UI của backend). Ảnh kiểm tra lưu tại `.local/qa/mobile-rooms/`.
 
 Các kiểm tra tự động dùng database tạm, email/Google giả lập để không gửi email hoặc sửa dữ liệu demo của nhóm. Cần kiểm tra cuối trên điện thoại: cấp/từ chối quyền camera và thư viện ảnh, giữ phiên sau đóng app, ngắt mạng khi tạo/thu tiền, VNPay thực tế và trình duyệt mở lại Expo Go. Google thực tế chờ nhóm cấu hình Client ID.

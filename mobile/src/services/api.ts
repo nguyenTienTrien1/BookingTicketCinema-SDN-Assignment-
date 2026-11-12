@@ -1,7 +1,24 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000/api').replace(/\/$/, '');
+function getApiUrl() {
+  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+
+  // In local development the API runs on the same computer as Metro.
+  // Follow Metro's current address instead of keeping an old Wi-Fi IP in .env.
+  if (__DEV__) {
+    const hostUri = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? window.location.host
+      : Constants.expoConfig?.hostUri;
+    if (hostUri) return `http://${new URL(`http://${hostUri}`).hostname}:3000/api`;
+  }
+
+  return Platform.OS === 'android' ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api';
+}
+
+export const API_URL = getApiUrl();
 let token: string | null = null;
 let sessionExpired: (()=>void)|null = null;
 export function onSessionExpired(handler:(()=>void)|null){sessionExpired=handler;}
